@@ -1,0 +1,2918 @@
+openapi: 3.0.1
+info:
+  title: StockTrim API
+  version: v1
+paths:
+  /api/boms:
+    post:
+      tags:
+      - BillOfMaterials
+      parameters:
+      - name: api-auth-id
+        in: header
+        description: Tenant Id
+        required: true
+        schema:
+          type: string
+      - name: api-auth-signature
+        in: header
+        description: Tenant Name
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json-patch+json:
+            schema:
+              $ref: '#/components/schemas/BillOfMaterialsRequestDto'
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BillOfMaterialsRequestDto'
+          text/json:
+            schema:
+              $ref: '#/components/schemas/BillOfMaterialsRequestDto'
+          application/*+json:
+            schema:
+              $ref: '#/components/schemas/BillOfMaterialsRequestDto'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillOfMaterialsResponseDto'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '500':
+          description: Server Error
+    get:
+      tags:
+      - BillOfMaterials
+      parameters:
+      - name: productId
+        in: query
+        schema:
+          type: string
+      - name: componentId
+        in: query
+        schema:
+          type: string
+      - name: api-auth-id
+        in: header
+        description: Tenant Id
+        required: true
+        schema:
+          type: string
+      - name: api-auth-signature
+        in: header
+        description: Tenant Name
+        required: true
+        schema:
+          type: string
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillOfMaterialsResponseDto'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '500':
+          description: Server Error
+    delete:
+      tags:
+      - BillOfMaterials
+      parameters:
+      - name: productId
+        in: query
+        schema:
+          type: string
+      - name: componentId
+        in: query
+        schema:
+          type: string
+      - name: api-auth-id
+        in: header
+        description: Tenant Id
+        required: true
+        schema:
+          type: string
+      - name: api-auth-signature
+        in: header
+        description: Tenant Name
+        required: true
+        schema:
+          type: string
+      responses:
+        '201':
+          description: Created
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '500':
+          description: Server Error
+  /api/Configuration/{configurationName}:
+    get:
+      tags:
+      - Configuration
+      parameters:
+      - name: configurationName
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: api-auth-id
+        in: header
+        description: Tenant Id
+        required: true
+        schema:
+          type: string
+      - name: api-auth-signature
+        in: header
+        description: Tenant Name
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InventoryManagementSystemResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '500':
+          description: Server Error
+  /api/Customers:
+    get:
+      tags:
+      - Customers
+      description: 'Get all customers '
+      parameters:
+      - name: api-auth-id
+        in: header
+        description: Tenant Id
+        required: true
+        schema:
+          type: string
+      - name: api-auth-signature
+        in: header
+        description: Tenant Name
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CustomerDto'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '500':
+          description: Server Error
+    put:
+      tags:
+      - Customers
+      description: Preforms a Create or Update based on Code.
+      parameters:
+      - name: api-auth-id
+        in: header
+        description: Tenant Id
+        required: true
+        schema:
+          type: string
+      - name: api-auth-signature
+        in: header
+        description: Tenant Name
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json-patch+json:
+            schema:
+              $ref: '#/components/schemas/CustomerDto'
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CustomerDto'
+          text/json:
+            schema:
+              $ref: '#/components/schemas/CustomerDto'
+          application/*+json:
+            schema:
+              $ref: '#/components/schemas/CustomerDto'
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PurchaseOrderResponseDto'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '500':
+          description: Server Error
+  /api/Customers/{code}:
+    get:
+      tags:
+      - Customers
+      description: Get a Customer by Code
+      parameters:
+      - name: code
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: api-auth-id
+        in: header
+        description: Tenant Id
+        required: true
+        schema:
+          type: string
+      - name: api-auth-signature
+        in: header
+        description: Tenant Name
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerDto'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '500':
+          description: Server Error
+  /api/InFlow/{tenantId}:
+    post:
+      tags:
+      - InFlow
+      parameters:
+      - name: tenantId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: api-auth-id
+        in: header
+        description: Tenant Id
+        required: true
+        schema:
+          type: string
+      - name: api-auth-signature
+        in: header
+        description: Tenant Name
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Success
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '500':
+          description: Server Error
+  /api/Inventory:
+    post:
+      tags:
+      - Inventory
+      description: Sets stock on hand and stock on order for products
+      parameters:
+      - name: api-auth-id
+        in: header
+        description: Tenant Id
+        required: true
+        schema:
+          type: string
+      - name: api-auth-signature
+        in: header
+        description: Tenant Name
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json-patch+json:
+            schema:
+              $ref: '#/components/schemas/SetInventoryRequest'
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SetInventoryRequest'
+          text/json:
+            schema:
+              $ref: '#/components/schemas/SetInventoryRequest'
+          application/*+json:
+            schema:
+              $ref: '#/components/schemas/SetInventoryRequest'
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PurchaseOrderResponseDto'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '500':
+          description: Server Error
+  /api/InventoryManagementSystemSettings:
+    get:
+      tags:
+      - InventoryManagementSystemSettings
+      parameters:
+      - name: api-auth-id
+        in: header
+        description: Tenant Id
+        required: true
+        schema:
+          type: string
+      - name: api-auth-signature
+        in: header
+        description: Tenant Name
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InventoryManagementSystemResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '500':
+          description: Server Error
+    post:
+      tags:
+      - InventoryManagementSystemSettings
+      parameters:
+      - name: api-auth-id
+        in: header
+        description: Tenant Id
+        required: true
+        schema:
+          type: string
+      - name: api-auth-signature
+        in: header
+        description: Tenant Name
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json-patch+json:
+            schema:
+              $ref: '#/components/schemas/InventoryManagementSystemRequest'
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InventoryManagementSystemRequest'
+          text/json:
+            schema:
+              $ref: '#/components/schemas/InventoryManagementSystemRequest'
+          application/*+json:
+            schema:
+              $ref: '#/components/schemas/InventoryManagementSystemRequest'
+      responses:
+        '201':
+          description: Created
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '500':
+          description: Server Error
+  /api/Locations:
+    get:
+      tags:
+      - Locations
+      parameters:
+      - name: code
+        in: query
+        schema:
+          type: string
+      - name: api-auth-id
+        in: header
+        description: Tenant Id
+        required: true
+        schema:
+          type: string
+      - name: api-auth-signature
+        in: header
+        description: Tenant Name
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LocationResponseDto'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '500':
+          description: Server Error
+    post:
+      tags:
+      - Locations
+      description: Creates or Updates a location using Code OR Name as the unique
+        identifiers. Ie the same name cannot be used twice for different locations.
+        Use V2 endpoint if you would like to do this
+      parameters:
+      - name: api-auth-id
+        in: header
+        description: Tenant Id
+        required: true
+        schema:
+          type: string
+      - name: api-auth-signature
+        in: header
+        description: Tenant Name
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json-patch+json:
+            schema:
+              $ref: '#/components/schemas/LocationRequestDto'
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LocationRequestDto'
+          text/json:
+            schema:
+              $ref: '#/components/schemas/LocationRequestDto'
+          application/*+json:
+            schema:
+              $ref: '#/components/schemas/LocationRequestDto'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LocationResponseDto'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '500':
+          description: Server Error
+  /api/V2/Locations:
+    post:
+      tags:
+      - LocationsV2
+      description: Creates or Updates a location using Code as the unique identifier
+      parameters:
+      - name: api-auth-id
+        in: header
+        description: Tenant Id
+        required: true
+        schema:
+          type: string
+      - name: api-auth-signature
+        in: header
+        description: Tenant Name
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json-patch+json:
+            schema:
+              $ref: '#/components/schemas/LocationRequestDto'
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LocationRequestDto'
+          text/json:
+            schema:
+              $ref: '#/components/schemas/LocationRequestDto'
+          application/*+json:
+            schema:
+              $ref: '#/components/schemas/LocationRequestDto'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LocationResponseDto'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '500':
+          description: Server Error
+  /api/OrderPlan:
+    post:
+      tags:
+      - OrderPlan
+      parameters:
+      - name: api-auth-id
+        in: header
+        description: Tenant Id
+        required: true
+        schema:
+          type: string
+      - name: api-auth-signature
+        in: header
+        description: Tenant Name
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json-patch+json:
+            schema:
+              $ref: '#/components/schemas/OrderPlanFilterCriteria'
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderPlanFilterCriteria'
+          text/json:
+            schema:
+              $ref: '#/components/schemas/OrderPlanFilterCriteria'
+          application/*+json:
+            schema:
+              $ref: '#/components/schemas/OrderPlanFilterCriteria'
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderPlanResultsDto'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '500':
+          description: Server Error
+  /api/ProcessingStatus:
+    get:
+      tags:
+      - ProcessingStatus
+      parameters:
+      - name: api-auth-id
+        in: header
+        description: Tenant Id
+        required: true
+        schema:
+          type: string
+      - name: api-auth-signature
+        in: header
+        description: Tenant Name
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProcessingStatusResponseDto'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '500':
+          description: Server Error
+  /api/Products:
+    get:
+      tags:
+      - Products
+      parameters:
+      - name: code
+        in: query
+        schema:
+          type: string
+      - name: pageNo
+        in: query
+        schema:
+          type: string
+      - name: api-auth-id
+        in: header
+        description: Tenant Id
+        required: true
+        schema:
+          type: string
+      - name: api-auth-signature
+        in: header
+        description: Tenant Name
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ProductsResponseDto'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '500':
+          description: Server Error
+    post:
+      tags:
+      - Products
+      parameters:
+      - name: api-auth-id
+        in: header
+        description: Tenant Id
+        required: true
+        schema:
+          type: string
+      - name: api-auth-signature
+        in: header
+        description: Tenant Name
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json-patch+json:
+            schema:
+              $ref: '#/components/schemas/ProductsRequestDto'
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductsRequestDto'
+          text/json:
+            schema:
+              $ref: '#/components/schemas/ProductsRequestDto'
+          application/*+json:
+            schema:
+              $ref: '#/components/schemas/ProductsRequestDto'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductsResponseDto'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '500':
+          description: Server Error
+    delete:
+      tags:
+      - Products
+      parameters:
+      - name: productId
+        in: query
+        schema:
+          type: string
+      - name: api-auth-id
+        in: header
+        description: Tenant Id
+        required: true
+        schema:
+          type: string
+      - name: api-auth-signature
+        in: header
+        description: Tenant Name
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Success
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '500':
+          description: Server Error
+  /api/PurchaseOrders:
+    get:
+      tags:
+      - PurchaseOrders
+      parameters:
+      - name: referenceNumber
+        in: query
+        schema:
+          type: string
+      - name: api-auth-id
+        in: header
+        description: Tenant Id
+        required: true
+        schema:
+          type: string
+      - name: api-auth-signature
+        in: header
+        description: Tenant Name
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PurchaseOrderResponseDto'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '500':
+          description: Server Error
+    post:
+      tags:
+      - PurchaseOrders
+      parameters:
+      - name: api-auth-id
+        in: header
+        description: Tenant Id
+        required: true
+        schema:
+          type: string
+      - name: api-auth-signature
+        in: header
+        description: Tenant Name
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json-patch+json:
+            schema:
+              $ref: '#/components/schemas/PurchaseOrderRequestDto'
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PurchaseOrderRequestDto'
+          text/json:
+            schema:
+              $ref: '#/components/schemas/PurchaseOrderRequestDto'
+          application/*+json:
+            schema:
+              $ref: '#/components/schemas/PurchaseOrderRequestDto'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PurchaseOrderResponseDto'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '500':
+          description: Server Error
+    delete:
+      tags:
+      - PurchaseOrders
+      parameters:
+      - name: referenceNumber
+        in: query
+        schema:
+          type: string
+      - name: api-auth-id
+        in: header
+        description: Tenant Id
+        required: true
+        schema:
+          type: string
+      - name: api-auth-signature
+        in: header
+        description: Tenant Name
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PurchaseOrderResponseDto'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '500':
+          description: Server Error
+  /api/V2/PurchaseOrders/{referenceNumber}:
+    get:
+      tags:
+      - PurchaseOrdersV2
+      description: Get a purchase order by reference number
+      parameters:
+      - name: referenceNumber
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: api-auth-id
+        in: header
+        description: Tenant Id
+        required: true
+        schema:
+          type: string
+      - name: api-auth-signature
+        in: header
+        description: Tenant Name
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PurchaseOrderResponseDto'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '500':
+          description: Server Error
+  /api/V2/PurchaseOrders/OrderPlan:
+    post:
+      tags:
+      - PurchaseOrdersV2
+      description: 'Generate purchase orders based on the filters passed in. Same
+        as how the StockTrim Order plan screen works '
+      parameters:
+      - name: api-auth-id
+        in: header
+        description: Tenant Id
+        required: true
+        schema:
+          type: string
+      - name: api-auth-signature
+        in: header
+        description: Tenant Name
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json-patch+json:
+            schema:
+              $ref: '#/components/schemas/OrderPlanFilterCriteriaDto'
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderPlanFilterCriteriaDto'
+          text/json:
+            schema:
+              $ref: '#/components/schemas/OrderPlanFilterCriteriaDto'
+          application/*+json:
+            schema:
+              $ref: '#/components/schemas/OrderPlanFilterCriteriaDto'
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PurchaseOrderResponseDto'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '500':
+          description: Server Error
+  /api/V2/PurchaseOrders:
+    get:
+      tags:
+      - PurchaseOrdersV2
+      description: Get all purchase orders
+      parameters:
+      - name: page
+        in: query
+        schema:
+          type: integer
+          format: int32
+          default: 0
+      - name: pageSize
+        in: query
+        schema:
+          type: integer
+          format: int32
+          default: 10
+      - name: status
+        in: query
+        schema:
+          $ref: '#/components/schemas/PurchaseOrderStatusDto'
+      - name: api-auth-id
+        in: header
+        description: Tenant Id
+        required: true
+        schema:
+          type: string
+      - name: api-auth-signature
+        in: header
+        description: Tenant Name
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PurchaseOrderResponseDto'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '500':
+          description: Server Error
+  /api/RunForecastCalculations:
+    post:
+      tags:
+      - RunForecastCalculations
+      parameters:
+      - name: api-auth-id
+        in: header
+        description: Tenant Id
+        required: true
+        schema:
+          type: string
+      - name: api-auth-signature
+        in: header
+        description: Tenant Name
+        required: true
+        schema:
+          type: string
+      responses:
+        '201':
+          description: Created
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '500':
+          description: Server Error
+  /api/SalesOrders:
+    get:
+      tags:
+      - SalesOrders
+      parameters:
+      - name: productId
+        in: query
+        schema:
+          type: string
+      - name: api-auth-id
+        in: header
+        description: Tenant Id
+        required: true
+        schema:
+          type: string
+      - name: api-auth-signature
+        in: header
+        description: Tenant Name
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SalesOrderResponseDto'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '500':
+          description: Server Error
+    post:
+      tags:
+      - SalesOrders
+      parameters:
+      - name: api-auth-id
+        in: header
+        description: Tenant Id
+        required: true
+        schema:
+          type: string
+      - name: api-auth-signature
+        in: header
+        description: Tenant Name
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json-patch+json:
+            schema:
+              $ref: '#/components/schemas/SalesOrderRequestDto'
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SalesOrderRequestDto'
+          text/json:
+            schema:
+              $ref: '#/components/schemas/SalesOrderRequestDto'
+          application/*+json:
+            schema:
+              $ref: '#/components/schemas/SalesOrderRequestDto'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SalesOrderResponseDto'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '500':
+          description: Server Error
+    delete:
+      tags:
+      - SalesOrders
+      parameters:
+      - name: productId
+        in: query
+        schema:
+          type: string
+      - name: api-auth-id
+        in: header
+        description: Tenant Id
+        required: true
+        schema:
+          type: string
+      - name: api-auth-signature
+        in: header
+        description: Tenant Name
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Success
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '500':
+          description: Server Error
+  /api/SalesOrders/All:
+    delete:
+      tags:
+      - SalesOrders
+      parameters:
+      - name: api-auth-id
+        in: header
+        description: Tenant Id
+        required: true
+        schema:
+          type: string
+      - name: api-auth-signature
+        in: header
+        description: Tenant Name
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Success
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '500':
+          description: Server Error
+  /api/SalesOrders/Range:
+    delete:
+      tags:
+      - SalesOrders
+      parameters:
+      - name: fromDate
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date-time
+      - name: toDate
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date-time
+      - name: productId
+        in: query
+        schema:
+          type: string
+      - name: api-auth-id
+        in: header
+        description: Tenant Id
+        required: true
+        schema:
+          type: string
+      - name: api-auth-signature
+        in: header
+        description: Tenant Name
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Success
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '500':
+          description: Server Error
+  /api/SalesOrdersBulk:
+    post:
+      tags:
+      - SalesOrdersBulk
+      parameters:
+      - name: api-auth-id
+        in: header
+        description: Tenant Id
+        required: true
+        schema:
+          type: string
+      - name: api-auth-signature
+        in: header
+        description: Tenant Name
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json-patch+json:
+            schema:
+              $ref: '#/components/schemas/SalesOrderWithLineItemsRequestDto'
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SalesOrderWithLineItemsRequestDto'
+          text/json:
+            schema:
+              $ref: '#/components/schemas/SalesOrderWithLineItemsRequestDto'
+          application/*+json:
+            schema:
+              $ref: '#/components/schemas/SalesOrderWithLineItemsRequestDto'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SalesOrderResponseDto'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '500':
+          description: Server Error
+    put:
+      tags:
+      - SalesOrdersBulk
+      description: Preforms a Create or Update based on ExternalReferenceId.
+      parameters:
+      - name: api-auth-id
+        in: header
+        description: Tenant Id
+        required: true
+        schema:
+          type: string
+      - name: api-auth-signature
+        in: header
+        description: Tenant Name
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json-patch+json:
+            schema:
+              $ref: '#/components/schemas/SalesOrderWithLineItemsRequestDto'
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SalesOrderWithLineItemsRequestDto'
+          text/json:
+            schema:
+              $ref: '#/components/schemas/SalesOrderWithLineItemsRequestDto'
+          application/*+json:
+            schema:
+              $ref: '#/components/schemas/SalesOrderWithLineItemsRequestDto'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SalesOrderResponseDto'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '500':
+          description: Server Error
+  /api/SalesOrdersLocation:
+    delete:
+      tags:
+      - SalesOrdersLocation
+      parameters:
+      - name: locationCodeOrName
+        in: query
+        schema:
+          type: string
+      - name: api-auth-id
+        in: header
+        description: Tenant Id
+        required: true
+        schema:
+          type: string
+      - name: api-auth-signature
+        in: header
+        description: Tenant Name
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Success
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '500':
+          description: Server Error
+  /api/Square:
+    post:
+      tags:
+      - Square
+      parameters:
+      - name: api-auth-id
+        in: header
+        description: Tenant Id
+        required: true
+        schema:
+          type: string
+      - name: api-auth-signature
+        in: header
+        description: Tenant Name
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json-patch+json:
+            schema:
+              $ref: '#/components/schemas/SquareWebHook'
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SquareWebHook'
+          text/json:
+            schema:
+              $ref: '#/components/schemas/SquareWebHook'
+          application/*+json:
+            schema:
+              $ref: '#/components/schemas/SquareWebHook'
+      responses:
+        '200':
+          description: Success
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '500':
+          description: Server Error
+  /api/Suppliers:
+    get:
+      tags:
+      - Suppliers
+      parameters:
+      - name: code
+        in: query
+        schema:
+          type: string
+      - name: api-auth-id
+        in: header
+        description: Tenant Id
+        required: true
+        schema:
+          type: string
+      - name: api-auth-signature
+        in: header
+        description: Tenant Name
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SupplierResponseDto'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '500':
+          description: Server Error
+    post:
+      tags:
+      - Suppliers
+      parameters:
+      - name: api-auth-id
+        in: header
+        description: Tenant Id
+        required: true
+        schema:
+          type: string
+      - name: api-auth-signature
+        in: header
+        description: Tenant Name
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json-patch+json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/SupplierRequestDto'
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/SupplierRequestDto'
+          text/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/SupplierRequestDto'
+          application/*+json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/SupplierRequestDto'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SupplierResponseDto'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '500':
+          description: Server Error
+    delete:
+      tags:
+      - Suppliers
+      parameters:
+      - name: supplierCodeOrName
+        in: query
+        schema:
+          type: string
+      - name: api-auth-id
+        in: header
+        description: Tenant Id
+        required: true
+        schema:
+          type: string
+      - name: api-auth-signature
+        in: header
+        description: Tenant Name
+        required: true
+        schema:
+          type: string
+      responses:
+        '201':
+          description: Created
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '500':
+          description: Server Error
+  /api/SuppliersBulk:
+    get:
+      tags:
+      - SuppliersBulk
+      parameters:
+      - name: api-auth-id
+        in: header
+        description: Tenant Id
+        required: true
+        schema:
+          type: string
+      - name: api-auth-signature
+        in: header
+        description: Tenant Name
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SupplierResponseDto'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '500':
+          description: Server Error
+components:
+  schemas:
+    Address:
+      type: object
+      properties:
+        address_line_1:
+          type: string
+          nullable: true
+        address_line_2:
+          type: string
+          nullable: true
+        locality:
+          type: string
+          nullable: true
+        administrative_district_level_1:
+          type: string
+          nullable: true
+        postal_code:
+          type: string
+          nullable: true
+        country:
+          type: string
+          nullable: true
+      additionalProperties: false
+    ApiEnum:
+      enum:
+      - Shopify
+      - Vend
+      - Unleashed
+      - TradeGecko
+      - Cin7
+      - Myob
+      - Quickbooks
+      - StockTrimIncomingApi
+      - Xero
+      - Dear
+      - CsvUpload
+      - Katana
+      - Odoo
+      - WooCommerce
+      - Finale
+      - AmazonFba
+      - Zoho
+      - BigCommerce
+      - SquareInventory
+      - Magento
+      - MrpEasy
+      - Fishbowl
+      - SkuVault
+      - InFlow
+      - Neto
+      - Sellercloud
+      type: string
+    BillOfMaterialsRequestDto:
+      required:
+      - componentId
+      - productId
+      type: object
+      properties:
+        productId:
+          minLength: 1
+          type: string
+        componentId:
+          minLength: 1
+          type: string
+        quantity:
+          type: number
+          format: double
+          nullable: true
+      additionalProperties: false
+    BillOfMaterialsResponseDto:
+      required:
+      - componentId
+      - productId
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int32
+        assemblyTimeDays:
+          type: integer
+          format: int32
+          nullable: true
+        skuComponent:
+          $ref: '#/components/schemas/ProductsResponseDto'
+        skuProduct:
+          $ref: '#/components/schemas/ProductsResponseDto'
+        productId:
+          minLength: 1
+          type: string
+        componentId:
+          minLength: 1
+          type: string
+        quantity:
+          type: number
+          format: double
+          nullable: true
+      additionalProperties: false
+    CurrentStatusEnum:
+      enum:
+      - Current
+      - Discontinued
+      - All
+      type: string
+    Customer:
+      type: object
+      properties:
+        birthday:
+          type: string
+          nullable: true
+        company_name:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        creation_source:
+          type: string
+          nullable: true
+        email_address:
+          type: string
+          nullable: true
+        family_name:
+          type: string
+          nullable: true
+        given_name:
+          type: string
+          nullable: true
+        id:
+          type: string
+          nullable: true
+        phone_number:
+          type: string
+          nullable: true
+        reference_id:
+          type: string
+          nullable: true
+        updated_at:
+          type: string
+          format: date-time
+        version:
+          type: integer
+          format: int32
+        address:
+          $ref: '#/components/schemas/Address'
+      additionalProperties: false
+    CustomerDto:
+      type: object
+      properties:
+        code:
+          type: string
+          nullable: true
+        name:
+          type: string
+          nullable: true
+        streetAddress:
+          type: string
+          nullable: true
+        addressLine1:
+          type: string
+          nullable: true
+        addressLine2:
+          type: string
+          nullable: true
+        state:
+          type: string
+          nullable: true
+        country:
+          type: string
+          nullable: true
+        postCode:
+          type: string
+          nullable: true
+        emailAddress:
+          type: string
+          nullable: true
+        phone:
+          type: string
+          nullable: true
+        city:
+          type: string
+          nullable: true
+      additionalProperties: false
+    Inventory:
+      type: object
+      properties:
+        productId:
+          type: string
+          nullable: true
+        locationCode:
+          type: string
+          nullable: true
+        locationName:
+          type: string
+          nullable: true
+        stockOnHand:
+          type: number
+          format: double
+        stockOnOrder:
+          type: number
+          format: double
+      additionalProperties: false
+    InventoryCountWebHook:
+      type: object
+      properties:
+        calculated_at:
+          type: string
+          format: date-time
+        catalog_object_id:
+          type: string
+          nullable: true
+        catalog_object_type:
+          type: string
+          nullable: true
+        location_id:
+          type: string
+          nullable: true
+        quantity:
+          type: number
+          format: double
+        state:
+          type: string
+          nullable: true
+      additionalProperties: false
+    InventoryManagementSystemRequest:
+      type: object
+      properties:
+        api:
+          $ref: '#/components/schemas/ApiEnum'
+      additionalProperties: false
+    InventoryManagementSystemResponse:
+      type: object
+      properties:
+        name:
+          type: string
+          nullable: true
+      additionalProperties: false
+    LocationRequestDto:
+      required:
+      - locationCode
+      type: object
+      properties:
+        locationCode:
+          minLength: 1
+          type: string
+        locationName:
+          type: string
+          nullable: true
+        externalId:
+          type: string
+          nullable: true
+      additionalProperties: false
+    LocationResponseDto:
+      required:
+      - locationCode
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int32
+        locationCode:
+          minLength: 1
+          type: string
+        locationName:
+          type: string
+          nullable: true
+        externalId:
+          type: string
+          nullable: true
+      additionalProperties: false
+    OrderPlanFilterCriteria:
+      type: object
+      properties:
+        excludeManufactured:
+          type: boolean
+          nullable: true
+        currentStatus:
+          $ref: '#/components/schemas/CurrentStatusEnum'
+        locationId:
+          type: integer
+          format: int32
+          nullable: true
+        location:
+          type: string
+          nullable: true
+        customerId:
+          type: integer
+          format: int32
+          nullable: true
+        customer:
+          type: string
+          nullable: true
+        supplierId:
+          type: integer
+          format: int32
+          nullable: true
+        supplier:
+          type: string
+          nullable: true
+        category:
+          type: string
+          nullable: true
+        searchString:
+          type: string
+          nullable: true
+        sortOrder:
+          type: string
+          nullable: true
+        page:
+          type: integer
+          format: int32
+        perPage:
+          type: integer
+          format: int32
+        hasNextPage:
+          type: boolean
+          nullable: true
+      additionalProperties: false
+    OrderPlanFilterCriteriaDto:
+      type: object
+      properties:
+        searchString:
+          type: string
+          nullable: true
+        currentStatus:
+          $ref: '#/components/schemas/CurrentStatusEnum'
+        locationCodes:
+          type: array
+          items:
+            type: string
+          nullable: true
+        supplierCodes:
+          type: array
+          items:
+            type: string
+          nullable: true
+      additionalProperties: false
+    OrderPlanResultsDto:
+      type: object
+      properties:
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/SkuOptimizedResultsDto'
+          nullable: true
+        filterCriteria:
+          $ref: '#/components/schemas/OrderPlanFilterCriteria'
+      additionalProperties: false
+    ProblemDetails:
+      type: object
+      properties:
+        type:
+          type: string
+          nullable: true
+        title:
+          type: string
+          nullable: true
+        status:
+          type: integer
+          format: int32
+          nullable: true
+        detail:
+          type: string
+          nullable: true
+        instance:
+          type: string
+          nullable: true
+      additionalProperties: {}
+    ProcessingStatusResponseDto:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int32
+        isProcessing:
+          type: boolean
+        percentageComplete:
+          type: integer
+          format: int32
+        statusMessage:
+          type: string
+          nullable: true
+      additionalProperties: false
+    ProductLocation:
+      required:
+      - locationCode
+      type: object
+      properties:
+        locationCode:
+          minLength: 1
+          type: string
+        locationName:
+          type: string
+          nullable: true
+        stockOnHand:
+          type: number
+          format: double
+          nullable: true
+        stockOnOrder:
+          type: number
+          format: double
+          nullable: true
+      additionalProperties: false
+    ProductSupplier:
+      required:
+      - supplierId
+      type: object
+      properties:
+        supplierId:
+          minLength: 1
+          type: string
+        supplierName:
+          type: string
+          nullable: true
+      additionalProperties: false
+    ProductsRequestDto:
+      required:
+      - productId
+      type: object
+      properties:
+        productId:
+          minLength: 1
+          type: string
+        productCodeReadable:
+          type: string
+          nullable: true
+        name:
+          type: string
+          nullable: true
+        category:
+          type: string
+          nullable: true
+        subCategory:
+          type: string
+          nullable: true
+        serviceLevel:
+          type: number
+          format: double
+          nullable: true
+        leadTime:
+          type: integer
+          format: int32
+          nullable: true
+        stockOnHand:
+          type: number
+          format: double
+          nullable: true
+        stockOnOrder:
+          type: number
+          format: double
+          nullable: true
+        cost:
+          type: number
+          format: double
+          nullable: true
+        price:
+          type: number
+          format: double
+          nullable: true
+        supplierCode:
+          type: string
+          nullable: true
+        suppliers:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProductSupplier'
+          nullable: true
+        forecastPeriod:
+          type: integer
+          format: int32
+          nullable: true
+        manufacturingTime:
+          type: integer
+          format: int32
+          nullable: true
+        orderFrequency:
+          type: integer
+          format: int32
+          nullable: true
+        minimumOrderQuantity:
+          type: number
+          format: double
+          nullable: true
+        minimumShelfLevel:
+          type: number
+          format: double
+          nullable: true
+        maximumShelfLevel:
+          type: number
+          format: double
+          nullable: true
+        batchSize:
+          type: number
+          format: double
+          nullable: true
+        discontinued:
+          type: boolean
+          nullable: true
+        unstocked:
+          type: boolean
+          nullable: true
+        option1:
+          type: string
+          nullable: true
+        option2:
+          type: string
+          nullable: true
+        option3:
+          type: string
+          nullable: true
+        overriddenDemand:
+          type: number
+          format: double
+          nullable: true
+        overriddenDemandPeriod:
+          type: integer
+          format: int32
+          nullable: true
+        stockLocations:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProductLocation'
+          nullable: true
+        parentId:
+          type: string
+          nullable: true
+        variantType:
+          type: string
+          nullable: true
+        variant:
+          type: string
+          nullable: true
+      additionalProperties: false
+    ProductsResponseDto:
+      required:
+      - productId
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int32
+        productId:
+          minLength: 1
+          type: string
+        productCodeReadable:
+          type: string
+          nullable: true
+        name:
+          type: string
+          nullable: true
+        category:
+          type: string
+          nullable: true
+        subCategory:
+          type: string
+          nullable: true
+        serviceLevel:
+          type: number
+          format: double
+          nullable: true
+        leadTime:
+          type: integer
+          format: int32
+          nullable: true
+        stockOnHand:
+          type: number
+          format: double
+          nullable: true
+        stockOnOrder:
+          type: number
+          format: double
+          nullable: true
+        cost:
+          type: number
+          format: double
+          nullable: true
+        price:
+          type: number
+          format: double
+          nullable: true
+        supplierCode:
+          type: string
+          nullable: true
+        suppliers:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProductSupplier'
+          nullable: true
+        forecastPeriod:
+          type: integer
+          format: int32
+          nullable: true
+        manufacturingTime:
+          type: integer
+          format: int32
+          nullable: true
+        orderFrequency:
+          type: integer
+          format: int32
+          nullable: true
+        minimumOrderQuantity:
+          type: number
+          format: double
+          nullable: true
+        minimumShelfLevel:
+          type: number
+          format: double
+          nullable: true
+        maximumShelfLevel:
+          type: number
+          format: double
+          nullable: true
+        batchSize:
+          type: number
+          format: double
+          nullable: true
+        discontinued:
+          type: boolean
+          nullable: true
+        unstocked:
+          type: boolean
+          nullable: true
+        option1:
+          type: string
+          nullable: true
+        option2:
+          type: string
+          nullable: true
+        option3:
+          type: string
+          nullable: true
+        overriddenDemand:
+          type: number
+          format: double
+          nullable: true
+        overriddenDemandPeriod:
+          type: integer
+          format: int32
+          nullable: true
+        stockLocations:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProductLocation'
+          nullable: true
+        parentId:
+          type: string
+          nullable: true
+        variantType:
+          type: string
+          nullable: true
+        variant:
+          type: string
+          nullable: true
+      additionalProperties: false
+    PurchaseOrderLineItem:
+      required:
+      - productId
+      - quantity
+      type: object
+      properties:
+        productId:
+          minLength: 1
+          type: string
+        quantity:
+          type: number
+          format: double
+        receivedDate:
+          type: string
+          format: date-time
+          nullable: true
+        unitPrice:
+          type: number
+          format: double
+          nullable: true
+      additionalProperties: false
+    PurchaseOrderLocation:
+      type: object
+      properties:
+        locationCode:
+          type: string
+          nullable: true
+        locationName:
+          type: string
+          nullable: true
+      additionalProperties: false
+    PurchaseOrderRequestDto:
+      required:
+      - orderDate
+      - purchaseOrderLineItems
+      - supplier
+      type: object
+      properties:
+        orderDate:
+          type: string
+          format: date-time
+        createdDate:
+          type: string
+          format: date-time
+          nullable: true
+        fullyReceivedDate:
+          type: string
+          format: date-time
+          nullable: true
+        supplier:
+          $ref: '#/components/schemas/PurchaseOrderSupplier'
+        externalId:
+          type: string
+          nullable: true
+        referenceNumber:
+          type: string
+          nullable: true
+        clientReferenceNumber:
+          type: string
+          nullable: true
+        location:
+          $ref: '#/components/schemas/PurchaseOrderLocation'
+        status:
+          $ref: '#/components/schemas/PurchaseOrderStatusDto'
+        purchaseOrderLineItems:
+          type: array
+          items:
+            $ref: '#/components/schemas/PurchaseOrderLineItem'
+      additionalProperties: false
+    PurchaseOrderResponseDto:
+      required:
+      - orderDate
+      - purchaseOrderLineItems
+      - supplier
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int32
+        message:
+          type: string
+          nullable: true
+        orderDate:
+          type: string
+          format: date-time
+        createdDate:
+          type: string
+          format: date-time
+          nullable: true
+        fullyReceivedDate:
+          type: string
+          format: date-time
+          nullable: true
+        supplier:
+          $ref: '#/components/schemas/PurchaseOrderSupplier'
+        externalId:
+          type: string
+          nullable: true
+        referenceNumber:
+          type: string
+          nullable: true
+        clientReferenceNumber:
+          type: string
+          nullable: true
+        location:
+          $ref: '#/components/schemas/PurchaseOrderLocation'
+        status:
+          $ref: '#/components/schemas/PurchaseOrderStatusDto'
+        purchaseOrderLineItems:
+          type: array
+          items:
+            $ref: '#/components/schemas/PurchaseOrderLineItem'
+      additionalProperties: false
+    PurchaseOrderStatusDto:
+      enum:
+      - Draft
+      - Approved
+      - Sent
+      - Received
+      type: string
+    PurchaseOrderSupplier:
+      type: object
+      properties:
+        supplierCode:
+          type: string
+          nullable: true
+        supplierName:
+          type: string
+          nullable: true
+      additionalProperties: false
+    SalesOrderRequestDto:
+      required:
+      - orderDate
+      - productId
+      - quantity
+      type: object
+      properties:
+        productId:
+          minLength: 1
+          type: string
+        externalReferenceId:
+          type: string
+          nullable: true
+        orderDate:
+          type: string
+          format: date-time
+        quantity:
+          minimum: 0
+          type: number
+          format: double
+        unitPrice:
+          type: number
+          format: double
+          nullable: true
+        locationCode:
+          type: string
+          nullable: true
+        locationName:
+          type: string
+          nullable: true
+        customerCode:
+          type: string
+          nullable: true
+        customerName:
+          type: string
+          nullable: true
+      additionalProperties: false
+    SalesOrderResponseDto:
+      required:
+      - orderDate
+      - productId
+      - quantity
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int32
+        locationId:
+          type: integer
+          format: int32
+        productId:
+          minLength: 1
+          type: string
+        externalReferenceId:
+          type: string
+          nullable: true
+        orderDate:
+          type: string
+          format: date-time
+        quantity:
+          minimum: 0
+          type: number
+          format: double
+        unitPrice:
+          type: number
+          format: double
+          nullable: true
+        locationCode:
+          type: string
+          nullable: true
+        locationName:
+          type: string
+          nullable: true
+        customerCode:
+          type: string
+          nullable: true
+        customerName:
+          type: string
+          nullable: true
+      additionalProperties: false
+    SalesOrderWithLineItemsRequestDto:
+      required:
+      - orderDate
+      type: object
+      properties:
+        orderDate:
+          type: string
+          format: date-time
+        locationCode:
+          type: string
+          nullable: true
+        locationName:
+          type: string
+          nullable: true
+        customerCode:
+          type: string
+          nullable: true
+        customerName:
+          type: string
+          nullable: true
+        saleOrderLineItems:
+          type: array
+          items:
+            $ref: '#/components/schemas/SalesOrderRequestDto'
+          nullable: true
+      additionalProperties: false
+    SetInventoryRequest:
+      type: object
+      properties:
+        updateOverallAllOnOrderToBeSumOfLocation:
+          type: boolean
+        updateOverallAllOnHandToBeSumOfLocation:
+          type: boolean
+        inventory:
+          type: array
+          items:
+            $ref: '#/components/schemas/Inventory'
+          nullable: true
+      additionalProperties: false
+    SkuOptimizedResultsDto:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int32
+        skuPropertyId:
+          type: integer
+          format: int32
+          nullable: true
+        skuId:
+          type: integer
+          format: int32
+          nullable: true
+        locationId:
+          type: integer
+          format: int32
+          nullable: true
+        channelId:
+          type: integer
+          format: int32
+          nullable: true
+        skuGroupingId:
+          type: integer
+          format: int32
+          nullable: true
+        skuOptimizedResultsGroupId:
+          type: integer
+          format: int32
+          nullable: true
+        tenantId:
+          type: string
+          format: uuid
+          nullable: true
+        calculatedDateTime:
+          type: string
+          format: date-time
+        effectiveToDateTime:
+          type: string
+          format: date-time
+          nullable: true
+        reorderPoint:
+          type: number
+          format: double
+          nullable: true
+        orderQuantity:
+          type: number
+          format: double
+          nullable: true
+        leadDemand:
+          type: number
+          format: double
+          nullable: true
+        forecastPeriodDemand:
+          type: number
+          format: double
+          nullable: true
+        overriddenFutureDemandEffectiveFromNow:
+          type: number
+          format: double
+          nullable: true
+        safetyStockLevel:
+          type: number
+          format: double
+          nullable: true
+        economicOrderQuantity:
+          type: number
+          format: double
+          nullable: true
+        optimialStockCycle:
+          type: number
+          format: double
+          nullable: true
+        leadTimeDays:
+          type: integer
+          format: int32
+          nullable: true
+        reorderFrequencyDays:
+          type: integer
+          format: int32
+          nullable: true
+        orderCount:
+          type: integer
+          format: int32
+        latestOrderDate:
+          type: string
+          format: date-time
+          nullable: true
+        firstPurchaseDate:
+          type: string
+          format: date-time
+          nullable: true
+        minimumOrderQuantity:
+          type: integer
+          format: int32
+          nullable: true
+        batchSize:
+          type: integer
+          format: int32
+          nullable: true
+        stockOnHand:
+          type: number
+          format: double
+          nullable: true
+        stockOnOrder:
+          type: number
+          format: double
+          nullable: true
+        finishedGoodStockOnHand:
+          type: number
+          format: double
+          nullable: true
+        finishedGoodQuantityUsed:
+          type: number
+          format: double
+          nullable: true
+        componentStockOnHand:
+          type: number
+          format: double
+          nullable: true
+        daysUntilReplenishmentDue:
+          type: integer
+          format: int32
+          nullable: true
+        daysUntilStockOut:
+          type: integer
+          format: int32
+          nullable: true
+        isUncertain:
+          type: boolean
+        ordersInPreviousLeadTime:
+          type: number
+          format: double
+        avgDailyOrdersLast120Days:
+          type: number
+          format: double
+        leadDemandPredictionBasedOnAverage:
+          type: number
+          format: double
+          nullable: true
+        leadDemandPredictionBasedOnLinearRegression:
+          type: number
+          format: double
+          nullable: true
+        leadDemandPredictionBasedOn2ndOrderPolynomialRegression:
+          type: number
+          format: double
+          nullable: true
+        leadDemandPredictionBasedOnLastMonth:
+          type: number
+          format: double
+          nullable: true
+        leadDemandPredictionBasedOnPreviousLeadtimeDays:
+          type: number
+          format: double
+          nullable: true
+        standardDev:
+          type: number
+          format: double
+          nullable: true
+        serviceFactor:
+          type: number
+          format: double
+          nullable: true
+        maxRSquared:
+          type: number
+          format: double
+          nullable: true
+        minRSquared:
+          type: number
+          format: double
+          nullable: true
+        maxRange:
+          type: number
+          format: double
+          nullable: true
+        parentQuantity:
+          type: number
+          format: double
+          nullable: true
+        mostAccurateAlgorithmTypeId:
+          type: integer
+          format: int32
+          nullable: true
+        errorText:
+          type: string
+          nullable: true
+        category:
+          type: string
+          nullable: true
+        subCategory:
+          type: string
+          nullable: true
+        brand:
+          type: string
+          nullable: true
+        productType:
+          type: string
+          nullable: true
+        option1:
+          type: string
+          nullable: true
+        option2:
+          type: string
+          nullable: true
+        option3:
+          type: string
+          nullable: true
+        size:
+          type: string
+          nullable: true
+        productCode:
+          type: string
+          nullable: true
+        name:
+          type: string
+          nullable: true
+        skuCost:
+          type: number
+          format: double
+          nullable: true
+        skuPrice:
+          type: number
+          format: double
+          nullable: true
+        isDiscontinued:
+          type: boolean
+        isUnstocked:
+          type: boolean
+        productOfCount:
+          type: integer
+          format: int32
+        componentOfCount:
+          type: integer
+          format: int32
+        customerCount:
+          type: integer
+          format: int32
+        locationCount:
+          type: integer
+          format: int32
+        locationName:
+          type: string
+          nullable: true
+        showForecastForAllLocations:
+          type: boolean
+        manufacturingTime:
+          type: number
+          format: double
+          nullable: true
+        minimumShelfLevel:
+          type: number
+          format: double
+          nullable: true
+        maximumShelfLevel:
+          type: number
+          format: double
+          nullable: true
+        serviceLevel:
+          type: number
+          format: double
+          nullable: true
+        weight:
+          type: number
+          format: double
+          nullable: true
+        height:
+          type: number
+          format: double
+          nullable: true
+        width:
+          type: number
+          format: double
+          nullable: true
+        length:
+          type: number
+          format: double
+          nullable: true
+        dimensionsCubicMeters:
+          type: number
+          format: double
+          nullable: true
+        externalId:
+          type: string
+          nullable: true
+        skuCode:
+          type: string
+          nullable: true
+        externalIdParent:
+          type: string
+          nullable: true
+        skuCodeParent:
+          type: string
+          nullable: true
+        childVariantsCount:
+          type: integer
+          format: int32
+      additionalProperties: false
+    SquareWebHook:
+      type: object
+      properties:
+        merchant_id:
+          type: string
+          nullable: true
+        type:
+          type: string
+          nullable: true
+        event_id:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        data:
+          $ref: '#/components/schemas/SquareWebHookData'
+      additionalProperties: false
+    SquareWebHookCatalog:
+      type: object
+      properties:
+        updated_at:
+          type: string
+          format: date-time
+      additionalProperties: false
+    SquareWebHookData:
+      type: object
+      properties:
+        type:
+          type: string
+          nullable: true
+        id:
+          type: string
+          nullable: true
+        object:
+          $ref: '#/components/schemas/SquareWebHookObject'
+      additionalProperties: false
+    SquareWebHookObject:
+      type: object
+      properties:
+        order_updated:
+          $ref: '#/components/schemas/SquareWebHookOrderUpdatedData'
+        catalog_version:
+          $ref: '#/components/schemas/SquareWebHookCatalog'
+        inventory_counts:
+          type: array
+          items:
+            $ref: '#/components/schemas/InventoryCountWebHook'
+          nullable: true
+        customer:
+          $ref: '#/components/schemas/Customer'
+      additionalProperties: false
+    SquareWebHookOrderUpdatedData:
+      type: object
+      properties:
+        created_at:
+          type: string
+          format: date-time
+        location_id:
+          type: string
+          nullable: true
+        order_id:
+          type: string
+          nullable: true
+        state:
+          type: string
+          nullable: true
+        updated_at:
+          type: string
+          format: date-time
+        version:
+          type: integer
+          format: int32
+      additionalProperties: false
+    SupplierRequestDto:
+      required:
+      - supplierCode
+      type: object
+      properties:
+        supplierCode:
+          minLength: 1
+          type: string
+        supplierName:
+          type: string
+          nullable: true
+        emailAddress:
+          type: string
+          nullable: true
+        primaryContactName:
+          type: string
+          nullable: true
+        externalId:
+          type: string
+          nullable: true
+        defaultLeadTime:
+          type: integer
+          format: int32
+          nullable: true
+        streetAddress:
+          type: string
+          nullable: true
+        addressLine1:
+          type: string
+          nullable: true
+        addressLine2:
+          type: string
+          nullable: true
+        state:
+          type: string
+          nullable: true
+        country:
+          type: string
+          nullable: true
+        postCode:
+          type: string
+          nullable: true
+      additionalProperties: false
+    SupplierResponseDto:
+      required:
+      - supplierCode
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int32
+        supplierCode:
+          minLength: 1
+          type: string
+        supplierName:
+          type: string
+          nullable: true
+        emailAddress:
+          type: string
+          nullable: true
+        primaryContactName:
+          type: string
+          nullable: true
+        externalId:
+          type: string
+          nullable: true
+        defaultLeadTime:
+          type: integer
+          format: int32
+          nullable: true
+        streetAddress:
+          type: string
+          nullable: true
+        addressLine1:
+          type: string
+          nullable: true
+        addressLine2:
+          type: string
+          nullable: true
+        state:
+          type: string
+          nullable: true
+        country:
+          type: string
+          nullable: true
+        postCode:
+          type: string
+          nullable: true
+      additionalProperties: false

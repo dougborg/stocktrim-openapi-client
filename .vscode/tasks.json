@@ -1,0 +1,84 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "stocktrim: format",
+            "type": "shell",
+            "command": "poetry",
+            "args": ["run", "poe", "format"],
+            "group": {
+                "kind": "build",
+                "isDefault": false
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "stocktrim: lint",
+            "type": "shell",
+            "command": "poetry",
+            "args": ["run", "poe", "lint"],
+            "group": {
+                "kind": "test",
+                "isDefault": false
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": ["$python"]
+        },
+        {
+            "label": "stocktrim: test",
+            "type": "shell",
+            "command": "poetry",
+            "args": ["run", "poe", "test"],
+            "group": {
+                "kind": "test",
+                "isDefault": true
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": ["$python"]
+        },
+        {
+            "label": "stocktrim: check",
+            "type": "shell",
+            "command": "poetry",
+            "args": ["run", "poe", "check"],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": ["$python"]
+        },
+        {
+            "label": "stocktrim: regenerate client",
+            "type": "shell",
+            "command": "poetry",
+            "args": ["run", "python", "scripts/regenerate_client.py"],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": []
+        }
+    ]
+}

@@ -102,9 +102,7 @@ class ResilientAsyncTransport(AsyncHTTPTransport):
             )
 
             if response.status_code == 429:
-                self.logger.warning(
-                    "Rate limited, retrying after exponential backoff"
-                )
+                self.logger.warning("Rate limited, retrying after exponential backoff")
 
             elif 500 <= response.status_code < 600:
                 self.logger.warning(
@@ -194,11 +192,12 @@ class StockTrimClient:
             timeout: Request timeout in seconds
             logger: Custom logger instance
         """
-        # Load environment variables
         load_dotenv()
 
         self.api_auth_id = api_auth_id or os.getenv("STOCKTRIM_API_AUTH_ID")
-        self.api_auth_signature = api_auth_signature or os.getenv("STOCKTRIM_API_AUTH_SIGNATURE")
+        self.api_auth_signature = api_auth_signature or os.getenv(
+            "STOCKTRIM_API_AUTH_SIGNATURE"
+        )
         self.base_url = base_url
         self.max_retries = max_retries
         self.timeout = timeout
@@ -226,7 +225,7 @@ class StockTrimClient:
             # At this point, credentials are guaranteed to be strings due to validation in __init__
             assert self.api_auth_id is not None
             assert self.api_auth_signature is not None
-            
+
             transport = ResilientAsyncTransport(
                 api_auth_id=self.api_auth_id,
                 api_auth_signature=self.api_auth_signature,
@@ -238,8 +237,8 @@ class StockTrimClient:
             self._client = AuthenticatedClient(
                 base_url=self.base_url,
                 token="",  # StockTrim uses custom headers, not bearer token
-                timeout=self.timeout,
-                transport=transport,
+                timeout=httpx.Timeout(self.timeout),
+                httpx_args={"transport": transport},
             )
 
         return self._client

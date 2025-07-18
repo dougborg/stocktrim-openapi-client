@@ -1,7 +1,7 @@
 """Test configuration and fixtures for the StockTrim OpenAPI Client test suite."""
 
 import os
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import MagicMock
 
 import httpx
 import pytest
@@ -85,14 +85,14 @@ def clear_env():
         "STOCKTRIM_API_AUTH_SIGNATURE",
         "STOCKTRIM_BASE_URL",
     ]
-    
+
     for var in env_vars:
         original_env[var] = os.environ.get(var)
         if var in os.environ:
             del os.environ[var]
-    
+
     yield
-    
+
     # Restore original values
     for var, value in original_env.items():
         if value is not None:

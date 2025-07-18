@@ -1,0 +1,29 @@
+{
+    "python.defaultInterpreterPath": "./.venv/bin/python",
+    "python.terminal.activateEnvironment": true,
+    "python.analysis.extraPaths": [
+        "./stocktrim_public_api_client"
+    ],
+    "python.testing.pytestEnabled": true,
+    "python.testing.pytestArgs": [
+        "tests"
+    ],
+    "python.testing.unittestEnabled": false,
+    "python.linting.enabled": true,
+    "python.linting.mypyEnabled": true,
+    "python.formatting.provider": "none",
+    "[python]": {
+        "editor.defaultFormatter": "charliermarsh.ruff",
+        "editor.formatOnSave": true,
+        "editor.codeActionsOnSave": {
+            "source.fixAll.ruff": "explicit",
+            "source.organizeImports.ruff": "explicit"
+        }
+    },
+    "ruff.interpreter": ["./.venv/bin/python"],
+    "mypy-type-checker.interpreter": ["./.venv/bin/python"],
+    "files.associations": {
+        "*.yaml": "yaml",
+        "*.yml": "yaml"
+    }
+}

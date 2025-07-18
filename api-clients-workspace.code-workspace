@@ -1,0 +1,73 @@
+{
+    "folders": [
+        {
+            "name": "Katana OpenAPI Client",
+            "path": "./katana-openapi-client"
+        },
+        {
+            "name": "StockTrim OpenAPI Client",
+            "path": "./stocktrim-openapi-client"
+        }
+    ],
+    "settings": {
+        // Global workspace settings
+        "files.exclude": {
+            "**/__pycache__": true,
+            "**/*.pyc": true,
+            ".mypy_cache": true,
+            ".ruff_cache": true,
+            "**/.pytest_cache": true,
+            "**/coverage.xml": false,
+            "**/.coverage": false
+        },
+        "python.analysis.autoImportCompletions": true,
+        "python.analysis.typeCheckingMode": "strict",
+        "search.exclude": {
+            "**/__pycache__": true,
+            "**/*.pyc": true,
+            ".mypy_cache": true,
+            ".ruff_cache": true,
+            "**/.pytest_cache": true,
+            "**/node_modules": true,
+            "**/coverage": true
+        },
+        "files.associations": {
+            "*.yaml": "yaml",
+            "*.yml": "yaml"
+        },
+        "yaml.validate": true,
+        "yaml.format.enable": true
+    },
+    "extensions": {
+        "recommendations": [
+            "ms-python.python",
+            "ms-python.mypy-type-checker",
+            "charliermarsh.ruff",
+            "ms-toolsai.jupyter",
+            "redhat.vscode-yaml",
+            "ms-python.debugpy",
+            "github.copilot",
+            "github.copilot-chat"
+        ]
+    },
+    "tasks": {
+        "version": "2.0.0",
+        "tasks": [
+            {
+                "label": "All Projects: Check Quality",
+                "dependsOrder": "parallel",
+                "dependsOn": [
+                    "katana: check",
+                    "stocktrim: check"
+                ],
+                "group": "build",
+                "presentation": {
+                    "echo": true,
+                    "reveal": "always",
+                    "focus": false,
+                    "panel": "shared"
+                }
+            }
+        ]
+    }
+}
