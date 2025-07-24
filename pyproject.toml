@@ -157,6 +157,7 @@ markers = [
   "integration: marks tests as integration tests",
   "unit: marks tests as unit tests",
   "asyncio: marks tests as async tests",
+  "docs: marks tests as documentation tests (slow, only run in CI docs jobs)",
 ]
 
 [tool.coverage.run]
@@ -309,12 +310,15 @@ lint = ["lint-ruff", "lint-mypy", "lint-yaml"]
 # -----------------------------------------------------------------------------
 # Testing Tasks
 # -----------------------------------------------------------------------------
-test = "pytest"
-test-verbose = "pytest -v"
-test-coverage = "pytest --cov=stocktrim_public_api_client --cov-report=term-missing"
-test-coverage-html = "pytest --cov=stocktrim_public_api_client --cov-report=html"
+test = "pytest -m 'not docs'"
+test-verbose = "pytest -v -m 'not docs'"
+test-coverage = "pytest --cov=stocktrim_public_api_client --cov-report=term-missing -m 'not docs'"
+test-coverage-html = "pytest --cov=stocktrim_public_api_client --cov-report=html -m 'not docs'"
 test-unit = "pytest -m unit"
 test-integration = "pytest -m integration"
+test-docs = { shell = "CI_DOCS_BUILD=true pytest -m docs -v --timeout=600" }  # 10 minute timeout for docs
+test-no-docs = "pytest -m 'not docs'"
+test-all = "pytest"  # Run everything including docs (if CI_DOCS_BUILD is set)
 
 # -----------------------------------------------------------------------------
 # OpenAPI and Code Generation Tasks
@@ -373,10 +377,12 @@ echo "   poe lint-ruff           - Fast linting with ruff"
 echo "   poe lint-yaml           - YAML file linting"
 echo ""
 echo "📁 Testing:"
-echo "   poe test                - Run all tests"
+echo "   poe test                - Run tests (excludes docs tests)"
 echo "   poe test-coverage       - Run tests with coverage report"
 echo "   poe test-unit           - Run unit tests only"
 echo "   poe test-integration    - Run integration tests only"
+echo "   poe test-docs           - Run documentation tests (CI only)"
+echo "   poe test-all            - Run all tests including docs"
 echo ""
 echo "📁 Documentation:"
 echo "   poe docs-build          - Build Sphinx documentation"
