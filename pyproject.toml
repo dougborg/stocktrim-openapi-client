@@ -1,7 +1,7 @@
 [project]
 name = "stocktrim-openapi-client"
 version = "0.1.0"
-description = "A modern, pythonic StockTrim Inventory Management API client with automatic retries and custom authentication"
+description = "A modern, pythonic StockTrim Inventory Management API client with automatic retries, rate limiting, and smart pagination"
 authors = [
     {name = "Doug Borg", email = "dougborg@dougborg.org"},
 ]
@@ -10,7 +10,7 @@ maintainers = [
 ]
 license = {text = "MIT"}
 readme = "README.md"
-requires-python = ">=3.11,<4.0"
+requires-python = ">=3.11,<3.14"
 keywords = [
   "stocktrim",
   "inventory",
@@ -19,6 +19,8 @@ keywords = [
   "openapi",
   "async",
   "retry",
+  "pagination",
+  "rate-limiting",
   "httpx",
 ]
 classifiers = [
@@ -47,12 +49,13 @@ dependencies = [
   "urllib3>=2.5.0,<4.0.0",
   "pydantic>=2,<3",
   "typing-extensions>=4.7.0",
+  "httpx-retries>=0.4.3,<0.5.0",
 ]
 
 [project.urls]
 Homepage = "https://github.com/dougborg/stocktrim-openapi-client"
 Repository = "https://github.com/dougborg/stocktrim-openapi-client"
-Documentation = "https://github.com/dougborg/stocktrim-openapi-client/blob/main/docs/README.md"
+Documentation = "https://dougborg.github.io/stocktrim-openapi-client/"
 "Bug Tracker" = "https://github.com/dougborg/stocktrim-openapi-client/issues"
 Changelog = "https://github.com/dougborg/stocktrim-openapi-client/blob/main/docs/CHANGELOG.md"
 
@@ -70,14 +73,16 @@ dev = [
   "pytest-timeout>=2.1.0",
   "tox>=4.0.0",
   # Code quality and linting
-  "ruff>=0.12.0",
-  "mypy>=1.16.0",
-  # Task runner
-  "poethepoet>=0.36.0",
+  "ruff>=0.12.4,<0.13",
+  "mypy>=1.17.0,<2.0.0",
+  "pre-commit>=4.2.0",
   # Build tools
   "build>=1.0.0",
   # YAML linting
   "yamllint>=1.37.0",
+  # OpenAPI validation
+  "pyyaml>=6.0.0",
+  "openapi-spec-validator>=0.7.0",
   # Markdown formatting
   "mdformat>=0.7.17",
   "mdformat-gfm>=0.3.0",
@@ -87,32 +92,45 @@ dev = [
   "types-python-dateutil>=2.8.0",
   "types-PyYAML>=6.0.0",
   "types-urllib3>=1.26.0",
+  "mypy-extensions>=1.1.0",
   # OpenAPI tools
-  "openapi-spec-validator>=0.7.1",
   "openapi-python-client>=0.25.2",
-  "PyYAML>=6.0",
   # Semantic release
   "python-semantic-release>=9.0.0",
-  "mypy-extensions>=1.1.0",
-  # Documentation generation
-  "sphinx>=7.0.0",
-  "sphinx-rtd-theme>=2.0.0",
-  "sphinx-autoapi>=3.0.0",
-  "myst-parser>=2.0.0",
-  "linkify-it-py>=2.0.0",
 ]
 
-[tool.poetry]
-# Keep Poetry section for package discovery and build configuration
-packages = [{ include = "stocktrim_public_api_client" }]
-include = ["stocktrim_public_api_client/py.typed", "stocktrim-openapi.yaml"]
-
-[tool.poetry.group.dev.dependencies]
-pre-commit = "^4.2.0"
+docs = [
+  # Documentation - MkDocs
+  "mkdocs>=1.6.0",
+  "mkdocs-material>=9.5.0",
+  "mkdocstrings[python]>=0.25.0",
+  "mkdocs-gen-files>=0.5.0",
+  "mkdocs-literate-nav>=0.6.0",
+  "mkdocs-swagger-ui-tag>=0.7.1",
+]
 
 [build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = [
+    "poethepoet>=0.37.0",
+]
+
+# =============================================================================
+# UV Workspace Configuration
+# =============================================================================
+# Monorepo structure for stocktrim-openapi-client and stocktrim-mcp-server packages.
+
+[tool.uv.workspace]
+members = [".", "stocktrim_mcp_server"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["stocktrim_public_api_client"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"stocktrim-openapi.yaml" = "stocktrim_public_api_client/stocktrim-openapi.yaml"
 
 [tool.mypy]
 files = ["stocktrim_public_api_client", "tests", "scripts"]
@@ -140,6 +158,22 @@ check_untyped_defs = true
 disallow_subclassing_any = true
 disallow_untyped_decorators = true
 disallow_any_generics = true
+
+### These next few are various gradations of forcing use of type annotations
+#disallow_untyped_calls = true
+#disallow_incomplete_defs = true
+#disallow_untyped_defs = true
+#
+### This one isn't too hard to get passing, but return on investment is lower
+#no_implicit_reexport = true
+#
+### This one can be tricky to get passing if you use a lot of untyped libraries
+#warn_return_any = true
+
+[[tool.mypy.overrides]]
+module = ["stocktrim_public_api_client.stocktrim_client"]
+# Allow unknown types for JSON parsing methods
+disable_error_code = ["misc", "arg-type"]
 
 [tool.pytest.ini_options]
 minversion = "7.0"
@@ -185,7 +219,6 @@ target-version = "py311"  # Updated to reflect minimum Python version
 fix = true
 show-fixes = true
 output-format = "grouped"
-extend-exclude = ["stocktrim_public_api_client/generated/**"]
 
 [tool.ruff.format]
 docstring-code-format = true
@@ -217,7 +250,6 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["PLR2004"]  # magic value used in comparison
-"stocktrim_public_api_client/generated/*" = ["ALL"]  # ignore generated code
 
 [tool.ruff.lint.isort]
 known-first-party = ["stocktrim_public_api_client"]
@@ -244,8 +276,11 @@ upload_to_pypi = false
 upload_to_repository = false
 remove_dist = false
 commit_author = "github-actions[bot] <github-actions[bot]@users.noreply.github.com>"
-commit_message = "chore(release): {version}"
-build_command = "echo 'Starting build_command...' && pip install mdformat mdformat-gfm mdformat-tables mdformat-toc && echo 'Formatting changelog...' && python -m mdformat docs/CHANGELOG.md --wrap 88 && echo 'Build command completed successfully'"
+commit_message = "chore(release): client v{version}"
+build_command = "pip install mdformat mdformat-gfm mdformat-tables mdformat-toc && mdformat docs/CHANGELOG.md --wrap 88"
+major_on_zero = false
+allow_zero_version = true
+tag_format = "client-v{version}"
 
 [tool.semantic_release.commit_parser_options]
 allowed_tags = [
@@ -262,13 +297,16 @@ allowed_tags = [
 ]
 minor_tags = ["feat"]
 patch_tags = ["fix", "perf"]
+# Only process commits with (client) scope or no scope
+# Commits with (mcp) scope are handled by the MCP server config
+default_bump_level = 0
 
 [tool.semantic_release.changelog]
-template_dir = "templates"
 exclude_commit_patterns = []
-changelog_file = "docs/CHANGELOG.md"
+mode = "update"
 
 [tool.semantic_release.changelog.default_templates]
+changelog_file = "docs/CHANGELOG.md"
 
 [tool.semantic_release.branches.main]
 match = "main"
@@ -291,8 +329,8 @@ upload_to_vcs_release = true
 format-python = "ruff format ."
 format-python-check = "ruff format --check ."
 
-format-markdown = "mdformat *.md docs/ --wrap 88"
-format-markdown-check = "mdformat --check *.md docs/"
+format-markdown = "mdformat README.md docs/*.md --wrap 88"
+format-markdown-check = "mdformat --check README.md docs/*.md"
 
 format = ["format-python", "format-markdown"]
 format-check = ["format-python-check", "format-markdown-check"]
@@ -325,14 +363,15 @@ test-all = "pytest"  # Run everything including docs (if CI_DOCS_BUILD is set)
 # -----------------------------------------------------------------------------
 regenerate-client = "python scripts/regenerate_client.py"
 validate-openapi = "openapi-spec-validator stocktrim-openapi.yaml"
+validate-openapi-redocly = "npx @redocly/cli lint stocktrim-openapi.yaml"
 
 # -----------------------------------------------------------------------------
 # Documentation Tasks
 # -----------------------------------------------------------------------------
-docs-build = "sphinx-build -b html docs docs/_build/html"
-docs-clean = "rm -rf docs/_build"
-docs-serve = "python -m http.server 8000 -d docs/_build/html"
-docs-autobuild = "sphinx-autobuild docs docs/_build/html --open-browser"
+docs-build = "mkdocs build"
+docs-clean = "rm -rf site"
+docs-serve = "mkdocs serve"
+docs-autobuild = "mkdocs serve --watch docs --watch stocktrim_public_api_client"
 
 # -----------------------------------------------------------------------------
 # Pre-commit Tasks
@@ -348,9 +387,8 @@ pre-commit-update = "pre-commit autoupdate"
 check = ["format-check", "lint", "test"]
 fix = ["format", "lint-ruff-fix"]
 ci = ["format-check", "lint", "test-coverage", "docs-build"]
-prepare = ["format", "lint", "test", "validate-openapi"]
-# AST-based consistency check for generated client
-check-generated-ast = "python scripts/check_generated_client_ast.py"
+prepare = ["format", "lint", "test", "validate-openapi", "validate-openapi-redocly"]
+validate-all = ["validate-openapi", "validate-openapi-redocly"]
 
 # -----------------------------------------------------------------------------
 # Release Tasks
@@ -358,11 +396,16 @@ check-generated-ast = "python scripts/check_generated_client_ast.py"
 version-check = "semantic-release version --dry-run"
 release-dry = "semantic-release publish --dry-run"
 
+# Coverage analysis
+[tool.poe.tasks.analyze-coverage]
+help = "Analyze test coverage by file type (generated vs core logic)"
+cmd = "python scripts/analyze_coverage.py"
+
 # Task help
 [tool.poe.tasks.help]
 help = "Show available tasks"
 shell = """
-echo "🛠️  Available Tasks (run with 'poetry run poe <task>'):"
+echo "🛠️  Available Tasks (run with 'uv run poe <task>'):"
 echo ""
 echo "📁 Code Formatting:"
 echo "   poe format              - Format all code (Python, imports, markdown)"
@@ -377,15 +420,14 @@ echo "   poe lint-ruff           - Fast linting with ruff"
 echo "   poe lint-yaml           - YAML file linting"
 echo ""
 echo "📁 Testing:"
-echo "   poe test                - Run tests (excludes docs tests)"
+echo "   poe test                - Run all tests"
 echo "   poe test-coverage       - Run tests with coverage report"
 echo "   poe test-unit           - Run unit tests only"
 echo "   poe test-integration    - Run integration tests only"
-echo "   poe test-docs           - Run documentation tests (CI only)"
-echo "   poe test-all            - Run all tests including docs"
+echo "   poe analyze-coverage    - Analyze coverage by file type"
 echo ""
 echo "📁 Documentation:"
-echo "   poe docs-build          - Build Sphinx documentation"
+echo "   poe docs-build          - Build MkDocs documentation"
 echo "   poe docs-clean          - Clean documentation build files"
 echo "   poe docs-serve          - Serve documentation locally"
 echo "   poe docs-autobuild      - Auto-rebuild docs on changes"
@@ -397,14 +439,15 @@ echo "   poe pre-commit-update   - Update pre-commit hooks"
 echo ""
 echo "📁 Development:"
 echo "   poe check               - Quick check: format-check + lint + test"
-echo "   poe ci                  - Full CI pipeline"
+echo "   poe ci                  - Full CI pipeline (includes docs build)"
 echo "   poe fix                 - Auto-fix formatting and linting issues"
 echo "   poe prepare             - Prepare code for commit"
 echo ""
 echo "📁 OpenAPI:"
 echo "   poe regenerate-client   - Regenerate API client from OpenAPI spec"
-echo "   poe validate-openapi    - Validate OpenAPI specification"
-echo "   poe check-generated-ast  - Check AST consistency of generated client"
+echo "   poe validate-openapi    - Validate OpenAPI specification (basic)"
+echo "   poe validate-openapi-redocly - Validate OpenAPI specification (Redocly)"
+echo "   poe validate-all        - Run both OpenAPI validators"
 echo ""
 echo "📁 Utilities:"
 echo "   poe clean               - Clean build artifacts and cache"
@@ -416,7 +459,7 @@ echo ""
 help = "Clean up build artifacts and cache files"
 shell = """
 echo "🧹 Cleaning build artifacts and cache files..."
-rm -rf .pytest_cache .mypy_cache .ruff_cache .coverage htmlcov dist build *.egg-info docs/_build
+rm -rf .pytest_cache .mypy_cache .ruff_cache .coverage htmlcov dist build *.egg-info docs/_build site
 find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
 echo "✨ Workspace cleaned!"
 """

@@ -1,0 +1,48 @@
+[project]
+name = "stocktrim-mcp-server"
+version = "0.1.0"
+description = "Model Context Protocol (MCP) server for StockTrim Inventory Management API"
+authors = [
+    {name = "Doug Borg", email = "dougborg@dougborg.org"},
+]
+maintainers = [
+    {name = "Doug Borg", email = "dougborg@dougborg.org"},
+]
+license = {text = "MIT"}
+readme = "README.md"
+requires-python = ">=3.11,<3.14"
+keywords = [
+  "stocktrim",
+  "mcp",
+  "model-context-protocol",
+  "api-client",
+]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Software Development :: Libraries :: Python Modules",
+  "Typing :: Typed",
+]
+dependencies = [
+  "stocktrim-openapi-client",
+  "mcp>=1.1.2",
+]
+
+[tool.uv.sources]
+stocktrim-openapi-client = { workspace = true }
+
+[project.scripts]
+stocktrim-mcp-server = "stocktrim_mcp_server.server:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/stocktrim_mcp_server"]
