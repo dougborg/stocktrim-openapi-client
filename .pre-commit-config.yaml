@@ -20,6 +20,7 @@ repos:
       - id: trailing-whitespace
       - id: end-of-file-fixer
       - id: check-yaml
+        args: [--allow-multiple-documents, --unsafe]
       - id: check-added-large-files
       - id: check-case-conflict
       - id: check-merge-conflict
@@ -33,6 +34,7 @@ repos:
     hooks:
       - id: mdformat
         args: [--wrap=88]
+        exclude: '(CHANGELOG\.md|docs/CHANGELOG\.md)'
         additional_dependencies:
           - mdformat-gfm
           - mdformat-tables
@@ -43,3 +45,13 @@ repos:
     hooks:
       - id: yamllint
         args: [-c=.yamllint.yml]
+
+  # Run tests
+  - repo: local
+    hooks:
+      - id: pytest
+        name: pytest
+        entry: bash -c '~/.local/bin/uv run poe test'
+        language: system
+        pass_filenames: false
+        always_run: true
