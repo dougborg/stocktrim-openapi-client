@@ -179,6 +179,7 @@ class StockTrimClient(AuthenticatedClient):
 
 - ❌ No `RateLimitAwareRetry` - StockTrim doesn't have rate limits
 - ❌ No `PaginationTransport` - StockTrim API doesn't paginate
+- ℹ️ **Mostly direct resource access** - Few list APIs, primarily GET by ID
 - ✅ Keep `ErrorLoggingTransport` - Better error visibility
 - ✅ Basic retry on 5xx for idempotent methods (GET, HEAD, OPTIONS, TRACE)
 - ✅ Custom auth header injection (api-auth-id, api-auth-signature)
@@ -247,21 +248,23 @@ uv run poe lint
 
 **Plan**:
 
-Create `stocktrim_public_api_client/helpers/` package for StockTrim entities:
+Create `stocktrim_public_api_client/helpers/` package for **all** StockTrim entities:
 
 1. `helpers/base.py` - Base class with `_client` access
-1. `helpers/products.py` - Products CRUD
+1. `helpers/products.py` - Products CRUD + search
 1. `helpers/inventory.py` - Inventory/stock operations
-1. `helpers/customers.py` - Customers CRUD
-1. `helpers/suppliers.py` - Suppliers CRUD
-1. `helpers/sales_orders.py` - Sales orders operations
-1. `helpers/purchase_orders.py` - Purchase orders operations
-1. `helpers/locations.py` - Locations management (optional)
-1. `helpers/bill_of_materials.py` - BOM operations (optional)
+1. `helpers/customers.py` - Customers CRUD + search
+1. `helpers/suppliers.py` - Suppliers CRUD + search
+1. `helpers/sales_orders.py` - Sales orders CRUD + status
+1. `helpers/purchase_orders.py` - Purchase orders CRUD + status
+1. `helpers/locations.py` - Locations management
+1. `helpers/bill_of_materials.py` - BOM operations
+1. `helpers/order_planning.py` - Order planning operations
+1. `helpers/forecasting.py` - Forecasting operations
+1. Additional helpers for any other major entity groups in the API
 
-**Note**: Domain helpers should match StockTrim's API structure. Review the generated
-`api/` modules to determine which endpoints are most commonly used and would benefit
-from helper abstractions.
+**Decision**: ✅ Create domain helpers for **all** entities in the StockTrim API to
+provide ergonomic access patterns across the entire surface area.
 
 **Pattern**:
 
@@ -613,6 +616,30 @@ Create minimal MCP server in `stocktrim_mcp_server/`:
            # Make a simple API call to verify auth
            response = await client.products.list(limit=1)
            return {"status": "connected", "message": "StockTrim API accessible"}
+
+   @server.tool()
+   async def get_product(product_id: str) -> dict:
+       """Get product details by ID."""
+       async with StockTrimClient() as client:
+           product = await client.products.get(product_id)
+           return product.to_dict()
+
+   @server.tool()
+   async def check_inventory(product_id: str) -> dict:
+       """Check inventory levels for a product."""
+       async with StockTrimClient() as client:
+           inventory = await client.inventory.get_stock_levels(product_id)
+           return inventory.to_dict()
+
+   @server.tool()
+   async def list_orders(order_type: str = "sales", limit: int = 10) -> list[dict]:
+       """List recent orders (sales or purchase)."""
+       async with StockTrimClient() as client:
+           if order_type == "sales":
+               orders = await client.sales_orders.list(limit=limit)
+           else:
+               orders = await client.purchase_orders.list(limit=limit)
+           return [order.to_dict() for order in orders]
 
    async def main():
        async with stdio_server() as (read_stream, write_stream):
@@ -1139,33 +1166,66 @@ ______________________________________________________________________
 
 ### StockTrim-Specific Considerations
 
-**API Characteristics** (differs from Katana):
+**API Characteristics** (from OpenAPI spec analysis):
 
 - ✅ **No rate limiting** - Can simplify retry logic (no 429 handling needed)
 - ✅ **No pagination** - Can remove PaginationTransport entirely
-- ✅ **Custom auth** - Uses api-auth-id + api-auth-signature headers (not Bearer tokens)
-- ❓ **Multi-integration?** - StockTrim has both DTO and Integration models (Square
-  format)
-  - Need to understand if this is like Katana's multi-integration architecture
+- ✅ **Custom auth** - Uses `api-auth-id` (Tenant Id) + `api-auth-signature` (Tenant
+  Name) headers
+- ℹ️ **Mixed access patterns**:
+  - Some GET endpoints for lists: `/api/Products`, `/api/Customers`, `/api/Suppliers`
+  - Some GET by ID: `/api/Customers/{code}`, `/api/V2/PurchaseOrders/{referenceNumber}`
+  - Some POST for bulk operations: `/api/SalesOrdersBulk`, `/api/SuppliersBulk`
+  - Query parameter filtering: `/api/boms?productId=...&componentId=...`
+- ✅ **Square integration** - Dedicated `/api/Square` endpoint for external system sync
 
-**Domain Model** (from generated API):
+**Domain Model** (from OpenAPI spec):
 
-- Products, Customers, Suppliers
-- Inventory, Locations
-- Sales Orders, Purchase Orders
-- Bill of Materials
-- Order Planning, Forecasting
-- Square integration models
+Core Entities:
 
-**Questions to Address**:
+- **Products** - GET (list), POST (create), DELETE
+- **Customers** - GET (list), GET by code, PUT (update)
+- **Suppliers** - GET (list), POST (create), DELETE + Bulk GET
+- **Locations** - GET (list), POST (create) - has V2 version
+- **Inventory** - POST (adjustments/updates)
+- **Bill of Materials (BOMs)** - POST, GET (with filters), DELETE
 
-- [ ] Which domain helpers are most valuable? (Start with products, inventory,
-  customers?)
+Orders:
+
+- **Sales Orders** - GET, POST, DELETE + Bulk operations (POST, PUT)
+  - Special: `/api/SalesOrders/All` (delete all)
+  - Special: `/api/SalesOrders/Range` (delete range)
+  - By Location: `/api/SalesOrdersLocation` (DELETE)
+- **Purchase Orders** - GET, POST, DELETE
+  - V2: GET list, GET by referenceNumber
+  - Order Plan: POST `/api/V2/PurchaseOrders/OrderPlan`
+
+Operations:
+
+- **Order Plan** - POST (generate order plan)
+- **Run Forecast Calculations** - POST
+- **Processing Status** - GET
+- **Configuration** - GET by name
+- **Inventory Management Settings** - GET, POST
+- **InFlow** - POST (external integration)
+- **Square** - POST (Square POS integration)
+
+**Decisions Made**:
+
+- ✅ **Domain helpers**: Create helpers for **all** StockTrim entities (not just the most
+  common)
+- ✅ **MCP server tools**: Implement `verify_connection`, `get_product`,
+  `check_inventory`, `list_orders`
+- ✅ **DTO vs Integration models**: Yes, document the dual model architecture
+  - StockTrim has internal models (domain helpers) and external resource models (Square,
+    etc.)
+  - Similar pattern to Katana's multi-integration architecture
+
+**Questions Still to Address**:
+
 - [ ] Any StockTrim-specific error types beyond the base hierarchy?
-- [ ] MCP server: What additional tools beyond `verify_connection`?
-  - Suggest: `get_product`, `check_inventory`, `list_orders`
-- [ ] Documentation: Any StockTrim-specific guides needed?
-- [ ] Do we need the DTO vs Integration model documentation like Katana?
+- [ ] Documentation: Any StockTrim-specific guides needed beyond the standard set?
+- [ ] Should MCP server expose create/update operations or stay read-only initially?
 
 ______________________________________________________________________
 
