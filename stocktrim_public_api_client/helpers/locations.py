@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import cast
 
+from stocktrim_public_api_client.client_types import UNSET, Unset
 from stocktrim_public_api_client.generated.api.locations import (
     get_api_locations,
     post_api_locations,
@@ -19,53 +20,62 @@ from stocktrim_public_api_client.utils import unwrap
 
 
 class Locations(Base):
-    """Location management."""
+    """Location management.
 
-    async def list(self, **filters: Any) -> list[LocationResponseDto]:
-        """List all locations.
+    Provides operations for managing locations in StockTrim.
+    """
+
+    async def get_all(
+        self,
+        code: str | Unset = UNSET,
+    ) -> LocationResponseDto | list[LocationResponseDto]:
+        """Get locations, optionally filtered by code.
+
+        Note: The API returns a single object when filtered by code,
+        but this is inconsistent with other endpoints. We preserve
+        the API's behavior here.
 
         Args:
-            **filters: Optional filtering parameters.
+            code: Optional location code filter.
 
         Returns:
-            List of LocationResponseDto objects.
+            LocationResponseDto or list of LocationResponseDto objects.
 
         Example:
-            >>> locations = await client.locations.list()
+            >>> locations = await client.locations.get_all()
+            >>> location = await client.locations.get_all(code="LOC-001")
         """
         response = await get_api_locations.asyncio_detailed(
             client=self._client,
-            **filters,
+            code=code,
         )
-        result = unwrap(response)
-        if isinstance(result, list):
-            return result
-        return []
+        return cast(
+            LocationResponseDto | list[LocationResponseDto],
+            unwrap(response),
+        )
 
-    async def create(
-        self, location_data: list[LocationRequestDto]
-    ) -> list[LocationResponseDto]:
-        """Create new locations.
+    async def create(self, location: LocationRequestDto) -> LocationResponseDto:
+        """Create a new location.
+
+        Note: The API returns a single object but it's unclear if it accepts
+        a single object or array. We preserve the API's behavior here.
 
         Args:
-            location_data: List of LocationRequestDto models with location details.
+            location: Location data to create.
 
         Returns:
-            List of LocationResponseDto objects.
+            Created LocationResponseDto object.
 
         Example:
             >>> from stocktrim_public_api_client.generated.models import (
             ...     LocationRequestDto,
             ... )
-            >>> locations = await client.locations.create(
-            ...     [LocationRequestDto(code="LOC-001", name="Warehouse A")]
+            >>> location = await client.locations.create(
+            ...     LocationRequestDto(code="LOC-001", name="Warehouse A")
             ... )
         """
         response = await post_api_locations.asyncio_detailed(
             client=self._client,
-            body=location_data,
+            body=location,
         )
-        result = unwrap(response)
-        if isinstance(result, list):
-            return result
-        return []
+        return cast(LocationResponseDto, unwrap(response))

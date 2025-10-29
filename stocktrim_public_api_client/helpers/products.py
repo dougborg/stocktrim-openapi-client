@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
-from typing import Any, cast
+from typing import cast
 
+from stocktrim_public_api_client.client_types import UNSET, Unset
 from stocktrim_public_api_client.generated.api.products import (
     delete_api_products,
     get_api_products,
@@ -22,90 +23,67 @@ from stocktrim_public_api_client.utils import unwrap
 class Products(Base):
     """Product catalog management.
 
-    Provides CRUD operations for products in StockTrim.
-
-    Example:
-        >>> async with StockTrimClient() as client:
-        ...     products = await client.products.list()
-        ...     product = await client.products.get("PROD-001")
-        ...     await client.products.create(ProductsRequestDto(...))
-        ...     await client.products.delete("PROD-001")
+    Provides operations for managing products in StockTrim.
     """
 
-    async def list(self, **filters: Any) -> list[ProductsResponseDto]:
-        """List all products with optional filters.
+    async def get_all(
+        self,
+        code: str | Unset = UNSET,
+        page_no: str | Unset = UNSET,
+    ) -> list[ProductsResponseDto]:
+        """Get all products, optionally filtered by code or page.
 
         Args:
-            **filters: Optional filtering parameters (e.g., code, page_no).
+            code: Optional product code filter.
+            page_no: Optional page number for pagination.
 
         Returns:
             List of ProductsResponseDto objects.
 
         Example:
-            >>> products = await client.products.list()
-            >>> products_filtered = await client.products.list(code="PROD")
-        """
-        response = await get_api_products.asyncio_detailed(
-            client=self._client,
-            **filters,
-        )
-        result = unwrap(response)
-        if isinstance(result, list):
-            return result
-        return []
-
-    async def get(self, code: str) -> ProductsResponseDto:
-        """Get a specific product by code.
-
-        Args:
-            code: The product code.
-
-        Returns:
-            ProductsResponseDto object.
-
-        Example:
-            >>> product = await client.products.get("PROD-001")
+            >>> products = await client.products.get_all()
+            >>> products = await client.products.get_all(code="WIDGET")
         """
         response = await get_api_products.asyncio_detailed(
             client=self._client,
             code=code,
+            page_no=page_no,
         )
         result = unwrap(response)
-        if isinstance(result, list) and len(result) > 0:
-            return result[0]
-        return cast(ProductsResponseDto, result)
+        return result if isinstance(result, list) else []
 
-    async def create(self, product_data: ProductsRequestDto) -> ProductsResponseDto:
+    async def create(self, product: ProductsRequestDto) -> ProductsResponseDto:
         """Create a new product.
 
         Args:
-            product_data: ProductsRequestDto model with product details.
+            product: Product data to create.
 
         Returns:
-            ProductsResponseDto object.
+            Created ProductsResponseDto object.
 
         Example:
             >>> from stocktrim_public_api_client.generated.models import (
             ...     ProductsRequestDto,
             ... )
             >>> product = await client.products.create(
-            ...     ProductsRequestDto(code="PROD-001", description="New Product")
+            ...     ProductsRequestDto(code="WIDGET-001", description="Widget")
             ... )
         """
         response = await post_api_products.asyncio_detailed(
             client=self._client,
-            body=product_data,
+            body=product,
         )
         return cast(ProductsResponseDto, unwrap(response))
 
-    async def delete(self, product_id: str) -> None:
-        """Delete a product.
+    async def delete(self, product_id: str | Unset = UNSET) -> None:
+        """Delete product(s).
 
         Args:
-            product_id: The product ID to delete.
+            product_id: Optional product ID to delete. If not provided, may delete
+                all products (use with caution).
 
         Example:
-            >>> await client.products.delete("prod-123")
+            >>> await client.products.delete(product_id="123")
         """
         await delete_api_products.asyncio_detailed(
             client=self._client,

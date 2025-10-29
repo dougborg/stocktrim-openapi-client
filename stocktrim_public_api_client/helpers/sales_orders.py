@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
-from typing import Any, cast
+from typing import cast
 
+from stocktrim_public_api_client.client_types import UNSET, Unset
 from stocktrim_public_api_client.generated.api.sales_orders import (
     delete_api_sales_orders,
     get_api_sales_orders,
@@ -20,58 +21,42 @@ from stocktrim_public_api_client.utils import unwrap
 
 
 class SalesOrders(Base):
-    """Sales order management."""
+    """Sales order management.
 
-    async def list(self, **filters: Any) -> list[SalesOrderResponseDto]:
-        """List all sales orders.
+    Provides operations for managing sales orders in StockTrim.
+    """
+
+    async def get_all(
+        self,
+        product_id: str | Unset = UNSET,
+    ) -> list[SalesOrderResponseDto]:
+        """Get all sales orders, optionally filtered by product ID.
 
         Args:
-            **filters: Optional filtering parameters.
+            product_id: Optional product ID to filter by.
 
         Returns:
             List of SalesOrderResponseDto objects.
 
         Example:
-            >>> sales_orders = await client.sales_orders.list()
-        """
-        response = await get_api_sales_orders.asyncio_detailed(
-            client=self._client,
-            **filters,
-        )
-        result = unwrap(response)
-        if isinstance(result, list):
-            return result
-        return []
-
-    async def get(self, product_id: str) -> list[SalesOrderResponseDto]:
-        """Get sales orders filtered by product ID.
-
-        Args:
-            product_id: The product ID to filter by.
-
-        Returns:
-            List of SalesOrderResponseDto objects.
-
-        Example:
-            >>> orders = await client.sales_orders.get("prod-123")
+            >>> orders = await client.sales_orders.get_all()
+            >>> orders = await client.sales_orders.get_all(product_id="123")
         """
         response = await get_api_sales_orders.asyncio_detailed(
             client=self._client,
             product_id=product_id,
         )
         result = unwrap(response)
-        if isinstance(result, list):
-            return result
-        return []
+        return result if isinstance(result, list) else []
 
-    async def create(self, order_data: SalesOrderRequestDto) -> SalesOrderResponseDto:
+    async def create(self, order: SalesOrderRequestDto) -> SalesOrderResponseDto:
         """Create a new sales order.
 
         Args:
-            order_data: SalesOrderRequestDto model with order details.
+            order: Sales order data to create.
 
         Returns:
-            SalesOrderResponseDto object.
+            Created SalesOrderResponseDto object.
 
         Example:
             >>> from stocktrim_public_api_client.generated.models import (
@@ -83,18 +68,18 @@ class SalesOrders(Base):
         """
         response = await post_api_sales_orders.asyncio_detailed(
             client=self._client,
-            body=order_data,
+            body=order,
         )
         return cast(SalesOrderResponseDto, unwrap(response))
 
-    async def delete(self, product_id: str | None = None) -> None:
-        """Delete sales orders, optionally filtered by product ID.
+    async def delete(self, product_id: str | Unset = UNSET) -> None:
+        """Delete sales order(s), optionally filtered by product ID.
 
         Args:
             product_id: Optional product ID to filter deletions.
 
         Example:
-            >>> await client.sales_orders.delete(product_id="prod-123")
+            >>> await client.sales_orders.delete(product_id="123")
         """
         await delete_api_sales_orders.asyncio_detailed(
             client=self._client,

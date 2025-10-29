@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
-from typing import Any, cast
+from typing import cast
 
+from stocktrim_public_api_client.client_types import UNSET, Unset
 from stocktrim_public_api_client.generated.api.purchase_orders import (
     delete_api_purchase_orders,
     get_api_purchase_orders,
@@ -20,60 +21,48 @@ from stocktrim_public_api_client.utils import unwrap
 
 
 class PurchaseOrders(Base):
-    """Purchase order management."""
+    """Purchase order management.
 
-    async def list(self, **filters: Any) -> list[PurchaseOrderResponseDto]:
-        """List all purchase orders.
+    Provides operations for managing purchase orders in StockTrim.
+    """
 
-        Args:
-            **filters: Optional filtering parameters.
+    async def get_all(
+        self,
+        reference_number: str | Unset = UNSET,
+    ) -> PurchaseOrderResponseDto | list[PurchaseOrderResponseDto]:
+        """Get purchase orders, optionally filtered by reference number.
 
-        Returns:
-            List of PurchaseOrderResponseDto objects.
-
-        Example:
-            >>> purchase_orders = await client.purchase_orders.list()
-        """
-        response = await get_api_purchase_orders.asyncio_detailed(
-            client=self._client,
-            **filters,
-        )
-        result = unwrap(response)
-        if isinstance(result, list):
-            return result
-        return []
-
-    async def get(self, reference_number: str) -> PurchaseOrderResponseDto:
-        """Get a specific purchase order.
+        Note: The API returns a single object when filtered by reference number,
+        but this is inconsistent with other endpoints. We preserve the API's
+        behavior here.
 
         Args:
-            reference_number: The purchase order reference number.
+            reference_number: Optional reference number filter.
 
         Returns:
-            PurchaseOrderResponseDto object.
+            PurchaseOrderResponseDto or list of PurchaseOrderResponseDto objects.
 
         Example:
-            >>> order = await client.purchase_orders.get("PO-001")
+            >>> orders = await client.purchase_orders.get_all()
+            >>> order = await client.purchase_orders.get_all(reference_number="PO-001")
         """
         response = await get_api_purchase_orders.asyncio_detailed(
             client=self._client,
             reference_number=reference_number,
         )
-        result = unwrap(response)
-        if isinstance(result, list) and len(result) > 0:
-            return result[0]
-        return cast(PurchaseOrderResponseDto, result)
+        return cast(
+            PurchaseOrderResponseDto | list[PurchaseOrderResponseDto],
+            unwrap(response),
+        )
 
-    async def create(
-        self, order_data: PurchaseOrderRequestDto
-    ) -> PurchaseOrderResponseDto:
+    async def create(self, order: PurchaseOrderRequestDto) -> PurchaseOrderResponseDto:
         """Create a new purchase order.
 
         Args:
-            order_data: PurchaseOrderRequestDto model with order details.
+            order: Purchase order data to create.
 
         Returns:
-            PurchaseOrderResponseDto object.
+            Created PurchaseOrderResponseDto object.
 
         Example:
             >>> from stocktrim_public_api_client.generated.models import (
@@ -85,20 +74,29 @@ class PurchaseOrders(Base):
         """
         response = await post_api_purchase_orders.asyncio_detailed(
             client=self._client,
-            body=order_data,
+            body=order,
         )
         return cast(PurchaseOrderResponseDto, unwrap(response))
 
-    async def delete(self, reference_number: str) -> None:
-        """Delete a purchase order.
+    async def delete(
+        self, reference_number: str | Unset = UNSET
+    ) -> PurchaseOrderResponseDto | None:
+        """Delete purchase order(s).
+
+        Note: The API returns the deleted PurchaseOrderResponseDto object.
 
         Args:
-            reference_number: The purchase order reference number to delete.
+            reference_number: Reference number to delete.
+
+        Returns:
+            Deleted PurchaseOrderResponseDto object or None.
 
         Example:
-            >>> await client.purchase_orders.delete("PO-001")
+            >>> deleted = await client.purchase_orders.delete(reference_number="PO-001")
         """
-        await delete_api_purchase_orders.asyncio_detailed(
+        response = await delete_api_purchase_orders.asyncio_detailed(
             client=self._client,
             reference_number=reference_number,
         )
+        result = unwrap(response)
+        return cast(PurchaseOrderResponseDto, result) if result else None

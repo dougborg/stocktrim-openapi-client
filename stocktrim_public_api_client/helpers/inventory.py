@@ -2,46 +2,47 @@
 
 from __future__ import annotations
 
-from stocktrim_public_api_client.generated.api.inventory import (
-    post_api_inventory,
+from typing import cast
+
+from stocktrim_public_api_client.generated.api.inventory import post_api_inventory
+from stocktrim_public_api_client.generated.models.purchase_order_response_dto import (
+    PurchaseOrderResponseDto,
 )
-from stocktrim_public_api_client.generated.models.set_inventory_request_dto import (
-    SetInventoryRequestDto,
-)
-from stocktrim_public_api_client.generated.models.set_inventory_response_dto import (
-    SetInventoryResponseDto,
+from stocktrim_public_api_client.generated.models.set_inventory_request import (
+    SetInventoryRequest,
 )
 from stocktrim_public_api_client.helpers.base import Base
 from stocktrim_public_api_client.utils import unwrap
 
 
 class Inventory(Base):
-    """Inventory management."""
+    """Inventory management.
 
-    async def set(
-        self, inventory_data: list[SetInventoryRequestDto]
-    ) -> list[SetInventoryResponseDto]:
-        """Set inventory levels.
+    Provides operations for managing inventory levels in StockTrim.
+    """
+
+    async def set(self, inventory: SetInventoryRequest) -> PurchaseOrderResponseDto:
+        """Set stock on hand and stock on order for products.
+
+        Note: The API returns PurchaseOrderResponseDto which seems incorrect
+        for an inventory operation, but we preserve the API's behavior here.
 
         Args:
-            inventory_data: List of SetInventoryRequestDto models with inventory levels.
+            inventory: Inventory data to set.
 
         Returns:
-            List of SetInventoryResponseDto objects.
+            PurchaseOrderResponseDto object (API inconsistency).
 
         Example:
             >>> from stocktrim_public_api_client.generated.models import (
-            ...     SetInventoryRequestDto,
+            ...     SetInventoryRequest,
             ... )
-            >>> response = await client.inventory.set(
-            ...     [SetInventoryRequestDto(product_code="PROD-001", quantity=100)]
+            >>> result = await client.inventory.set(
+            ...     SetInventoryRequest(product_code="WIDGET-001", quantity=100)
             ... )
         """
         response = await post_api_inventory.asyncio_detailed(
             client=self._client,
-            body=inventory_data,
+            body=inventory,
         )
-        result = unwrap(response)
-        if isinstance(result, list):
-            return result
-        return []
+        return cast(PurchaseOrderResponseDto, unwrap(response))

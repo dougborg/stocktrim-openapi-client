@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
-from typing import Any, cast
+from typing import cast
 
+from stocktrim_public_api_client.client_types import UNSET, Unset
 from stocktrim_public_api_client.generated.api.suppliers import (
     delete_api_suppliers,
     get_api_suppliers,
@@ -22,92 +23,75 @@ from stocktrim_public_api_client.utils import unwrap
 class Suppliers(Base):
     """Supplier management.
 
-    Provides CRUD operations for suppliers in StockTrim.
-
-    Example:
-        >>> async with StockTrimClient() as client:
-        ...     suppliers = await client.suppliers.list()
-        ...     supplier = await client.suppliers.get("SUP-001")
-        ...     await client.suppliers.create(SupplierRequestDto(...))
-        ...     await client.suppliers.delete("SUP-001")
+    Provides operations for managing suppliers in StockTrim.
     """
 
-    async def list(self, **filters: Any) -> list[SupplierResponseDto]:
-        """List all suppliers.
+    async def get_all(
+        self,
+        code: str | Unset = UNSET,
+    ) -> SupplierResponseDto | list[SupplierResponseDto]:
+        """Get suppliers, optionally filtered by code.
+
+        Note: The API returns a single object when filtered by code,
+        but this is inconsistent with other endpoints. We preserve
+        the API's behavior here.
 
         Args:
-            **filters: Optional filtering parameters.
+            code: Optional supplier code filter.
 
         Returns:
-            List of SupplierResponseDto objects.
+            SupplierResponseDto or list of SupplierResponseDto objects.
 
         Example:
-            >>> suppliers = await client.suppliers.list()
-        """
-        response = await get_api_suppliers.asyncio_detailed(
-            client=self._client,
-            **filters,
-        )
-        result = unwrap(response)
-        if isinstance(result, list):
-            return result
-        return []
-
-    async def get(self, code: str) -> SupplierResponseDto:
-        """Get a specific supplier by code.
-
-        Args:
-            code: The supplier code.
-
-        Returns:
-            SupplierResponseDto object.
-
-        Example:
-            >>> supplier = await client.suppliers.get("SUP-001")
+            >>> suppliers = await client.suppliers.get_all()
+            >>> supplier = await client.suppliers.get_all(code="SUP-001")
         """
         response = await get_api_suppliers.asyncio_detailed(
             client=self._client,
             code=code,
         )
-        result = unwrap(response)
-        if isinstance(result, list) and len(result) > 0:
-            return result[0]
-        return cast(SupplierResponseDto, result)
+        return cast(
+            SupplierResponseDto | list[SupplierResponseDto],
+            unwrap(response),
+        )
 
-    async def create(self, supplier_data: SupplierRequestDto) -> SupplierResponseDto:
-        """Create a new supplier.
+    async def create(
+        self, suppliers: list[SupplierRequestDto]
+    ) -> list[SupplierResponseDto]:
+        """Create new suppliers.
 
         Args:
-            supplier_data: SupplierRequestDto model with supplier details.
+            suppliers: List of supplier data to create.
 
         Returns:
-            SupplierResponseDto object.
+            List of created SupplierResponseDto objects.
 
         Example:
             >>> from stocktrim_public_api_client.generated.models import (
             ...     SupplierRequestDto,
             ... )
-            >>> supplier = await client.suppliers.create(
-            ...     SupplierRequestDto(code="SUP-001", name="New Supplier")
+            >>> suppliers = await client.suppliers.create(
+            ...     [
+            ...         SupplierRequestDto(code="SUP-001", name="Supplier One"),
+            ...         SupplierRequestDto(code="SUP-002", name="Supplier Two"),
+            ...     ]
             ... )
         """
         response = await post_api_suppliers.asyncio_detailed(
             client=self._client,
-            body=[supplier_data],
+            body=suppliers,
         )
         result = unwrap(response)
-        if isinstance(result, list) and len(result) > 0:
-            return result[0]
-        return cast(SupplierResponseDto, result)
+        return result if isinstance(result, list) else []
 
-    async def delete(self, supplier_code_or_name: str) -> None:
-        """Delete a supplier.
+    async def delete(self, supplier_code_or_name: str | Unset = UNSET) -> None:
+        """Delete supplier(s).
 
         Args:
-            supplier_code_or_name: The supplier code or name to delete.
+            supplier_code_or_name: Supplier code or name to delete.
 
         Example:
-            >>> await client.suppliers.delete("SUP-001")
+            >>> await client.suppliers.delete(supplier_code_or_name="SUP-001")
         """
         await delete_api_suppliers.asyncio_detailed(
             client=self._client,
