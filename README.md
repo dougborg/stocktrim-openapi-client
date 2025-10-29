@@ -6,6 +6,8 @@ A production-ready Python client library and MCP server for the
 [![Python Version](https://img.shields.io/badge/python-3.11%2B-blue)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
+[![PyPI - Version](https://img.shields.io/pypi/v/stocktrim-openapi-client)](https://pypi.org/project/stocktrim-openapi-client/)
+[![PyPI - MCP Server](https://img.shields.io/pypi/v/stocktrim-mcp-server)](https://pypi.org/project/stocktrim-mcp-server/)
 
 ## Features
 
