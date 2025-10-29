@@ -94,6 +94,9 @@ jobs:
     needs: release
     if: needs.release.outputs.released == 'true'
     runs-on: ubuntu-latest
+    environment:
+      name: pypi-client
+      url: https://pypi.org/p/stocktrim-openapi-client
     permissions:
       id-token: write
     steps:
@@ -113,6 +116,9 @@ jobs:
     needs: release
     if: needs.release.outputs.released == 'true'
     runs-on: ubuntu-latest
+    environment:
+      name: pypi-mcp
+      url: https://pypi.org/p/stocktrim-mcp-server
     permissions:
       id-token: write
     steps:
