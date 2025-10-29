@@ -69,25 +69,72 @@ jobs:
 
       - name: Build client package
         if: steps.release.outputs.released == 'true'
-        run: uv build
+        run: |
+          uv build
+          mkdir -p client-dist
+          cp dist/*.whl dist/*.tar.gz client-dist/
 
-      - name: Build MCP server package
+      - name: Update MCP server dependency and build
         if: steps.release.outputs.released == 'true'
-        run: uv build --package stocktrim-mcp-server
+        run: |
+          # Update MCP server to depend on the new client version
+          CLIENT_VERSION="${{ steps.release.outputs.version }}"
+          echo "Updating MCP server to depend on client version $CLIENT_VERSION"
+
+          # Install toml for Python
+          uv run pip install toml
+
+          # Create update script
+          cat > update_mcp_version.py << 'EOF'
+          import toml
+          import sys
+
+          client_version = sys.argv[1]
+
+          # Read current pyproject.toml
+          with open('stocktrim_mcp_server/pyproject.toml', 'r') as f:
+              data = toml.load(f)
+
+          # Update client dependency to specific version
+          data['dependencies'][0] = f'stocktrim-openapi-client=={client_version}'
+
+          # Bump MCP server patch version
+          current_version = data['project']['version']
+          major, minor, patch = map(int, current_version.split('.'))
+          new_version = f'{major}.{minor}.{patch + 1}'
+          data['project']['version'] = new_version
+
+          print(f'Updated MCP server to version {new_version} with client dependency stocktrim-openapi-client=={client_version}')
+
+          # Write back
+          with open('stocktrim_mcp_server/pyproject.toml', 'w') as f:
+              toml.dump(data, f)
+
+          print(f'::set-output name=mcp_version::{new_version}')
+          EOF
+
+          # Run the update script
+          uv run python update_mcp_version.py "$CLIENT_VERSION"
+
+          # Clean and build MCP server
+          rm -rf dist/
+          uv build --package stocktrim-mcp-server
+          mkdir -p mcp-dist
+          cp dist/*.whl dist/*.tar.gz mcp-dist/
 
       - name: Upload client artifacts
         if: steps.release.outputs.released == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: dist-client
-          path: dist/
+          path: client-dist/
 
       - name: Upload MCP server artifacts
         if: steps.release.outputs.released == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: dist-mcp
-          path: stocktrim_mcp_server/dist/
+          path: mcp-dist/
 
   publish-client:
     name: Publish Client to PyPI

@@ -2,10 +2,10 @@
 
 ## Architecture Overview
 
-This is a production-ready Python client for the StockTrim Inventory Management API built with
-a **transport-layer resilience** approach. The key architectural decision is
-implementing retry logic and custom authentication at the HTTP transport level
-rather than as decorators or wrapper methods.
+This is a production-ready Python client for the StockTrim Inventory Management API
+built with a **transport-layer resilience** approach. The key architectural decision is
+implementing retry logic and custom authentication at the HTTP transport level rather
+than as decorators or wrapper methods.
 
 ### Core Components
 
@@ -14,8 +14,7 @@ rather than as decorators or wrapper methods.
 - **`stocktrim_public_api_client/client.py`**: Generated OpenAPI client (base classes)
 - **`stocktrim_public_api_client/api/`**: Generated API endpoint modules (don't edit
   directly)
-- **`stocktrim_public_api_client/models/`**: Generated data models (don't edit
-  directly)
+- **`stocktrim_public_api_client/models/`**: Generated data models (don't edit directly)
 
 ### The Transport Layer Pattern
 
@@ -35,42 +34,62 @@ async with StockTrimClient() as client:
 
 ### StockTrim-Specific Features
 
-- **Custom Header Authentication**: Automatic `api-auth-id` and `api-auth-signature` headers
+- **Custom Header Authentication**: Automatic `api-auth-id` and `api-auth-signature`
+  headers
 - **No Pagination**: StockTrim API doesn't use pagination, so transport is simplified
 - **No Rate Limiting**: No evidence of rate limits in StockTrim API
 - **Inventory Focus**: Optimized for inventory management operations
 
+## Monorepo Structure
+
+This is a **UV workspace** containing two packages:
+
+- **`stocktrim-openapi-client`**: The main OpenAPI client library (root package)
+- **`stocktrim-mcp-server`**: Model Context Protocol server for AI agents (in
+  `stocktrim_mcp_server/`)
+
+### Automatic MCP Publishing
+
+The GitHub Actions workflow automatically:
+
+1. Publishes the client package when code changes
+1. Updates the MCP server to depend on the new client version
+1. Publishes the updated MCP server to PyPI
+1. Both packages maintain synchronized versioning
+
 ## Development Workflows
 
-### Poe Task Commands (Critical)
+### UV-Based Task Commands (Critical)
+
+**IMPORTANT**: This project uses **UV** for dependency management, NOT Poetry.
 
 ```bash
 # Format ALL files (Python + Markdown)
-poetry run poe format
+uv run poe format
 
-# Type checking (mypy)
-poetry run poe lint
+# Type checking with ty (Astral's fast Rust-based type checker)
+uv run poe lint
 
 # Check formatting without changes
-poetry run poe format-check
+uv run poe format-check
 
 # Python-only formatting
-poetry run poe format-python
+uv run poe format-python
 
 # Quick development check (format-check + lint + test)
-poetry run poe check
+uv run poe check
 
 # Auto-fix formatting and linting issues
-poetry run poe fix
+uv run poe fix
 
 # Full CI pipeline
-poetry run poe ci
+uv run poe ci
 
-# Regenerate OpenAPI client
-poetry run poe regenerate-client
+# Regenerate OpenAPI client with automatic type fixing
+uv run poe regenerate-client
 
 # Show all available tasks
-poetry run poe help
+uv run poe help
 ```
 
 ### Pre-commit Hooks (ALWAYS Use)
@@ -80,13 +99,13 @@ code before commits:
 
 ```bash
 # Install pre-commit hooks (run once after clone)
-poetry run poe pre-commit-install
+uv run poe pre-commit-install
 
 # Run pre-commit on all files (for testing)
-poetry run poe pre-commit-run
+uv run poe pre-commit-run
 
 # Update pre-commit hook versions
-poetry run poe pre-commit-update
+uv run poe pre-commit-update
 ```
 
 **CRITICAL**: Pre-commit hooks run automatically on `git commit` and will:
@@ -107,6 +126,13 @@ poetry run poe pre-commit-update
 1. If pre-commit fails: fix issues, `git add .`, commit again
 1. If pre-commit passes: commit succeeds
 
+**Development Workflow with UV**:
+
+1. Clone and setup: `uv sync --all-extras`
+1. Install pre-commit: `uv run poe pre-commit-install`
+1. Make changes and run: `uv run poe check`
+1. Commit with conventional format: `git commit -m "feat: description"`
+
 ## StockTrim API Integration
 
 ### Environment Setup
@@ -120,6 +146,7 @@ STOCKTRIM_API_AUTH_SIGNATURE=your_tenant_name
 ### API Authentication
 
 StockTrim uses custom header authentication:
+
 - `api-auth-id`: Tenant ID
 - `api-auth-signature`: Tenant Name
 
@@ -128,6 +155,7 @@ The transport layer automatically adds these headers to all requests.
 ### Common API Endpoints
 
 Based on the OpenAPI spec, main endpoints include:
+
 - Products: `/api/Products`
 - Customers: `/api/Customers`
 - Suppliers: `/api/Suppliers`
@@ -138,7 +166,8 @@ Based on the OpenAPI spec, main endpoints include:
 
 ## Conventional Commits (REQUIRED)
 
-This project uses semantic-release for automated versioning. Follow these commit message conventions:
+This project uses semantic-release for automated versioning. Follow these commit message
+conventions:
 
 ### Commit Types
 
@@ -187,14 +216,14 @@ git commit -m "feat!: change authentication header format"
 
 ```bash
 # Run all tests
-poetry run poe test
+uv run poe test
 
 # Run with coverage
-poetry run poe test-coverage
+uv run poe test-coverage
 
 # Run specific test types
-poetry run poe test-unit
-poetry run poe test-integration
+uv run poe test-unit
+uv run poe test-integration
 ```
 
 ## Common Tasks
@@ -203,33 +232,36 @@ poetry run poe test-integration
 
 ```bash
 # Add runtime dependency
-poetry add some-package
+uv add some-package
 
 # Add development dependency
-poetry add --group dev some-dev-package
+uv add --dev some-dev-package
+
+# For monorepo packages, specify the package
+uv add --package stocktrim-mcp-server some-package
 ```
 
 ### Updating Generated Client
 
 ```bash
 # Regenerate from latest StockTrim OpenAPI spec
-poetry run poe regenerate-client
+uv run poe regenerate-client
 
 # Validate the generated code
-poetry run poe check-generated-ast
+uv run poe validate-openapi
 ```
 
 ### Code Quality Checks
 
 ```bash
 # Full quality check
-poetry run poe check
+uv run poe check
 
 # Individual checks
-poetry run poe lint-mypy      # Type checking
-poetry run poe lint-ruff      # Linting
-poetry run poe lint-yaml      # YAML validation
-poetry run poe format-check   # Format validation
+uv run poe lint-ty        # Type checking with ty
+uv run poe lint-ruff      # Linting with ruff
+uv run poe lint-yaml      # YAML validation
+uv run poe format-check   # Format validation
 ```
 
 ## Architecture Decisions
@@ -244,6 +276,7 @@ poetry run poe format-check   # Format validation
 ### Why No Pagination for StockTrim?
 
 Unlike other APIs, StockTrim doesn't use pagination patterns:
+
 - No `page`, `limit`, `offset` parameters
 - Simple list endpoints return full results
 - Keeps transport layer simpler and focused
@@ -251,9 +284,19 @@ Unlike other APIs, StockTrim doesn't use pagination patterns:
 ### Why Custom Headers?
 
 StockTrim uses `api-auth-id` and `api-auth-signature` instead of bearer tokens:
+
 - Tenant-based authentication model
 - Headers added automatically by transport
 - No manual authentication needed
+
+### Why Automatic Type Fixing?
+
+The regeneration script automatically fixes type issues in generated code:
+
+- Adds proper type casting for `.from_dict()` methods
+- Manages imports (`cast`, `Mapping`) automatically
+- Ensures strict type checking compliance with `ty`
+- Eliminates manual type fixing after regeneration
 
 ## Dependencies Management
 
@@ -268,7 +311,7 @@ StockTrim uses `api-auth-id` and `api-auth-signature` instead of bearer tokens:
 ### Development Dependencies
 
 - **ruff**: Fast Python linter and formatter
-- **mypy**: Static type checking
+- **ty**: Fast Rust-based Python type checker from Astral
 - **pytest**: Testing framework
 - **pre-commit**: Git hooks for code quality
-- **poetry**: Dependency and package management
+- **uv**: Modern Python package and project manager
