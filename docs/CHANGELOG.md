@@ -2,6 +2,45 @@
 
 <!-- version list -->
 
+## v0.2.5 (2025-10-29)
+
+### Bug Fixes
+
+- Correct TOML key access for MCP server dependency update
+  ([`787e3cd`](https://github.com/dougborg/stocktrim-openapi-client/commit/787e3cdf515fa3060fad6f6167f28c56f7fed2c7))
+
+The release workflow was failing with KeyError: 'dependencies' when trying to update the
+MCP server's client dependency. The dependencies array is nested under the [project]
+table per PEP 621, not at the root level.
+
+Changed data['dependencies'][0] to data['project']['dependencies'][0] to correctly
+access the dependencies list in the TOML structure.
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+
+### Documentation
+
+- Comprehensive documentation overhaul
+  ([`e72ec8f`](https://github.com/dougborg/stocktrim-openapi-client/commit/e72ec8fa5336a74e6badce3309a13f78a1009f96))
+
+- Fixed index.md: removed Sphinx directives, added proper MkDocs structure - Created
+  complete getting-started guides (installation, quickstart, configuration) - Created
+  user guides (client usage, helpers, error handling, testing) - Created MCP server
+  documentation (overview, installation, tools, Claude Desktop setup) - Created API
+  reference with mkdocstrings auto-generation - Created architecture documentation
+  (overview, transport, helpers) - Created contributing guides (development, code of
+  conduct, API feedback) - Updated mkdocs.yml navigation structure - Fixed all heading
+  issues and broken links
+
+This provides comprehensive public-facing documentation for both the client library and
+MCP server with auto-generated API docs.
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+
 ## v0.2.4 (2025-10-29)
 
 ### Bug Fixes
