@@ -2,6 +2,20 @@
 
 <!-- version list -->
 
+## v0.2.3 (2025-10-29)
+
+### Bug Fixes
+
+- Correct GitHub Pages artifact path for MkDocs
+  ([`2901db5`](https://github.com/dougborg/stocktrim-openapi-client/commit/2901db5da86de29e85b8b60a69858f1a46b846a2))
+
+Changed upload path from docs/\_build/html (Sphinx) to site/ (MkDocs default). This
+fixes the "No such file or directory" error in the documentation deployment workflow.
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+
 ## v0.2.2 (2025-10-29)
 
 ### Bug Fixes
