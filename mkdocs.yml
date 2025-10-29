@@ -113,7 +113,6 @@ nav:
   - API Reference:
       - Client: api/client.md
       - Helpers: api/helpers.md
-      - Utils: api/utils.md
   - Architecture:
       - Overview: architecture/overview.md
       - Transport Layer: architecture/transport.md
