@@ -247,81 +247,59 @@ def generate_client_to_temp() -> Path:
 
 
 def _fix_types_imports(target_client_path: Path) -> None:
-    """Fix imports from 'types' to 'client_types' in all generated files.
+    """Fix imports from 'types' to 'client_types' in all generated files."""
+    import re
 
-    Since we move types.py to the package root as client_types.py, we need to
-    adjust relative imports based on the file's location:
-    - Files in generated/models/: need `...client_types` (3 dots)
-    - Files in generated/api/subdirectory/: need `....client_types` (4 dots)
-    - Files directly in generated/: need `..client_types` (2 dots)
-    - Root-level files: need `.client_types` (1 dot)
-    """
-    logger.info("Fixing imports from 'types' to 'client_types'")
+    logger.info("Fixing types imports in generated files...")
 
-    files_changed = 0
+    # Find all Python files in the client directory
+    updated_files = 0
     for py_file in target_client_path.rglob("*.py"):
+        if py_file.name in ["__init__.py", "stocktrim_client.py", "utils.py"]:
+            continue  # Skip custom files
+
         try:
-            content = py_file.read_text()
+            content = py_file.read_text(encoding="utf-8")
             original_content = content
 
-            # Determine the directory depth to calculate correct relative import
-            # Get relative path from target_client_path
-            rel_path = py_file.relative_to(target_client_path)
-            parts = rel_path.parts
+            # Replace all patterns of types imports
+            # Our structure: stocktrim_public_api_client/generated/api/endpoint/file.py
+            # client_types.py is at: stocktrim_public_api_client/client_types.py
+            patterns = [
+                # API files (4 levels up: endpoint/ -> api/ -> generated/ -> package/)
+                (r"from \.\.\.types import", "from ....client_types import"),
+                (r"from \.\.\.client_types import", "from ....client_types import"),
+                # Model files (3 levels up: models/ -> generated/ -> package/)
+                (r"from \.\.types import", "from ...client_types import"),
+                (r"from \.\.client_types import", "from ...client_types import"),
+                # Direct relative imports (1 dot = same level)
+                (r"from \.types import", "from .client_types import"),
+                # Absolute imports
+                (
+                    r"from stocktrim_public_api_client\.generated\.types import",
+                    "from stocktrim_public_api_client.client_types import",
+                ),
+                (
+                    r"from stocktrim_public_api_client\.types import",
+                    "from stocktrim_public_api_client.client_types import",
+                ),
+            ]
 
-            # Check if file is in generated/ subdirectory
-            if "generated" in parts:
-                generated_idx = parts.index("generated")
-                depth_from_generated = (
-                    len(parts) - generated_idx - 2
-                )  # -2 for 'generated' and filename
+            for pattern, replacement in patterns:
+                content = re.sub(pattern, replacement, content)
 
-                if "models" in parts:
-                    # Files in generated/models/ need 3 dots (models -> generated -> package_root)
-                    content = re.sub(
-                        r"from \.\.types import", "from ...client_types import", content
-                    )
-                elif "api" in parts and depth_from_generated > 0:
-                    # Files in generated/api/subdirectory/ need 4 dots (subdir -> api -> generated -> package_root)
-                    content = re.sub(
-                        r"from \.\.types import",
-                        "from ....client_types import",
-                        content,
-                    )
-                else:
-                    # Files directly in generated/ need 2 dots (generated -> package_root)
-                    content = re.sub(
-                        r"from \.\.types import", "from ..client_types import", content
-                    )
-            else:
-                # Files at package root need 1 dot
-                content = re.sub(
-                    r"from \.types import", "from .client_types import", content
-                )
-
-            # Also fix any already-fixed ...types patterns
-            content = re.sub(
-                r"from \.\.\.types import", "from ...client_types import", content
-            )
-
-            # Fix absolute imports
-            content = re.sub(
-                r"from stocktrim_public_api_client\.types import",
-                "from stocktrim_public_api_client.client_types import",
-                content,
-            )
-
+            # Only write if content changed
             if content != original_content:
-                py_file.write_text(content)
-                files_changed += 1
+                py_file.write_text(content, encoding="utf-8")
                 logger.info(
-                    f"   ✅ Fixed imports in {py_file.relative_to(PROJECT_ROOT)}"
+                    f"   ✓ Fixed imports in {py_file.relative_to(target_client_path)}"
                 )
+                updated_files += 1
 
-        except Exception as e:
-            logger.warning(f"⚠️  Failed to fix imports in {py_file}: {e}")
+        except (UnicodeDecodeError, OSError) as e:
+            logger.warning(f"   ⚠️  Skipped {py_file}: {e}")
 
-    logger.info(f"✅ Fixed imports in {files_changed} files")
+    logger.info(f"   ✅ Updated imports in {updated_files} files")
 
 
 def move_client_to_workspace(workspace_path: Path) -> bool:
@@ -471,8 +449,91 @@ def fix_specific_generated_issues(workspace_path: Path) -> bool:
     else:
         logger.warning(f"⚠️  client_types.py not found at {client_types_file}")
 
+    # Fix .from_dict() type issues in generated models
+    _fix_from_dict_type_issues(workspace_path)
+
     logger.info("✅ Fixed specific generated code issues")
     return True
+
+
+def _fix_from_dict_type_issues(workspace_path: Path) -> None:
+    """Fix type issues with .from_dict() method calls in generated models."""
+    logger.info("Fixing .from_dict() type issues in generated models...")
+
+    models_dir = workspace_path / "stocktrim_public_api_client" / "generated" / "models"
+    if not models_dir.exists():
+        logger.warning(f"⚠️  Models directory not found: {models_dir}")
+        return
+
+    # Files with known .from_dict() type issues based on ty output
+    problematic_files = [
+        "order_plan_results_dto.py",
+        "products_request_dto.py",
+        "products_response_dto.py",
+        "sales_order_with_line_items_request_dto.py",
+        "set_inventory_request.py",
+        "square_web_hook_object.py",
+    ]
+
+    fixed_count = 0
+    for filename in problematic_files:
+        file_path = models_dir / filename
+        if not file_path.exists():
+            continue
+
+        try:
+            content = file_path.read_text()
+            original_content = content
+
+            # Ensure cast and Mapping are imported
+            if (
+                "from typing import" in content
+                and ", cast" not in content
+                and "cast," not in content
+            ):
+                # Add cast to typing imports if not present
+                content = re.sub(
+                    r"from typing import ([^\n]+)",
+                    r"from typing import \1, cast",
+                    content,
+                )
+
+            if (
+                "from collections.abc import" in content
+                and ", Mapping" not in content
+                and "Mapping," not in content
+            ):
+                # Add Mapping to collections.abc imports if not present
+                content = re.sub(
+                    r"from collections\.abc import ([^\n]+)",
+                    r"from collections.abc import \1, Mapping",
+                    content,
+                )
+
+            # Pattern: Add type cast for variables passed to .from_dict()
+            # Find: SomeClass.from_dict(variable_name)
+            # Replace with: SomeClass.from_dict(cast(Mapping[str, Any], variable_name))
+            pattern = r"(\w+)\.from_dict\(\s*(\w+(?:_item)?(?:_data)?)\s*\)"
+
+            def replace_from_dict(match):
+                class_name = match.group(1)
+                var_name = match.group(2)
+                return f"{class_name}.from_dict(cast(Mapping[str, Any], {var_name}))"
+
+            # Apply the fix
+            content = re.sub(pattern, replace_from_dict, content)
+
+            if content != original_content:
+                file_path.write_text(content)
+                logger.info(f"   ✅ Fixed .from_dict() type issues in {filename}")
+                fixed_count += 1
+
+        except Exception as e:
+            logger.warning(f"⚠️  Failed to fix {filename}: {e}")
+
+    logger.info(
+        f"✅ Fixed .from_dict() type issues in {fixed_count} generated model files"
+    )
 
 
 def run_ruff_fixes(workspace_path: Path) -> bool:
@@ -623,7 +684,7 @@ def main() -> None:
     logger.info("=" * 60)
     logger.info("STEP 7: Fix Specific Generated Issues")
     logger.info("=" * 60)
-    fix_specific_generated_issues(temp_workspace)
+    fix_specific_generated_issues(Path.cwd())
     logger.info("")
 
     # Step 8: Run ruff fixes
