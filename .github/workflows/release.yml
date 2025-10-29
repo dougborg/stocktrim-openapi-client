@@ -21,8 +21,9 @@ jobs:
 
       - name: Install UV
         uses: astral-sh/setup-uv@v4
-        with:
-          enable-cache: true
+        # Temporarily disable cache due to service issues
+        # with:
+        #   enable-cache: true
 
       - name: Set up Python
         run: uv python install 3.13
@@ -51,8 +52,9 @@ jobs:
 
       - name: Install UV
         uses: astral-sh/setup-uv@v4
-        with:
-          enable-cache: true
+        # Temporarily disable cache due to service issues
+        # with:
+        #   enable-cache: true
 
       - name: Set up Python
         run: uv python install 3.13
