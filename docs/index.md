@@ -58,7 +58,7 @@ async def main():
         widgets = await client.products.search("WIDGET")
 
         # Get all customers
-        customers = await client.customers.list_all()
+        customers = await client.customers.get_all()
 ```
 
 ## Configuration

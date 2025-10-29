@@ -27,8 +27,8 @@ Brief description of the changes in this PR.
 - [ ] I have performed a self-review of my own code
 - [ ] I have made corresponding changes to the documentation
 - [ ] My changes generate no new warnings
-- [ ] I have run `poetry run lint` and resolved any issues
-- [ ] I have run `poetry run format-check` and code is properly formatted
+- [ ] I have run `uv run poe lint` and resolved any issues
+- [ ] I have run `uv run poe format-check` and code is properly formatted
 
 ## Related Issues
 

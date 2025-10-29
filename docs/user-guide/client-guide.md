@@ -293,40 +293,40 @@ finally:
 # Clone and setup
 git clone <repo>
 cd stocktrim-openapi-client
-poetry install
-poetry run poe pre-commit-install
+uv sync --all-extras
+uv run poe pre-commit-install
 ```
 
 ### Quality Checks
 
 ```bash
 # Run all quality checks
-poetry run poe check
+uv run poe check
 
 # Individual checks
-poetry run poe lint          # Type checking with mypy
-poetry run poe format-check  # Formatting validation
-poetry run poe test          # Run test suite
+uv run poe lint          # Type checking with mypy
+uv run poe format-check  # Formatting validation
+uv run poe test          # Run test suite
 ```
 
 ### Code Formatting
 
 ```bash
 # Auto-format all code
-poetry run poe format
+uv run poe format
 
 # Python-only formatting
-poetry run poe format-python
+uv run poe format-python
 ```
 
 ### Client Regeneration
 
 ```bash
 # Regenerate from latest OpenAPI spec
-poetry run poe regenerate-client
+uv run poe regenerate-client
 
 # Always format after regeneration
-poetry run poe format
+uv run poe format
 ```
 
 ## Troubleshooting

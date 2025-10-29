@@ -23,14 +23,14 @@ tests/
 
 ```bash
 # Run all tests
-poetry run poe test
+uv run poe test
 
 # Run with coverage report
-poetry run poe test-coverage
+uv run poe test-coverage
 
 # Run specific test types
-poetry run poe test-unit
-poetry run poe test-integration
+uv run poe test-unit
+uv run poe test-integration
 ```
 
 ### Test Categories
@@ -352,12 +352,12 @@ All tests must pass before merging:
 
 ```bash
 # Quality pipeline
-poetry run poe ci
+uv run poe ci
 
 # Which runs:
-# - poetry run poe lint          # Type checking
-# - poetry run poe format-check  # Formatting validation
-# - poetry run poe test          # Test suite
+# - uv run poe lint          # Type checking
+# - uv run poe format-check  # Formatting validation
+# - uv run poe test          # Test suite
 ```
 
 ## Debugging Tests

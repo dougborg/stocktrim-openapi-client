@@ -50,7 +50,7 @@ STOCKTRIM_API_AUTH_ID=your_tenant_id_here
 STOCKTRIM_API_AUTH_SIGNATURE=your_tenant_name_here
 
 # Optional
-STOCKTRIM_BASE_URL=https://app.stocktrim.com  # Default
+STOCKTRIM_BASE_URL=https://api.stocktrim.com  # Default
 ```
 
 ### Getting Your Credentials
@@ -313,7 +313,7 @@ Failed to initialize StockTrimClient: Connection refused
 
 **Solution:**
 
-- Check that `STOCKTRIM_BASE_URL` is correct (default: https://app.stocktrim.com)
+- Check that `STOCKTRIM_BASE_URL` is correct (default: https://api.stocktrim.com)
 - Verify your network connection
 - Ensure StockTrim API is accessible
 

@@ -178,7 +178,7 @@ The client provides convenient helper classes that wrap the generated API:
 - `get_all()` - List all locations
 - `create(...)` - Create location
 
-See [docs/HELPER_CONVENIENCE_METHODS.md](docs/HELPER_CONVENIENCE_METHODS.md) for
+See [docs/user-guide/helper-methods.md](docs/user-guide/helper-methods.md) for
 complete documentation.
 
 ## Error Handling
@@ -216,7 +216,7 @@ STOCKTRIM_API_AUTH_ID=your_tenant_id
 STOCKTRIM_API_AUTH_SIGNATURE=your_tenant_name
 
 # Optional
-STOCKTRIM_BASE_URL=https://app.stocktrim.com  # Default
+STOCKTRIM_BASE_URL=https://api.stocktrim.com  # Default
 ```
 
 ### Programmatic Configuration
@@ -225,7 +225,7 @@ STOCKTRIM_BASE_URL=https://app.stocktrim.com  # Default
 async with StockTrimClient(
     api_auth_id="your_tenant_id",
     api_auth_signature="your_tenant_name",
-    base_url="https://app.stocktrim.com",
+    base_url="https://api.stocktrim.com",
     timeout=30.0,
     max_retries=5
 ) as client:
@@ -377,10 +377,9 @@ stocktrim-openapi-client/
 
 - **Full Documentation**:
   [https://dougborg.github.io/stocktrim-openapi-client/](https://dougborg.github.io/stocktrim-openapi-client/)
-- **Client Guide**: [docs/STOCKTRIM_CLIENT_GUIDE.md](docs/STOCKTRIM_CLIENT_GUIDE.md)
-- **Helper Methods**:
-  [docs/HELPER_CONVENIENCE_METHODS.md](docs/HELPER_CONVENIENCE_METHODS.md)
-- **Testing Guide**: [docs/TESTING_GUIDE.md](docs/TESTING_GUIDE.md)
+- **Client Guide**: [docs/user-guide/client-guide.md](docs/user-guide/client-guide.md)
+- **Helper Methods**: [docs/user-guide/helper-methods.md](docs/user-guide/helper-methods.md)
+- **Testing Guide**: [docs/user-guide/testing.md](docs/user-guide/testing.md)
 - **MCP Server**: [stocktrim_mcp_server/README.md](stocktrim_mcp_server/README.md)
 
 ## Contributing
@@ -388,8 +387,8 @@ stocktrim-openapi-client/
 Contributions are welcome! Please see:
 
 - [Development Setup](#development) above
-- [Code of Conduct](docs/CODE_OF_CONDUCT.md)
-- [API Feedback](STOCKTRIM_API_FEEDBACK.md) - Constructive feedback for StockTrim
+- [Code of Conduct](docs/contributing/code-of-conduct.md)
+- [API Feedback](docs/contributing/api-feedback.md) - Constructive feedback for StockTrim
   developers
 
 ## License

@@ -20,6 +20,10 @@ cd stocktrim-openapi-client
 ### 2. Install uv
 
 ```bash
+# Official installer (recommended)
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Or with pip
 pip install uv
 ```
 

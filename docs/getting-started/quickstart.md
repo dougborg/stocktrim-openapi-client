@@ -70,8 +70,8 @@ async def main():
         widgets = await client.products.search("WIDGET")
         print(f"Found {len(widgets)} widgets")
 
-        # List all customers
-        customers = await client.customers.list_all()
+        # Get all customers
+        customers = await client.customers.get_all()
         print(f"Total customers: {len(customers)}")
 
 if __name__ == "__main__":
