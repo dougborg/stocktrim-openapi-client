@@ -100,6 +100,12 @@ jobs:
           # Update client dependency to specific version
           data['dependencies'][0] = f'stocktrim-openapi-client=={client_version}'
 
+          # Remove workspace source override for PyPI release
+          if 'tool' in data and 'uv' in data['tool'] and 'sources' in data['tool']['uv']:
+              if 'stocktrim-openapi-client' in data['tool']['uv']['sources']:
+                  del data['tool']['uv']['sources']['stocktrim-openapi-client']
+                  print('Removed workspace source override for PyPI release')
+
           # Bump MCP server patch version
           current_version = data['project']['version']
           major, minor, patch = map(int, current_version.split('.'))
