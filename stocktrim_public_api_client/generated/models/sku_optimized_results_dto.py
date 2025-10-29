@@ -8,7 +8,7 @@ from uuid import UUID
 from attrs import define as _attrs_define
 from dateutil.parser import isoparse
 
-from ..client_types import UNSET, Unset
+from ...client_types import UNSET, Unset
 
 T = TypeVar("T", bound="SkuOptimizedResultsDto")
 

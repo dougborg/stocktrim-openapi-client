@@ -3,9 +3,9 @@ from typing import Any, cast
 
 import httpx
 
+from ....client_types import Response
 from ... import errors
 from ...client import AuthenticatedClient, Client
-from ...client_types import Response
 from ...models.problem_details import ProblemDetails
 from ...models.processing_status_response_dto import ProcessingStatusResponseDto
 

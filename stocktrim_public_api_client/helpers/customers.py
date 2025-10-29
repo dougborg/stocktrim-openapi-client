@@ -9,7 +9,6 @@ from stocktrim_public_api_client.generated.api.customers import (
     get_api_customers_code,
     put_api_customers,
 )
-from stocktrim_public_api_client.generated.models.customer import Customer
 from stocktrim_public_api_client.generated.models.customer_dto import CustomerDto
 from stocktrim_public_api_client.helpers.base import Base
 from stocktrim_public_api_client.utils import unwrap
@@ -52,14 +51,14 @@ class Customers(Base):
         )
         return cast(CustomerDto, unwrap(response))
 
-    async def update(self, customer: CustomerDto) -> list[Customer]:
+    async def update(self, customer: CustomerDto) -> list[CustomerDto]:
         """Update a customer (create or update based on code).
 
         Args:
             customer: Customer data to update.
 
         Returns:
-            List of updated Customer objects.
+            List of updated CustomerDto objects.
 
         Example:
             >>> from stocktrim_public_api_client.generated.models import CustomerDto
@@ -72,7 +71,9 @@ class Customers(Base):
             body=customer,
         )
         result = unwrap(response)
-        return result if isinstance(result, list) else []
+        if isinstance(result, list):
+            return cast(list[CustomerDto], result)
+        return []
 
     # Convenience methods
 

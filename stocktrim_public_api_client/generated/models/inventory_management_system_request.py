@@ -5,7 +5,7 @@ from typing import Any, TypeVar
 
 from attrs import define as _attrs_define
 
-from ..client_types import UNSET, Unset
+from ...client_types import UNSET, Unset
 from ..models.api_enum import ApiEnum
 
 T = TypeVar("T", bound="InventoryManagementSystemRequest")

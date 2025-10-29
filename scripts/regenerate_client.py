@@ -247,18 +247,16 @@ def generate_client_to_temp() -> Path:
 
 
 def _fix_types_imports(target_client_path: Path) -> None:
-    """Fix imports from 'types' to 'client_types' in all generated files."""
-    logger.info("Fixing imports from 'types' to 'client_types'")
+    """Fix imports from 'types' to 'client_types' in all generated files.
 
-    patterns = [
-        (r"from \.\.\.types import", "from ...client_types import"),
-        (r"from \.\.types import", "from ..client_types import"),
-        (r"from \.types import", "from .client_types import"),
-        (
-            r"from stocktrim_public_api_client\.types import",
-            "from stocktrim_public_api_client.client_types import",
-        ),
-    ]
+    Since we move types.py to the package root as client_types.py, we need to
+    adjust relative imports based on the file's location:
+    - Files in generated/models/: need `...client_types` (3 dots)
+    - Files in generated/api/subdirectory/: need `....client_types` (4 dots)
+    - Files directly in generated/: need `..client_types` (2 dots)
+    - Root-level files: need `.client_types` (1 dot)
+    """
+    logger.info("Fixing imports from 'types' to 'client_types'")
 
     files_changed = 0
     for py_file in target_client_path.rglob("*.py"):
@@ -266,8 +264,52 @@ def _fix_types_imports(target_client_path: Path) -> None:
             content = py_file.read_text()
             original_content = content
 
-            for pattern, replacement in patterns:
-                content = re.sub(pattern, replacement, content)
+            # Determine the directory depth to calculate correct relative import
+            # Get relative path from target_client_path
+            rel_path = py_file.relative_to(target_client_path)
+            parts = rel_path.parts
+
+            # Check if file is in generated/ subdirectory
+            if "generated" in parts:
+                generated_idx = parts.index("generated")
+                depth_from_generated = (
+                    len(parts) - generated_idx - 2
+                )  # -2 for 'generated' and filename
+
+                if "models" in parts:
+                    # Files in generated/models/ need 3 dots (models -> generated -> package_root)
+                    content = re.sub(
+                        r"from \.\.types import", "from ...client_types import", content
+                    )
+                elif "api" in parts and depth_from_generated > 0:
+                    # Files in generated/api/subdirectory/ need 4 dots (subdir -> api -> generated -> package_root)
+                    content = re.sub(
+                        r"from \.\.types import",
+                        "from ....client_types import",
+                        content,
+                    )
+                else:
+                    # Files directly in generated/ need 2 dots (generated -> package_root)
+                    content = re.sub(
+                        r"from \.\.types import", "from ..client_types import", content
+                    )
+            else:
+                # Files at package root need 1 dot
+                content = re.sub(
+                    r"from \.types import", "from .client_types import", content
+                )
+
+            # Also fix any already-fixed ...types patterns
+            content = re.sub(
+                r"from \.\.\.types import", "from ...client_types import", content
+            )
+
+            # Fix absolute imports
+            content = re.sub(
+                r"from stocktrim_public_api_client\.types import",
+                "from stocktrim_public_api_client.client_types import",
+                content,
+            )
 
             if content != original_content:
                 py_file.write_text(content)

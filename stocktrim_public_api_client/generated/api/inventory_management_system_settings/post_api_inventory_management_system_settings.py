@@ -3,9 +3,9 @@ from typing import Any, cast
 
 import httpx
 
+from ....client_types import Response
 from ... import errors
 from ...client import AuthenticatedClient, Client
-from ...client_types import Response
 from ...models.inventory_management_system_request import (
     InventoryManagementSystemRequest,
 )

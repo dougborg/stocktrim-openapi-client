@@ -3,9 +3,9 @@ from typing import Any, cast
 
 import httpx
 
+from ....client_types import Response
 from ... import errors
 from ...client import AuthenticatedClient, Client
-from ...client_types import Response
 from ...models.bill_of_materials_request_dto import BillOfMaterialsRequestDto
 from ...models.bill_of_materials_response_dto import BillOfMaterialsResponseDto
 from ...models.problem_details import ProblemDetails

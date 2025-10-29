@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any, TypeVar, cast
 from attrs import define as _attrs_define
 from dateutil.parser import isoparse
 
-from ..client_types import UNSET, Unset
+from ...client_types import UNSET, Unset
 from ..models.purchase_order_status_dto import PurchaseOrderStatusDto
 
 if TYPE_CHECKING:

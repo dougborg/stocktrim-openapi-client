@@ -5,7 +5,7 @@ from typing import Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 
-from ..client_types import UNSET, Unset
+from ...client_types import UNSET, Unset
 from ..models.current_status_enum import CurrentStatusEnum
 
 T = TypeVar("T", bound="OrderPlanFilterCriteria")

@@ -8,7 +8,7 @@ from attrs import (
     field as _attrs_field,
 )
 
-from ..client_types import UNSET, Unset
+from ...client_types import UNSET, Unset
 
 T = TypeVar("T", bound="ProblemDetails")
 
