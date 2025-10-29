@@ -107,3 +107,119 @@ def mock_env_credentials(monkeypatch):
     monkeypatch.setenv("STOCKTRIM_API_AUTH_ID", "env-tenant-id")
     monkeypatch.setenv("STOCKTRIM_API_AUTH_SIGNATURE", "env-tenant-name")
     monkeypatch.setenv("STOCKTRIM_BASE_URL", "https://api.env.stocktrim.example.com")
+
+
+@pytest.fixture
+async def async_stocktrim_client(mock_api_credentials):
+    """Create an async StockTrimClient for testing."""
+    async with StockTrimClient(**mock_api_credentials) as client:
+        yield client
+
+
+@pytest.fixture
+def create_mock_response():
+    """Factory fixture to create mock responses with custom data."""
+
+    def _create_response(
+        status_code: int = 200,
+        json_data: dict | None = None,
+        headers: dict | None = None,
+    ) -> httpx.Response:
+        """Create a mock httpx Response.
+
+        Args:
+            status_code: HTTP status code
+            json_data: JSON response data
+            headers: Response headers
+
+        Returns:
+            Mock httpx.Response object
+        """
+        if json_data is None:
+            json_data = {"data": []}
+        if headers is None:
+            headers = {}
+
+        response = MagicMock(spec=httpx.Response)
+        response.status_code = status_code
+        response.json.return_value = json_data
+        response.headers = headers
+        response.text = str(json_data)
+        response.content = str(json_data).encode()
+        return response
+
+    return _create_response
+
+
+@pytest.fixture
+def mock_server_error_response():
+    """Create a mock 500 Internal Server Error response."""
+    response = MagicMock(spec=httpx.Response)
+    response.status_code = 500
+    response.json.return_value = {
+        "type": "https://tools.ietf.org/html/rfc7231#section-6.6.1",
+        "title": "Internal Server Error",
+        "status": 500,
+        "detail": "An error occurred while processing your request.",
+    }
+    response.headers = {"Content-Type": "application/problem+json"}
+    response.text = '{"type": "...", "title": "Internal Server Error", "status": 500}'
+    return response
+
+
+@pytest.fixture
+def mock_authentication_error_response():
+    """Create a mock 401 Unauthorized response."""
+    response = MagicMock(spec=httpx.Response)
+    response.status_code = 401
+    response.json.return_value = {
+        "type": "https://tools.ietf.org/html/rfc7235#section-3.1",
+        "title": "Unauthorized",
+        "status": 401,
+        "detail": "Invalid authentication credentials.",
+    }
+    response.headers = {"Content-Type": "application/problem+json"}
+    response.text = '{"type": "...", "title": "Unauthorized", "status": 401}'
+    return response
+
+
+@pytest.fixture
+def mock_validation_error_response():
+    """Create a mock 422 Unprocessable Entity response."""
+    response = MagicMock(spec=httpx.Response)
+    response.status_code = 422
+    response.json.return_value = {
+        "type": "https://tools.ietf.org/html/rfc4918#section-11.2",
+        "title": "Unprocessable Entity",
+        "status": 422,
+        "detail": "Validation failed.",
+        "errors": {"code": ["Code is required"]},
+    }
+    response.headers = {"Content-Type": "application/problem+json"}
+    response.text = '{"type": "...", "title": "Unprocessable Entity", "status": 422}'
+    return response
+
+
+@pytest.fixture
+def mock_not_found_response():
+    """Create a mock 404 Not Found response."""
+    response = MagicMock(spec=httpx.Response)
+    response.status_code = 404
+    response.json.return_value = {
+        "type": "https://tools.ietf.org/html/rfc7231#section-6.5.4",
+        "title": "Not Found",
+        "status": 404,
+        "detail": "The requested resource was not found.",
+    }
+    response.headers = {"Content-Type": "application/problem+json"}
+    response.text = '{"type": "...", "title": "Not Found", "status": 404}'
+    return response
+
+
+@pytest.fixture
+def stocktrim_client_with_mock_transport(mock_api_credentials, mock_transport):
+    """Create a StockTrimClient with mock transport for testing without network calls."""
+    client = StockTrimClient(**mock_api_credentials)
+    # Replace the transport with mock
+    client._client._transport = mock_transport
+    return client
