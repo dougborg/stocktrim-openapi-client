@@ -25,39 +25,26 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Install UV
+        uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+
       - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.13"
-
-      - name: Install Poetry
-        uses: snok/install-poetry@v1
-        with:
-          version: latest
-          virtualenvs-create: true
-          virtualenvs-in-project: true
-          installer-parallel: true
-
-      - name: Load cached venv
-        id: cached-poetry-dependencies
-        uses: actions/cache@v4
-        with:
-          path: .venv
-          key: venv-${{ runner.os }}-3.13-${{ hashFiles('**/poetry.lock') }}
+        run: uv python install 3.13
 
       - name: Install dependencies
-        if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
-        run: poetry install --extras dev --no-interaction
+        run: uv sync --all-extras
 
       - name: Build documentation
         run: |
-          poetry run poe docs-clean
-          poetry run poe docs-build
+          uv run poe docs-clean
+          uv run poe docs-build
         env:
           CI_DOCS_BUILD: "true"
 
       - name: Test documentation
-        run: poetry run poe test-docs
+        run: uv run poe test-docs
         env:
           CI_DOCS_BUILD: "true"
 

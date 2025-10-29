@@ -19,24 +19,19 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Set up Python 3.13
-        uses: actions/setup-python@v5
+      - name: Install UV
+        uses: astral-sh/setup-uv@v4
         with:
-          python-version: "3.13"
+          enable-cache: true
 
-      - name: Install Poetry
-        uses: snok/install-poetry@v1
-        with:
-          version: latest
-          virtualenvs-create: true
-          virtualenvs-in-project: true
-          installer-parallel: true
+      - name: Set up Python
+        run: uv python install 3.13
 
       - name: Install dependencies
-        run: poetry install --extras dev --no-interaction
+        run: uv sync --all-extras
 
       - name: Run full CI pipeline
-        run: poetry run poe ci
+        run: uv run poe ci
 
   release:
     needs: test
@@ -54,21 +49,16 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Set up Python 3.13
-        uses: actions/setup-python@v5
+      - name: Install UV
+        uses: astral-sh/setup-uv@v4
         with:
-          python-version: "3.13"
+          enable-cache: true
 
-      - name: Install Poetry
-        uses: snok/install-poetry@v1
-        with:
-          version: latest
-          virtualenvs-create: true
-          virtualenvs-in-project: true
-          installer-parallel: true
+      - name: Set up Python
+        run: uv python install 3.13
 
       - name: Install dependencies
-        run: poetry install --extras dev --no-interaction
+        run: uv sync --all-extras
 
       - name: Python Semantic Release
         id: release
@@ -77,19 +67,30 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           root_options: -vv
 
-      - name: Build package
+      - name: Build client package
         if: steps.release.outputs.released == 'true'
-        run: poetry build
+        run: uv build
 
-      - name: Upload build artifacts
+      - name: Build MCP server package
+        if: steps.release.outputs.released == 'true'
+        run: uv build --package stocktrim-mcp-server
+
+      - name: Upload client artifacts
         if: steps.release.outputs.released == 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: dist
+          name: dist-client
           path: dist/
 
-  publish-pypi:
-    name: Publish to PyPI
+      - name: Upload MCP server artifacts
+        if: steps.release.outputs.released == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-mcp
+          path: stocktrim_mcp_server/dist/
+
+  publish-client:
+    name: Publish Client to PyPI
     needs: release
     if: needs.release.outputs.released == 'true'
     runs-on: ubuntu-latest
@@ -99,13 +100,35 @@ jobs:
     permissions:
       id-token: write
     steps:
-      - name: Download build artifacts
+      - name: Download client artifacts
         uses: actions/download-artifact@v4
         with:
-          name: dist
+          name: dist-client
           path: dist/
 
-      - name: Publish to PyPI
+      - name: Publish client to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          attestations: true
+
+  publish-mcp:
+    name: Publish MCP Server to PyPI
+    needs: release
+    if: needs.release.outputs.released == 'true'
+    runs-on: ubuntu-latest
+    environment:
+      name: PyPI Release MCP
+      url: https://pypi.org/p/stocktrim-mcp-server
+    permissions:
+      id-token: write
+    steps:
+      - name: Download MCP server artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: dist-mcp
+          path: dist/
+
+      - name: Publish MCP server to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           attestations: true

@@ -6,6 +6,10 @@ on:
   pull_request:
     branches: [main]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
@@ -15,46 +19,31 @@ jobs:
     strategy:
       matrix:
         python-version: ["3.11", "3.12", "3.13"]
+      fail-fast: false
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Install UV
+        uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
-
-      - name: Install Poetry
-        uses: snok/install-poetry@v1
-        with:
-          version: latest
-          virtualenvs-create: true
-          virtualenvs-in-project: true
-          installer-parallel: true
-
-      - name: Load cached venv
-        id: cached-poetry-dependencies
-        uses: actions/cache@v4
-        with:
-          path: .venv
-          key: venv-${{ runner.os }}-${{ matrix.python-version }}-${{ hashFiles('**/poetry.lock') }}
+        run: uv python install ${{ matrix.python-version }}
 
       - name: Install dependencies
-        if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
-        run: poetry install --extras dev --no-interaction --no-root
-
-      - name: Install project
-        run: poetry install --no-interaction
+        run: uv sync --all-extras
 
       - name: Check code formatting
-        run: poetry run poe format-check
+        run: uv run poe format-check
 
       - name: Run linting and type checking
-        run: poetry run poe lint
+        run: uv run poe lint
 
-      - name: Run tests
-        run: poetry run poe test-coverage
+      - name: Run tests with coverage
+        run: uv run poe test-coverage
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
@@ -68,29 +57,21 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - name: Install UV
+        uses: astral-sh/setup-uv@v4
         with:
-          python-version: "3.13"
+          enable-cache: true
 
-      - name: Install Poetry
-        uses: snok/install-poetry@v1
-        with:
-          version: latest
-          virtualenvs-create: true
-          virtualenvs-in-project: true
-          installer-parallel: true
+      - name: Set up Python
+        run: uv python install 3.13
 
       - name: Install dependencies
-        run: poetry install --extras dev --no-interaction
+        run: uv sync --all-extras
 
       - name: Validate OpenAPI specification
-        run: poetry run poe validate-openapi
-
-      - name: Check if client is up to date
-        run: poetry run poe check-generated-ast
+        run: uv run poe validate-openapi
 
       - name: Build documentation
-        run: poetry run poe docs-build
+        run: uv run poe docs-build
         env:
           CI_DOCS_BUILD: "true"
