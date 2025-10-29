@@ -99,7 +99,7 @@ jobs:
               data = tomllib.load(f)
 
           # Update client dependency to specific version
-          data['dependencies'][0] = f'stocktrim-openapi-client=={client_version}'
+          data['project']['dependencies'][0] = f'stocktrim-openapi-client=={client_version}'
 
           # Remove workspace source override for PyPI release
           if 'tool' in data and 'uv' in data['tool'] and 'sources' in data['tool']['uv']:
