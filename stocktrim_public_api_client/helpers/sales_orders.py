@@ -85,3 +85,34 @@ class SalesOrders(Base):
             client=self._client,
             product_id=product_id,
         )
+
+    # Convenience methods
+
+    async def get_for_product(self, product_id: str) -> list[SalesOrderResponseDto]:
+        """Get all sales orders for a specific product.
+
+        This is a convenience alias for get_all() with clearer intent.
+
+        Args:
+            product_id: The product ID to get orders for.
+
+        Returns:
+            List of SalesOrderResponseDto objects for the product.
+
+        Example:
+            >>> orders = await client.sales_orders.get_for_product("123")
+        """
+        return await self.get_all(product_id=product_id)
+
+    async def delete_for_product(self, product_id: str) -> None:
+        """Delete all sales orders for a specific product.
+
+        This is a convenience alias for delete() with clearer intent.
+
+        Args:
+            product_id: The product ID to delete orders for.
+
+        Example:
+            >>> await client.sales_orders.delete_for_product("123")
+        """
+        await self.delete(product_id=product_id)

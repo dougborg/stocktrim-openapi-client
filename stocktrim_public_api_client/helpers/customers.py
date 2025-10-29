@@ -73,3 +73,47 @@ class Customers(Base):
         )
         result = unwrap(response)
         return result if isinstance(result, list) else []
+
+    # Convenience methods
+
+    async def exists(self, code: str) -> bool:
+        """Check if a customer with given code exists.
+
+        Args:
+            code: The customer code to check.
+
+        Returns:
+            True if customer exists, False otherwise.
+
+        Example:
+            >>> if await client.customers.exists("CUST-001"):
+            ...     print("Customer exists")
+        """
+        try:
+            await self.get(code)
+            return True
+        except Exception:
+            return False
+
+    async def find_or_create(self, code: str, **defaults) -> CustomerDto:
+        """Get customer by code, or create if doesn't exist.
+
+        Args:
+            code: The customer code.
+            **defaults: Default values to use when creating the customer.
+
+        Returns:
+            CustomerDto object (existing or newly created).
+
+        Example:
+            >>> customer = await client.customers.find_or_create(
+            ...     "CUST-001", name="New Customer", email="customer@example.com"
+            ... )
+        """
+        try:
+            return await self.get(code)
+        except Exception:
+            # Customer doesn't exist, create it
+            new_customer = CustomerDto(code=code, **defaults)
+            await self.update(new_customer)
+            return await self.get(code)

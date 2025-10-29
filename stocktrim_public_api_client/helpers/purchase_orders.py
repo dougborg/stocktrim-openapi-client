@@ -100,3 +100,46 @@ class PurchaseOrders(Base):
         )
         result = unwrap(response)
         return cast(PurchaseOrderResponseDto, result) if result else None
+
+    # Convenience methods
+
+    async def find_by_reference(
+        self, reference_number: str
+    ) -> PurchaseOrderResponseDto | None:
+        """Find a single purchase order by reference number.
+
+        This method handles the API's inconsistent return type (single vs list)
+        and always returns a single object or None.
+
+        Args:
+            reference_number: The purchase order reference number.
+
+        Returns:
+            PurchaseOrderResponseDto if found, None otherwise.
+
+        Example:
+            >>> order = await client.purchase_orders.find_by_reference("PO-001")
+            >>> if order:
+            ...     print(f"Found order: {order.reference_number}")
+        """
+        result = await self.get_all(reference_number=reference_number)
+        # Handle API returning either single object or list
+        if isinstance(result, list):
+            return result[0] if result else None
+        return result
+
+    async def exists(self, reference_number: str) -> bool:
+        """Check if a purchase order with given reference number exists.
+
+        Args:
+            reference_number: The reference number to check.
+
+        Returns:
+            True if order exists, False otherwise.
+
+        Example:
+            >>> if await client.purchase_orders.exists("PO-001"):
+            ...     print("Purchase order exists")
+        """
+        order = await self.find_by_reference(reference_number)
+        return order is not None

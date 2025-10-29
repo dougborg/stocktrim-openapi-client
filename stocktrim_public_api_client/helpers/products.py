@@ -89,3 +89,57 @@ class Products(Base):
             client=self._client,
             product_id=product_id,
         )
+
+    # Convenience methods
+
+    async def find_by_code(self, code: str) -> ProductsResponseDto | None:
+        """Find a single product by exact code match.
+
+        This is a convenience method that wraps get_all() and returns the first
+        matching product or None if not found.
+
+        Args:
+            code: The exact product code to search for.
+
+        Returns:
+            ProductsResponseDto if found, None otherwise.
+
+        Example:
+            >>> product = await client.products.find_by_code("WIDGET-001")
+            >>> if product:
+            ...     print(f"Found: {product.description}")
+        """
+        products = await self.get_all(code=code)
+        return products[0] if products else None
+
+    async def search(self, code_prefix: str) -> list[ProductsResponseDto]:
+        """Search for products with code starting with prefix.
+
+        This is a convenience alias for get_all() with clearer search intent.
+
+        Args:
+            code_prefix: The code prefix to search for.
+
+        Returns:
+            List of matching ProductsResponseDto objects.
+
+        Example:
+            >>> widgets = await client.products.search("WIDGET")
+        """
+        return await self.get_all(code=code_prefix)
+
+    async def exists(self, code: str) -> bool:
+        """Check if a product with given code exists.
+
+        Args:
+            code: The product code to check.
+
+        Returns:
+            True if product exists, False otherwise.
+
+        Example:
+            >>> if await client.products.exists("WIDGET-001"):
+            ...     print("Product already exists")
+        """
+        product = await self.find_by_code(code)
+        return product is not None
