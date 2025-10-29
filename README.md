@@ -17,7 +17,7 @@ A production-ready Python client library and MCP server for the
   functions)
 - **🔄 Transport-Layer Resilience**: Automatic retries with exponential backoff built
   into HTTP transport
-- **⚡ Modern Python**: Fully async/await with comprehensive type hints (mypy strict)
+- **⚡ Modern Python**: Fully async/await with comprehensive type hints (ty strict)
 - **🔐 Custom Authentication**: Automatic handling of StockTrim `api-auth-id` and
   `api-auth-signature` headers
 - **🛡️ Typed Exceptions**: Structured error handling (AuthenticationError,
@@ -317,7 +317,7 @@ uv run poe lint
 uv run poe format
 
 # Type check
-uv run mypy stocktrim_public_api_client tests
+uv run ty check
 
 # Regenerate client from OpenAPI spec
 uv run poe regenerate-client

@@ -230,7 +230,7 @@ Phase 5: Regeneration script (already enhanced) - Phase 6: CI/CD workflows (all 
 to UV, dual-package support) - Phase 8: MCP Server (FastMCP, 5 tools, production-ready)
 \- Documentation (README, MkDocs config, helper reference, MCP guide)
 
-**📊 Project Status:** - 42/42 tests passing (100%) - 0 linting errors (ruff, mypy,
+**📊 Project Status:** - 42/42 tests passing (100%) - 0 linting errors (ruff, ty,
 yamllint) - 2 packages ready: stocktrim-openapi-client + stocktrim-mcp-server - Full
 CI/CD pipeline operational
 
@@ -274,7 +274,7 @@ extensions (code highlighting, mermaid, tabs) - Prepared for future full documen
 migration
 
 **Quality Assurance:** - ✅ All tests passing (42 passed) - ✅ All linting passing (ruff,
-mypy, yamllint) - ✅ Documentation accurate and up-to-date
+ty, yamllint) - ✅ Documentation accurate and up-to-date
 
 The README now provides a complete overview of the project's current capabilities
 including domain helpers and MCP server.

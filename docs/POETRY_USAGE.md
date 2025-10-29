@@ -49,7 +49,7 @@ poetry add "httpx>=0.24.0"
 
 # Add development dependency
 poetry add --group dev pytest
-poetry add --group dev "mypy>=1.0"
+uv add --dev "ty>=0.0.1a24"
 
 # Add optional dependencies
 poetry add --optional requests
@@ -105,7 +105,7 @@ poetry run poe format
 # Check formatting without making changes
 poetry run poe format-check
 
-# Run type checking with mypy
+# Run type checking with ty
 poetry run poe lint
 
 # Run all tests
@@ -282,7 +282,7 @@ description = "StockTrim Inventory Management API client"
 [project.optional-dependencies]
 dev = [
     "pytest>=7.0",
-    "mypy>=1.0",
+    "ty>=0.0.1a24",
     # ... development dependencies
 ]
 

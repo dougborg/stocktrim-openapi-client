@@ -7,7 +7,7 @@ client for the StockTrim Inventory Management API built with transport-layer res
 
 - **Transport-layer resilience**: Automatic retries and custom authentication at the
   HTTP transport level
-- **Type-safe**: Full type hints and mypy compatibility
+- **Type-safe**: Full type hints and ty compatibility
 - **Async/await support**: Built on httpx for modern Python async patterns
 - **Production-ready**: Comprehensive error handling and logging
 - **Zero-wrapper philosophy**: All resilience features work transparently with the

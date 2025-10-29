@@ -401,6 +401,59 @@ ______________________________________________________________________
 
 ______________________________________________________________________
 
+### Nullable Arrays vs Optional Fields
+
+**Current State**: Several models use `nullable: true` on array fields containing
+complex objects:
+
+- `OrderPlanResultsDto.results` - array of `SkuOptimizedResultsDto`
+- `ProductsRequestDto.suppliers` - array of `ProductSupplier`
+- `ProductsRequestDto.stockLocations` - array of `ProductLocation`
+- `SalesOrderWithLineItemsRequestDto` - array of `SalesOrderRequestDto`
+- `SetInventoryRequest.inventory` - array of `Inventory`
+- `SquareWebHookObject` - array of `InventoryCountWebHook`
+
+**Impact**: This pattern creates type checking complexity in strongly-typed languages,
+requiring additional type casting to satisfy static analysis tools.
+
+**Suggested Alternatives**:
+
+1. **Use empty arrays instead of null** (Preferred):
+
+   ```yaml
+   # Instead of nullable array:
+   suppliers:
+     type: array
+     items:
+       $ref: '#/components/schemas/ProductSupplier'
+     nullable: true
+
+   # Use non-nullable array (return [] instead of null):
+   suppliers:
+     type: array
+     items:
+       $ref: '#/components/schemas/ProductSupplier'
+   ```
+
+1. **Make fields optional instead of nullable**:
+
+   ```yaml
+   # Omit the field entirely when no data exists
+   suppliers:
+     type: array
+     items:
+       $ref: '#/components/schemas/ProductSupplier'
+   ```
+
+**Benefits**:
+
+- Simpler client code generation
+- Better type safety in strongly-typed languages
+- Follows JSON API best practices
+- Reduces null-checking complexity for API consumers
+
+______________________________________________________________________
+
 ## Closing Notes
 
 Thank you for providing a public API! These suggestions come from a place of wanting to
