@@ -2,6 +2,22 @@
 
 <!-- version list -->
 
+## v0.2.4 (2025-10-29)
+
+### Bug Fixes
+
+- Use tomllib/tomli-w instead of deprecated toml package
+  ([`5aedd90`](https://github.com/dougborg/stocktrim-openapi-client/commit/5aedd901bdc66925db16f97804338102d922ae19))
+
+Switched from the deprecated 'toml' package to Python 3.11+'s built-in tomllib for
+reading and tomli-w for writing TOML files. Also fixed the installation command to use
+'uv pip install' instead of 'uv run pip install' to ensure the package is available in
+the uv environment.
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+
 ## v0.2.3 (2025-10-29)
 
 ### Bug Fixes
