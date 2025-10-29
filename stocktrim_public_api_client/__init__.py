@@ -28,11 +28,12 @@ __all__ = [
     "NotFoundError",
     "PermissionError",
     "ServerError",
+    # Main client
     "StockTrimClient",
     "ValidationError",
+    # Utility functions
     "get_error_message",
     "is_error",
     "is_success",
-    # Utils
     "unwrap",
 ]
