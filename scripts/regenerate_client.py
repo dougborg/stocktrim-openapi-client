@@ -4,15 +4,16 @@ Script to regenerate the StockTrim API client from the OpenAPI specification.
 
 This script:
 1. Downloads the latest OpenAPI spec from StockTrim
-2. Validates the specification using multiple validators
-3. Generates a new Python client using openapi-python-client
-4. Performs post-processing:
+2. Fixes authentication in the spec (converts header params to securitySchemes)
+3. Validates the specification using multiple validators
+4. Generates a new Python client using openapi-python-client
+5. Performs post-processing:
    - Renames types.py to client_types.py
    - Fixes all imports to use client_types
    - Modernizes Union types to use | syntax
    - Fixes RST docstring formatting
-5. Runs ruff auto-fixes
-6. Validates the generated code with tests
+6. Runs ruff auto-fixes
+7. Validates the generated code with tests
 """
 
 import logging
@@ -65,6 +66,86 @@ def save_spec_file(spec_content: str) -> None:
     except Exception as e:
         logger.error(f"❌ Failed to save spec file: {e}")
         sys.exit(1)
+
+
+def fix_auth_in_spec(spec_path: Path) -> bool:
+    """Convert auth header parameters to proper security scheme.
+
+    StockTrim's spec defines api-auth-id and api-auth-signature as required
+    header parameters on every endpoint. This converts them to a proper
+    securitySchemes definition, which allows openapi-python-client to handle
+    auth correctly without generating redundant parameters.
+    """
+    logger.info("Converting auth headers to security scheme")
+
+    try:
+        with open(spec_path) as f:
+            spec = yaml.safe_load(f)
+
+        # Add security scheme to components
+        if "components" not in spec:
+            spec["components"] = {}
+
+        # Note: We use a placeholder security scheme. The actual auth is handled
+        # by our custom transport layer which adds both headers.
+        spec["components"]["securitySchemes"] = {
+            "StockTrimAuth": {
+                "type": "apiKey",
+                "in": "header",
+                "name": "api-auth-id",
+                "description": "StockTrim authentication (api-auth-id and api-auth-signature)",
+            }
+        }
+
+        # Add global security requirement
+        spec["security"] = [{"StockTrimAuth": []}]
+
+        # Remove api-auth-* parameters from all endpoints
+        paths_modified = 0
+        params_removed = 0
+
+        for path_item in spec.get("paths", {}).values():
+            for method, operation in path_item.items():
+                if (
+                    method
+                    in [
+                        "get",
+                        "post",
+                        "put",
+                        "delete",
+                        "patch",
+                        "options",
+                        "head",
+                    ]
+                    and "parameters" in operation
+                ):
+                    original_count = len(operation["parameters"])
+                    operation["parameters"] = [
+                        p
+                        for p in operation["parameters"]
+                        if p.get("name") not in ["api-auth-id", "api-auth-signature"]
+                    ]
+                    removed = original_count - len(operation["parameters"])
+                    if removed > 0:
+                        params_removed += removed
+                        paths_modified += 1
+
+                    # Remove empty parameters list
+                    if not operation["parameters"]:
+                        del operation["parameters"]
+
+        # Save the fixed spec
+        with open(spec_path, "w") as f:
+            yaml.dump(spec, f, default_flow_style=False, sort_keys=False)
+
+        logger.info(
+            f"✅ Fixed auth in {paths_modified} endpoints ({params_removed} params removed)"
+        )
+        return True
+
+    except Exception as e:
+        logger.error(f"❌ Failed to fix auth in spec: {e}")
+        return False
 
 
 def validate_openapi_spec_python(spec_path: Path) -> bool:
@@ -450,9 +531,18 @@ def main() -> None:
     save_spec_file(spec_content)
     logger.info("")
 
-    # Step 2: Validate specification
+    # Step 2: Fix auth in specification
     logger.info("=" * 60)
-    logger.info("STEP 2: Validate OpenAPI Specification")
+    logger.info("STEP 2: Fix Authentication in Specification")
+    logger.info("=" * 60)
+    if not fix_auth_in_spec(SPEC_FILE):
+        logger.error("❌ Failed to fix auth in specification")
+        sys.exit(1)
+    logger.info("")
+
+    # Step 3: Validate specification
+    logger.info("=" * 60)
+    logger.info("STEP 3: Validate OpenAPI Specification")
     logger.info("=" * 60)
     python_valid = validate_openapi_spec_python(SPEC_FILE)
     validate_openapi_spec_redocly(SPEC_FILE)  # Redocly validation is optional
@@ -463,16 +553,16 @@ def main() -> None:
 
     logger.info("")
 
-    # Step 3: Generate client
+    # Step 4: Generate client
     logger.info("=" * 60)
-    logger.info("STEP 3: Generate Python Client")
+    logger.info("STEP 4: Generate Python Client")
     logger.info("=" * 60)
     temp_workspace = generate_client_to_temp()
     logger.info("")
 
-    # Step 4: Move client and rename types.py
+    # Step 5: Move client and rename types.py
     logger.info("=" * 60)
-    logger.info("STEP 4: Move Client & Rename types.py → client_types.py")
+    logger.info("STEP 5: Move Client & Rename types.py → client_types.py")
     logger.info("=" * 60)
     if not move_client_to_workspace(temp_workspace):
         logger.error("❌ Failed to move client to workspace")
@@ -480,30 +570,30 @@ def main() -> None:
         sys.exit(1)
     logger.info("")
 
-    # Step 5: Post-process docstrings
+    # Step 6: Post-process docstrings
     logger.info("=" * 60)
-    logger.info("STEP 5: Post-Process Docstrings")
+    logger.info("STEP 6: Post-Process Docstrings")
     logger.info("=" * 60)
     post_process_generated_docstrings(temp_workspace)
     logger.info("")
 
-    # Step 6: Fix specific issues
+    # Step 7: Fix specific issues
     logger.info("=" * 60)
-    logger.info("STEP 6: Fix Specific Generated Issues")
+    logger.info("STEP 7: Fix Specific Generated Issues")
     logger.info("=" * 60)
     fix_specific_generated_issues(temp_workspace)
     logger.info("")
 
-    # Step 7: Run ruff fixes
+    # Step 8: Run ruff fixes
     logger.info("=" * 60)
-    logger.info("STEP 7: Run Ruff Auto-Fixes")
+    logger.info("STEP 8: Run Ruff Auto-Fixes")
     logger.info("=" * 60)
     run_ruff_fixes(temp_workspace)
     logger.info("")
 
-    # Step 8: Run tests
+    # Step 9: Run tests
     logger.info("=" * 60)
-    logger.info("STEP 8: Run Tests")
+    logger.info("STEP 9: Run Tests")
     logger.info("=" * 60)
     tests_passed = run_tests(temp_workspace)
     logger.info("")

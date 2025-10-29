@@ -15,14 +15,7 @@ def _get_kwargs(
     from_date: datetime.datetime,
     to_date: datetime.datetime,
     product_id: str | Unset = UNSET,
-    api_auth_id: str,
-    api_auth_signature: str,
 ) -> dict[str, Any]:
-    headers: dict[str, Any] = {}
-    headers["api-auth-id"] = api_auth_id
-
-    headers["api-auth-signature"] = api_auth_signature
-
     params: dict[str, Any] = {}
 
     json_from_date = from_date.isoformat()
@@ -41,7 +34,6 @@ def _get_kwargs(
         "params": params,
     }
 
-    _kwargs["headers"] = headers
     return _kwargs
 
 
@@ -84,16 +76,12 @@ def sync_detailed(
     from_date: datetime.datetime,
     to_date: datetime.datetime,
     product_id: str | Unset = UNSET,
-    api_auth_id: str,
-    api_auth_signature: str,
 ) -> Response[Any | ProblemDetails]:
     """
     Args:
         from_date (datetime.datetime):
         to_date (datetime.datetime):
         product_id (str | Unset):
-        api_auth_id (str):
-        api_auth_signature (str):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -107,8 +95,6 @@ def sync_detailed(
         from_date=from_date,
         to_date=to_date,
         product_id=product_id,
-        api_auth_id=api_auth_id,
-        api_auth_signature=api_auth_signature,
     )
 
     response = client.get_httpx_client().request(
@@ -124,16 +110,12 @@ def sync(
     from_date: datetime.datetime,
     to_date: datetime.datetime,
     product_id: str | Unset = UNSET,
-    api_auth_id: str,
-    api_auth_signature: str,
 ) -> Any | ProblemDetails | None:
     """
     Args:
         from_date (datetime.datetime):
         to_date (datetime.datetime):
         product_id (str | Unset):
-        api_auth_id (str):
-        api_auth_signature (str):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -148,8 +130,6 @@ def sync(
         from_date=from_date,
         to_date=to_date,
         product_id=product_id,
-        api_auth_id=api_auth_id,
-        api_auth_signature=api_auth_signature,
     ).parsed
 
 
@@ -159,16 +139,12 @@ async def asyncio_detailed(
     from_date: datetime.datetime,
     to_date: datetime.datetime,
     product_id: str | Unset = UNSET,
-    api_auth_id: str,
-    api_auth_signature: str,
 ) -> Response[Any | ProblemDetails]:
     """
     Args:
         from_date (datetime.datetime):
         to_date (datetime.datetime):
         product_id (str | Unset):
-        api_auth_id (str):
-        api_auth_signature (str):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -182,8 +158,6 @@ async def asyncio_detailed(
         from_date=from_date,
         to_date=to_date,
         product_id=product_id,
-        api_auth_id=api_auth_id,
-        api_auth_signature=api_auth_signature,
     )
 
     response = await client.get_async_httpx_client().request(**kwargs)
@@ -197,16 +171,12 @@ async def asyncio(
     from_date: datetime.datetime,
     to_date: datetime.datetime,
     product_id: str | Unset = UNSET,
-    api_auth_id: str,
-    api_auth_signature: str,
 ) -> Any | ProblemDetails | None:
     """
     Args:
         from_date (datetime.datetime):
         to_date (datetime.datetime):
         product_id (str | Unset):
-        api_auth_id (str):
-        api_auth_signature (str):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -222,7 +192,5 @@ async def asyncio(
             from_date=from_date,
             to_date=to_date,
             product_id=product_id,
-            api_auth_id=api_auth_id,
-            api_auth_signature=api_auth_signature,
         )
     ).parsed

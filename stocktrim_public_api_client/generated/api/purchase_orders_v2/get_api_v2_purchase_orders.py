@@ -16,14 +16,7 @@ def _get_kwargs(
     page: int | Unset = 0,
     page_size: int | Unset = 10,
     status: PurchaseOrderStatusDto | Unset = UNSET,
-    api_auth_id: str,
-    api_auth_signature: str,
 ) -> dict[str, Any]:
-    headers: dict[str, Any] = {}
-    headers["api-auth-id"] = api_auth_id
-
-    headers["api-auth-signature"] = api_auth_signature
-
     params: dict[str, Any] = {}
 
     params["page"] = page
@@ -44,7 +37,6 @@ def _get_kwargs(
         "params": params,
     }
 
-    _kwargs["headers"] = headers
     return _kwargs
 
 
@@ -95,8 +87,6 @@ def sync_detailed(
     page: int | Unset = 0,
     page_size: int | Unset = 10,
     status: PurchaseOrderStatusDto | Unset = UNSET,
-    api_auth_id: str,
-    api_auth_signature: str,
 ) -> Response[Any | ProblemDetails | list[PurchaseOrderResponseDto]]:
     """Get all purchase orders
 
@@ -104,8 +94,6 @@ def sync_detailed(
         page (int | Unset):  Default: 0.
         page_size (int | Unset):  Default: 10.
         status (PurchaseOrderStatusDto | Unset):
-        api_auth_id (str):
-        api_auth_signature (str):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -119,8 +107,6 @@ def sync_detailed(
         page=page,
         page_size=page_size,
         status=status,
-        api_auth_id=api_auth_id,
-        api_auth_signature=api_auth_signature,
     )
 
     response = client.get_httpx_client().request(
@@ -136,8 +122,6 @@ def sync(
     page: int | Unset = 0,
     page_size: int | Unset = 10,
     status: PurchaseOrderStatusDto | Unset = UNSET,
-    api_auth_id: str,
-    api_auth_signature: str,
 ) -> Any | ProblemDetails | list[PurchaseOrderResponseDto] | None:
     """Get all purchase orders
 
@@ -145,8 +129,6 @@ def sync(
         page (int | Unset):  Default: 0.
         page_size (int | Unset):  Default: 10.
         status (PurchaseOrderStatusDto | Unset):
-        api_auth_id (str):
-        api_auth_signature (str):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -161,8 +143,6 @@ def sync(
         page=page,
         page_size=page_size,
         status=status,
-        api_auth_id=api_auth_id,
-        api_auth_signature=api_auth_signature,
     ).parsed
 
 
@@ -172,8 +152,6 @@ async def asyncio_detailed(
     page: int | Unset = 0,
     page_size: int | Unset = 10,
     status: PurchaseOrderStatusDto | Unset = UNSET,
-    api_auth_id: str,
-    api_auth_signature: str,
 ) -> Response[Any | ProblemDetails | list[PurchaseOrderResponseDto]]:
     """Get all purchase orders
 
@@ -181,8 +159,6 @@ async def asyncio_detailed(
         page (int | Unset):  Default: 0.
         page_size (int | Unset):  Default: 10.
         status (PurchaseOrderStatusDto | Unset):
-        api_auth_id (str):
-        api_auth_signature (str):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -196,8 +172,6 @@ async def asyncio_detailed(
         page=page,
         page_size=page_size,
         status=status,
-        api_auth_id=api_auth_id,
-        api_auth_signature=api_auth_signature,
     )
 
     response = await client.get_async_httpx_client().request(**kwargs)
@@ -211,8 +185,6 @@ async def asyncio(
     page: int | Unset = 0,
     page_size: int | Unset = 10,
     status: PurchaseOrderStatusDto | Unset = UNSET,
-    api_auth_id: str,
-    api_auth_signature: str,
 ) -> Any | ProblemDetails | list[PurchaseOrderResponseDto] | None:
     """Get all purchase orders
 
@@ -220,8 +192,6 @@ async def asyncio(
         page (int | Unset):  Default: 0.
         page_size (int | Unset):  Default: 10.
         status (PurchaseOrderStatusDto | Unset):
-        api_auth_id (str):
-        api_auth_signature (str):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -237,7 +207,5 @@ async def asyncio(
             page=page,
             page_size=page_size,
             status=status,
-            api_auth_id=api_auth_id,
-            api_auth_signature=api_auth_signature,
         )
     ).parsed

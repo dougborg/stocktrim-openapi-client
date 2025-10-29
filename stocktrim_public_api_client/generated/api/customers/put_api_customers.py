@@ -14,13 +14,8 @@ from ...models.purchase_order_response_dto import PurchaseOrderResponseDto
 def _get_kwargs(
     *,
     body: CustomerDto | CustomerDto | CustomerDto,
-    api_auth_id: str,
-    api_auth_signature: str,
 ) -> dict[str, Any]:
     headers: dict[str, Any] = {}
-    headers["api-auth-id"] = api_auth_id
-
-    headers["api-auth-signature"] = api_auth_signature
 
     _kwargs: dict[str, Any] = {
         "method": "put",
@@ -89,14 +84,10 @@ def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
     body: CustomerDto | CustomerDto | CustomerDto,
-    api_auth_id: str,
-    api_auth_signature: str,
 ) -> Response[Any | ProblemDetails | list[PurchaseOrderResponseDto]]:
     """Preforms a Create or Update based on Code.
 
     Args:
-        api_auth_id (str):
-        api_auth_signature (str):
         body (CustomerDto):
         body (CustomerDto):
         body (CustomerDto):
@@ -111,8 +102,6 @@ def sync_detailed(
 
     kwargs = _get_kwargs(
         body=body,
-        api_auth_id=api_auth_id,
-        api_auth_signature=api_auth_signature,
     )
 
     response = client.get_httpx_client().request(
@@ -126,14 +115,10 @@ def sync(
     *,
     client: AuthenticatedClient | Client,
     body: CustomerDto | CustomerDto | CustomerDto,
-    api_auth_id: str,
-    api_auth_signature: str,
 ) -> Any | ProblemDetails | list[PurchaseOrderResponseDto] | None:
     """Preforms a Create or Update based on Code.
 
     Args:
-        api_auth_id (str):
-        api_auth_signature (str):
         body (CustomerDto):
         body (CustomerDto):
         body (CustomerDto):
@@ -149,8 +134,6 @@ def sync(
     return sync_detailed(
         client=client,
         body=body,
-        api_auth_id=api_auth_id,
-        api_auth_signature=api_auth_signature,
     ).parsed
 
 
@@ -158,14 +141,10 @@ async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
     body: CustomerDto | CustomerDto | CustomerDto,
-    api_auth_id: str,
-    api_auth_signature: str,
 ) -> Response[Any | ProblemDetails | list[PurchaseOrderResponseDto]]:
     """Preforms a Create or Update based on Code.
 
     Args:
-        api_auth_id (str):
-        api_auth_signature (str):
         body (CustomerDto):
         body (CustomerDto):
         body (CustomerDto):
@@ -180,8 +159,6 @@ async def asyncio_detailed(
 
     kwargs = _get_kwargs(
         body=body,
-        api_auth_id=api_auth_id,
-        api_auth_signature=api_auth_signature,
     )
 
     response = await client.get_async_httpx_client().request(**kwargs)
@@ -193,14 +170,10 @@ async def asyncio(
     *,
     client: AuthenticatedClient | Client,
     body: CustomerDto | CustomerDto | CustomerDto,
-    api_auth_id: str,
-    api_auth_signature: str,
 ) -> Any | ProblemDetails | list[PurchaseOrderResponseDto] | None:
     """Preforms a Create or Update based on Code.
 
     Args:
-        api_auth_id (str):
-        api_auth_signature (str):
         body (CustomerDto):
         body (CustomerDto):
         body (CustomerDto):
@@ -217,7 +190,5 @@ async def asyncio(
         await asyncio_detailed(
             client=client,
             body=body,
-            api_auth_id=api_auth_id,
-            api_auth_signature=api_auth_signature,
         )
     ).parsed

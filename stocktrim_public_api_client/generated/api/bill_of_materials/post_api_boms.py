@@ -16,13 +16,8 @@ def _get_kwargs(
     body: BillOfMaterialsRequestDto
     | BillOfMaterialsRequestDto
     | BillOfMaterialsRequestDto,
-    api_auth_id: str,
-    api_auth_signature: str,
 ) -> dict[str, Any]:
     headers: dict[str, Any] = {}
-    headers["api-auth-id"] = api_auth_id
-
-    headers["api-auth-signature"] = api_auth_signature
 
     _kwargs: dict[str, Any] = {
         "method": "post",
@@ -86,13 +81,9 @@ def sync_detailed(
     body: BillOfMaterialsRequestDto
     | BillOfMaterialsRequestDto
     | BillOfMaterialsRequestDto,
-    api_auth_id: str,
-    api_auth_signature: str,
 ) -> Response[Any | BillOfMaterialsResponseDto | ProblemDetails]:
     """
     Args:
-        api_auth_id (str):
-        api_auth_signature (str):
         body (BillOfMaterialsRequestDto):
         body (BillOfMaterialsRequestDto):
         body (BillOfMaterialsRequestDto):
@@ -107,8 +98,6 @@ def sync_detailed(
 
     kwargs = _get_kwargs(
         body=body,
-        api_auth_id=api_auth_id,
-        api_auth_signature=api_auth_signature,
     )
 
     response = client.get_httpx_client().request(
@@ -124,13 +113,9 @@ def sync(
     body: BillOfMaterialsRequestDto
     | BillOfMaterialsRequestDto
     | BillOfMaterialsRequestDto,
-    api_auth_id: str,
-    api_auth_signature: str,
 ) -> Any | BillOfMaterialsResponseDto | ProblemDetails | None:
     """
     Args:
-        api_auth_id (str):
-        api_auth_signature (str):
         body (BillOfMaterialsRequestDto):
         body (BillOfMaterialsRequestDto):
         body (BillOfMaterialsRequestDto):
@@ -146,8 +131,6 @@ def sync(
     return sync_detailed(
         client=client,
         body=body,
-        api_auth_id=api_auth_id,
-        api_auth_signature=api_auth_signature,
     ).parsed
 
 
@@ -157,13 +140,9 @@ async def asyncio_detailed(
     body: BillOfMaterialsRequestDto
     | BillOfMaterialsRequestDto
     | BillOfMaterialsRequestDto,
-    api_auth_id: str,
-    api_auth_signature: str,
 ) -> Response[Any | BillOfMaterialsResponseDto | ProblemDetails]:
     """
     Args:
-        api_auth_id (str):
-        api_auth_signature (str):
         body (BillOfMaterialsRequestDto):
         body (BillOfMaterialsRequestDto):
         body (BillOfMaterialsRequestDto):
@@ -178,8 +157,6 @@ async def asyncio_detailed(
 
     kwargs = _get_kwargs(
         body=body,
-        api_auth_id=api_auth_id,
-        api_auth_signature=api_auth_signature,
     )
 
     response = await client.get_async_httpx_client().request(**kwargs)
@@ -193,13 +170,9 @@ async def asyncio(
     body: BillOfMaterialsRequestDto
     | BillOfMaterialsRequestDto
     | BillOfMaterialsRequestDto,
-    api_auth_id: str,
-    api_auth_signature: str,
 ) -> Any | BillOfMaterialsResponseDto | ProblemDetails | None:
     """
     Args:
-        api_auth_id (str):
-        api_auth_signature (str):
         body (BillOfMaterialsRequestDto):
         body (BillOfMaterialsRequestDto):
         body (BillOfMaterialsRequestDto):
@@ -216,7 +189,5 @@ async def asyncio(
         await asyncio_detailed(
             client=client,
             body=body,
-            api_auth_id=api_auth_id,
-            api_auth_signature=api_auth_signature,
         )
     ).parsed

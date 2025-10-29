@@ -18,13 +18,8 @@ def _get_kwargs(
     body: SalesOrderWithLineItemsRequestDto
     | SalesOrderWithLineItemsRequestDto
     | SalesOrderWithLineItemsRequestDto,
-    api_auth_id: str,
-    api_auth_signature: str,
 ) -> dict[str, Any]:
     headers: dict[str, Any] = {}
-    headers["api-auth-id"] = api_auth_id
-
-    headers["api-auth-signature"] = api_auth_signature
 
     _kwargs: dict[str, Any] = {
         "method": "post",
@@ -88,13 +83,9 @@ def sync_detailed(
     body: SalesOrderWithLineItemsRequestDto
     | SalesOrderWithLineItemsRequestDto
     | SalesOrderWithLineItemsRequestDto,
-    api_auth_id: str,
-    api_auth_signature: str,
 ) -> Response[Any | ProblemDetails | SalesOrderResponseDto]:
     """
     Args:
-        api_auth_id (str):
-        api_auth_signature (str):
         body (SalesOrderWithLineItemsRequestDto):
         body (SalesOrderWithLineItemsRequestDto):
         body (SalesOrderWithLineItemsRequestDto):
@@ -109,8 +100,6 @@ def sync_detailed(
 
     kwargs = _get_kwargs(
         body=body,
-        api_auth_id=api_auth_id,
-        api_auth_signature=api_auth_signature,
     )
 
     response = client.get_httpx_client().request(
@@ -126,13 +115,9 @@ def sync(
     body: SalesOrderWithLineItemsRequestDto
     | SalesOrderWithLineItemsRequestDto
     | SalesOrderWithLineItemsRequestDto,
-    api_auth_id: str,
-    api_auth_signature: str,
 ) -> Any | ProblemDetails | SalesOrderResponseDto | None:
     """
     Args:
-        api_auth_id (str):
-        api_auth_signature (str):
         body (SalesOrderWithLineItemsRequestDto):
         body (SalesOrderWithLineItemsRequestDto):
         body (SalesOrderWithLineItemsRequestDto):
@@ -148,8 +133,6 @@ def sync(
     return sync_detailed(
         client=client,
         body=body,
-        api_auth_id=api_auth_id,
-        api_auth_signature=api_auth_signature,
     ).parsed
 
 
@@ -159,13 +142,9 @@ async def asyncio_detailed(
     body: SalesOrderWithLineItemsRequestDto
     | SalesOrderWithLineItemsRequestDto
     | SalesOrderWithLineItemsRequestDto,
-    api_auth_id: str,
-    api_auth_signature: str,
 ) -> Response[Any | ProblemDetails | SalesOrderResponseDto]:
     """
     Args:
-        api_auth_id (str):
-        api_auth_signature (str):
         body (SalesOrderWithLineItemsRequestDto):
         body (SalesOrderWithLineItemsRequestDto):
         body (SalesOrderWithLineItemsRequestDto):
@@ -180,8 +159,6 @@ async def asyncio_detailed(
 
     kwargs = _get_kwargs(
         body=body,
-        api_auth_id=api_auth_id,
-        api_auth_signature=api_auth_signature,
     )
 
     response = await client.get_async_httpx_client().request(**kwargs)
@@ -195,13 +172,9 @@ async def asyncio(
     body: SalesOrderWithLineItemsRequestDto
     | SalesOrderWithLineItemsRequestDto
     | SalesOrderWithLineItemsRequestDto,
-    api_auth_id: str,
-    api_auth_signature: str,
 ) -> Any | ProblemDetails | SalesOrderResponseDto | None:
     """
     Args:
-        api_auth_id (str):
-        api_auth_signature (str):
         body (SalesOrderWithLineItemsRequestDto):
         body (SalesOrderWithLineItemsRequestDto):
         body (SalesOrderWithLineItemsRequestDto):
@@ -218,7 +191,5 @@ async def asyncio(
         await asyncio_detailed(
             client=client,
             body=body,
-            api_auth_id=api_auth_id,
-            api_auth_signature=api_auth_signature,
         )
     ).parsed

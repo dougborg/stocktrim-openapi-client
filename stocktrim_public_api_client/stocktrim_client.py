@@ -11,7 +11,7 @@ import json
 import logging
 import os
 from collections.abc import Awaitable, Callable
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any, cast
 
 import httpx
 from dotenv import load_dotenv
@@ -27,6 +27,15 @@ try:
     from .generated.models.problem_details import ProblemDetails
 except ImportError:
     ProblemDetails = None  # type: ignore[assignment]
+
+if TYPE_CHECKING:
+    from .helpers.customers import Customers
+    from .helpers.inventory import Inventory
+    from .helpers.locations import Locations
+    from .helpers.products import Products
+    from .helpers.purchase_orders import PurchaseOrders
+    from .helpers.sales_orders import SalesOrders
+    from .helpers.suppliers import Suppliers
 
 
 class IdempotentOnlyRetry(Retry):
@@ -474,6 +483,70 @@ class StockTrimClient(AuthenticatedClient):
     def base_url(self) -> str:
         """Get the base URL for the API."""
         return self._base_url
+
+    # Domain helper properties (lazy-loaded)
+    @property
+    def products(self) -> "Products":
+        """Access the Products helper for product catalog operations."""
+        if not hasattr(self, "_products"):
+            from .helpers.products import Products
+
+            self._products = Products(self)
+        return self._products
+
+    @property
+    def customers(self) -> "Customers":
+        """Access the Customers helper for customer management."""
+        if not hasattr(self, "_customers"):
+            from .helpers.customers import Customers
+
+            self._customers = Customers(self)
+        return self._customers
+
+    @property
+    def suppliers(self) -> "Suppliers":
+        """Access the Suppliers helper for supplier management."""
+        if not hasattr(self, "_suppliers"):
+            from .helpers.suppliers import Suppliers
+
+            self._suppliers = Suppliers(self)
+        return self._suppliers
+
+    @property
+    def sales_orders(self) -> "SalesOrders":
+        """Access the SalesOrders helper for sales order management."""
+        if not hasattr(self, "_sales_orders"):
+            from .helpers.sales_orders import SalesOrders
+
+            self._sales_orders = SalesOrders(self)
+        return self._sales_orders
+
+    @property
+    def purchase_orders(self) -> "PurchaseOrders":
+        """Access the PurchaseOrders helper for purchase order management."""
+        if not hasattr(self, "_purchase_orders"):
+            from .helpers.purchase_orders import PurchaseOrders
+
+            self._purchase_orders = PurchaseOrders(self)
+        return self._purchase_orders
+
+    @property
+    def inventory(self) -> "Inventory":
+        """Access the Inventory helper for inventory management."""
+        if not hasattr(self, "_inventory"):
+            from .helpers.inventory import Inventory
+
+            self._inventory = Inventory(self)
+        return self._inventory
+
+    @property
+    def locations(self) -> "Locations":
+        """Access the Locations helper for location management."""
+        if not hasattr(self, "_locations"):
+            from .helpers.locations import Locations
+
+            self._locations = Locations(self)
+        return self._locations
 
     async def _log_response_metrics(self, response: httpx.Response) -> None:
         """Log response metrics for observability."""

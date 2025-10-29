@@ -12,22 +12,12 @@ from ...models.inventory_management_system_response import (
 from ...models.problem_details import ProblemDetails
 
 
-def _get_kwargs(
-    *,
-    api_auth_id: str,
-    api_auth_signature: str,
-) -> dict[str, Any]:
-    headers: dict[str, Any] = {}
-    headers["api-auth-id"] = api_auth_id
-
-    headers["api-auth-signature"] = api_auth_signature
-
+def _get_kwargs() -> dict[str, Any]:
     _kwargs: dict[str, Any] = {
         "method": "get",
         "url": "/api/InventoryManagementSystemSettings",
     }
 
-    _kwargs["headers"] = headers
     return _kwargs
 
 
@@ -68,14 +58,8 @@ def _build_response(
 def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
-    api_auth_id: str,
-    api_auth_signature: str,
 ) -> Response[Any | InventoryManagementSystemResponse | ProblemDetails]:
     """
-    Args:
-        api_auth_id (str):
-        api_auth_signature (str):
-
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
@@ -84,10 +68,7 @@ def sync_detailed(
         Response[Any | InventoryManagementSystemResponse | ProblemDetails]
     """
 
-    kwargs = _get_kwargs(
-        api_auth_id=api_auth_id,
-        api_auth_signature=api_auth_signature,
-    )
+    kwargs = _get_kwargs()
 
     response = client.get_httpx_client().request(
         **kwargs,
@@ -99,14 +80,8 @@ def sync_detailed(
 def sync(
     *,
     client: AuthenticatedClient | Client,
-    api_auth_id: str,
-    api_auth_signature: str,
 ) -> Any | InventoryManagementSystemResponse | ProblemDetails | None:
     """
-    Args:
-        api_auth_id (str):
-        api_auth_signature (str):
-
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
@@ -117,22 +92,14 @@ def sync(
 
     return sync_detailed(
         client=client,
-        api_auth_id=api_auth_id,
-        api_auth_signature=api_auth_signature,
     ).parsed
 
 
 async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
-    api_auth_id: str,
-    api_auth_signature: str,
 ) -> Response[Any | InventoryManagementSystemResponse | ProblemDetails]:
     """
-    Args:
-        api_auth_id (str):
-        api_auth_signature (str):
-
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
@@ -141,10 +108,7 @@ async def asyncio_detailed(
         Response[Any | InventoryManagementSystemResponse | ProblemDetails]
     """
 
-    kwargs = _get_kwargs(
-        api_auth_id=api_auth_id,
-        api_auth_signature=api_auth_signature,
-    )
+    kwargs = _get_kwargs()
 
     response = await client.get_async_httpx_client().request(**kwargs)
 
@@ -154,14 +118,8 @@ async def asyncio_detailed(
 async def asyncio(
     *,
     client: AuthenticatedClient | Client,
-    api_auth_id: str,
-    api_auth_signature: str,
 ) -> Any | InventoryManagementSystemResponse | ProblemDetails | None:
     """
-    Args:
-        api_auth_id (str):
-        api_auth_signature (str):
-
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
@@ -173,7 +131,5 @@ async def asyncio(
     return (
         await asyncio_detailed(
             client=client,
-            api_auth_id=api_auth_id,
-            api_auth_signature=api_auth_signature,
         )
     ).parsed

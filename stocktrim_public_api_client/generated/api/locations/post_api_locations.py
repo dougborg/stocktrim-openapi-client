@@ -14,13 +14,8 @@ from ...models.problem_details import ProblemDetails
 def _get_kwargs(
     *,
     body: LocationRequestDto | LocationRequestDto | LocationRequestDto,
-    api_auth_id: str,
-    api_auth_signature: str,
 ) -> dict[str, Any]:
     headers: dict[str, Any] = {}
-    headers["api-auth-id"] = api_auth_id
-
-    headers["api-auth-signature"] = api_auth_signature
 
     _kwargs: dict[str, Any] = {
         "method": "post",
@@ -82,15 +77,11 @@ def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
     body: LocationRequestDto | LocationRequestDto | LocationRequestDto,
-    api_auth_id: str,
-    api_auth_signature: str,
 ) -> Response[Any | LocationResponseDto | ProblemDetails]:
     """Creates or Updates a location using Code OR Name as the unique identifiers. Ie the same name cannot
     be used twice for different locations. Use V2 endpoint if you would like to do this
 
     Args:
-        api_auth_id (str):
-        api_auth_signature (str):
         body (LocationRequestDto):
         body (LocationRequestDto):
         body (LocationRequestDto):
@@ -105,8 +96,6 @@ def sync_detailed(
 
     kwargs = _get_kwargs(
         body=body,
-        api_auth_id=api_auth_id,
-        api_auth_signature=api_auth_signature,
     )
 
     response = client.get_httpx_client().request(
@@ -120,15 +109,11 @@ def sync(
     *,
     client: AuthenticatedClient | Client,
     body: LocationRequestDto | LocationRequestDto | LocationRequestDto,
-    api_auth_id: str,
-    api_auth_signature: str,
 ) -> Any | LocationResponseDto | ProblemDetails | None:
     """Creates or Updates a location using Code OR Name as the unique identifiers. Ie the same name cannot
     be used twice for different locations. Use V2 endpoint if you would like to do this
 
     Args:
-        api_auth_id (str):
-        api_auth_signature (str):
         body (LocationRequestDto):
         body (LocationRequestDto):
         body (LocationRequestDto):
@@ -144,8 +129,6 @@ def sync(
     return sync_detailed(
         client=client,
         body=body,
-        api_auth_id=api_auth_id,
-        api_auth_signature=api_auth_signature,
     ).parsed
 
 
@@ -153,15 +136,11 @@ async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
     body: LocationRequestDto | LocationRequestDto | LocationRequestDto,
-    api_auth_id: str,
-    api_auth_signature: str,
 ) -> Response[Any | LocationResponseDto | ProblemDetails]:
     """Creates or Updates a location using Code OR Name as the unique identifiers. Ie the same name cannot
     be used twice for different locations. Use V2 endpoint if you would like to do this
 
     Args:
-        api_auth_id (str):
-        api_auth_signature (str):
         body (LocationRequestDto):
         body (LocationRequestDto):
         body (LocationRequestDto):
@@ -176,8 +155,6 @@ async def asyncio_detailed(
 
     kwargs = _get_kwargs(
         body=body,
-        api_auth_id=api_auth_id,
-        api_auth_signature=api_auth_signature,
     )
 
     response = await client.get_async_httpx_client().request(**kwargs)
@@ -189,15 +166,11 @@ async def asyncio(
     *,
     client: AuthenticatedClient | Client,
     body: LocationRequestDto | LocationRequestDto | LocationRequestDto,
-    api_auth_id: str,
-    api_auth_signature: str,
 ) -> Any | LocationResponseDto | ProblemDetails | None:
     """Creates or Updates a location using Code OR Name as the unique identifiers. Ie the same name cannot
     be used twice for different locations. Use V2 endpoint if you would like to do this
 
     Args:
-        api_auth_id (str):
-        api_auth_signature (str):
         body (LocationRequestDto):
         body (LocationRequestDto):
         body (LocationRequestDto):
@@ -214,7 +187,5 @@ async def asyncio(
         await asyncio_detailed(
             client=client,
             body=body,
-            api_auth_id=api_auth_id,
-            api_auth_signature=api_auth_signature,
         )
     ).parsed

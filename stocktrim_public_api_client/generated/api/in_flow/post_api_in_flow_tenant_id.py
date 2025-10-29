@@ -11,21 +11,12 @@ from ...models.problem_details import ProblemDetails
 
 def _get_kwargs(
     tenant_id: str,
-    *,
-    api_auth_id: str,
-    api_auth_signature: str,
 ) -> dict[str, Any]:
-    headers: dict[str, Any] = {}
-    headers["api-auth-id"] = api_auth_id
-
-    headers["api-auth-signature"] = api_auth_signature
-
     _kwargs: dict[str, Any] = {
         "method": "post",
         "url": f"/api/InFlow/{tenant_id}",
     }
 
-    _kwargs["headers"] = headers
     return _kwargs
 
 
@@ -66,14 +57,10 @@ def sync_detailed(
     tenant_id: str,
     *,
     client: AuthenticatedClient | Client,
-    api_auth_id: str,
-    api_auth_signature: str,
 ) -> Response[Any | ProblemDetails]:
     """
     Args:
         tenant_id (str):
-        api_auth_id (str):
-        api_auth_signature (str):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -85,8 +72,6 @@ def sync_detailed(
 
     kwargs = _get_kwargs(
         tenant_id=tenant_id,
-        api_auth_id=api_auth_id,
-        api_auth_signature=api_auth_signature,
     )
 
     response = client.get_httpx_client().request(
@@ -100,14 +85,10 @@ def sync(
     tenant_id: str,
     *,
     client: AuthenticatedClient | Client,
-    api_auth_id: str,
-    api_auth_signature: str,
 ) -> Any | ProblemDetails | None:
     """
     Args:
         tenant_id (str):
-        api_auth_id (str):
-        api_auth_signature (str):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -120,8 +101,6 @@ def sync(
     return sync_detailed(
         tenant_id=tenant_id,
         client=client,
-        api_auth_id=api_auth_id,
-        api_auth_signature=api_auth_signature,
     ).parsed
 
 
@@ -129,14 +108,10 @@ async def asyncio_detailed(
     tenant_id: str,
     *,
     client: AuthenticatedClient | Client,
-    api_auth_id: str,
-    api_auth_signature: str,
 ) -> Response[Any | ProblemDetails]:
     """
     Args:
         tenant_id (str):
-        api_auth_id (str):
-        api_auth_signature (str):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -148,8 +123,6 @@ async def asyncio_detailed(
 
     kwargs = _get_kwargs(
         tenant_id=tenant_id,
-        api_auth_id=api_auth_id,
-        api_auth_signature=api_auth_signature,
     )
 
     response = await client.get_async_httpx_client().request(**kwargs)
@@ -161,14 +134,10 @@ async def asyncio(
     tenant_id: str,
     *,
     client: AuthenticatedClient | Client,
-    api_auth_id: str,
-    api_auth_signature: str,
 ) -> Any | ProblemDetails | None:
     """
     Args:
         tenant_id (str):
-        api_auth_id (str):
-        api_auth_signature (str):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -182,7 +151,5 @@ async def asyncio(
         await asyncio_detailed(
             tenant_id=tenant_id,
             client=client,
-            api_auth_id=api_auth_id,
-            api_auth_signature=api_auth_signature,
         )
     ).parsed

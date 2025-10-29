@@ -14,21 +14,12 @@ from ...models.problem_details import ProblemDetails
 
 def _get_kwargs(
     configuration_name: str,
-    *,
-    api_auth_id: str,
-    api_auth_signature: str,
 ) -> dict[str, Any]:
-    headers: dict[str, Any] = {}
-    headers["api-auth-id"] = api_auth_id
-
-    headers["api-auth-signature"] = api_auth_signature
-
     _kwargs: dict[str, Any] = {
         "method": "get",
         "url": f"/api/Configuration/{configuration_name}",
     }
 
-    _kwargs["headers"] = headers
     return _kwargs
 
 
@@ -70,14 +61,10 @@ def sync_detailed(
     configuration_name: str,
     *,
     client: AuthenticatedClient | Client,
-    api_auth_id: str,
-    api_auth_signature: str,
 ) -> Response[Any | InventoryManagementSystemResponse | ProblemDetails]:
     """
     Args:
         configuration_name (str):
-        api_auth_id (str):
-        api_auth_signature (str):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -89,8 +76,6 @@ def sync_detailed(
 
     kwargs = _get_kwargs(
         configuration_name=configuration_name,
-        api_auth_id=api_auth_id,
-        api_auth_signature=api_auth_signature,
     )
 
     response = client.get_httpx_client().request(
@@ -104,14 +89,10 @@ def sync(
     configuration_name: str,
     *,
     client: AuthenticatedClient | Client,
-    api_auth_id: str,
-    api_auth_signature: str,
 ) -> Any | InventoryManagementSystemResponse | ProblemDetails | None:
     """
     Args:
         configuration_name (str):
-        api_auth_id (str):
-        api_auth_signature (str):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -124,8 +105,6 @@ def sync(
     return sync_detailed(
         configuration_name=configuration_name,
         client=client,
-        api_auth_id=api_auth_id,
-        api_auth_signature=api_auth_signature,
     ).parsed
 
 
@@ -133,14 +112,10 @@ async def asyncio_detailed(
     configuration_name: str,
     *,
     client: AuthenticatedClient | Client,
-    api_auth_id: str,
-    api_auth_signature: str,
 ) -> Response[Any | InventoryManagementSystemResponse | ProblemDetails]:
     """
     Args:
         configuration_name (str):
-        api_auth_id (str):
-        api_auth_signature (str):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -152,8 +127,6 @@ async def asyncio_detailed(
 
     kwargs = _get_kwargs(
         configuration_name=configuration_name,
-        api_auth_id=api_auth_id,
-        api_auth_signature=api_auth_signature,
     )
 
     response = await client.get_async_httpx_client().request(**kwargs)
@@ -165,14 +138,10 @@ async def asyncio(
     configuration_name: str,
     *,
     client: AuthenticatedClient | Client,
-    api_auth_id: str,
-    api_auth_signature: str,
 ) -> Any | InventoryManagementSystemResponse | ProblemDetails | None:
     """
     Args:
         configuration_name (str):
-        api_auth_id (str):
-        api_auth_signature (str):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -186,7 +155,5 @@ async def asyncio(
         await asyncio_detailed(
             configuration_name=configuration_name,
             client=client,
-            api_auth_id=api_auth_id,
-            api_auth_signature=api_auth_signature,
         )
     ).parsed

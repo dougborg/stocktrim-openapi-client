@@ -12,21 +12,12 @@ from ...models.purchase_order_response_dto import PurchaseOrderResponseDto
 
 def _get_kwargs(
     reference_number: str,
-    *,
-    api_auth_id: str,
-    api_auth_signature: str,
 ) -> dict[str, Any]:
-    headers: dict[str, Any] = {}
-    headers["api-auth-id"] = api_auth_id
-
-    headers["api-auth-signature"] = api_auth_signature
-
     _kwargs: dict[str, Any] = {
         "method": "get",
         "url": f"/api/V2/PurchaseOrders/{reference_number}",
     }
 
-    _kwargs["headers"] = headers
     return _kwargs
 
 
@@ -68,15 +59,11 @@ def sync_detailed(
     reference_number: str,
     *,
     client: AuthenticatedClient | Client,
-    api_auth_id: str,
-    api_auth_signature: str,
 ) -> Response[Any | ProblemDetails | PurchaseOrderResponseDto]:
     """Get a purchase order by reference number
 
     Args:
         reference_number (str):
-        api_auth_id (str):
-        api_auth_signature (str):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -88,8 +75,6 @@ def sync_detailed(
 
     kwargs = _get_kwargs(
         reference_number=reference_number,
-        api_auth_id=api_auth_id,
-        api_auth_signature=api_auth_signature,
     )
 
     response = client.get_httpx_client().request(
@@ -103,15 +88,11 @@ def sync(
     reference_number: str,
     *,
     client: AuthenticatedClient | Client,
-    api_auth_id: str,
-    api_auth_signature: str,
 ) -> Any | ProblemDetails | PurchaseOrderResponseDto | None:
     """Get a purchase order by reference number
 
     Args:
         reference_number (str):
-        api_auth_id (str):
-        api_auth_signature (str):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -124,8 +105,6 @@ def sync(
     return sync_detailed(
         reference_number=reference_number,
         client=client,
-        api_auth_id=api_auth_id,
-        api_auth_signature=api_auth_signature,
     ).parsed
 
 
@@ -133,15 +112,11 @@ async def asyncio_detailed(
     reference_number: str,
     *,
     client: AuthenticatedClient | Client,
-    api_auth_id: str,
-    api_auth_signature: str,
 ) -> Response[Any | ProblemDetails | PurchaseOrderResponseDto]:
     """Get a purchase order by reference number
 
     Args:
         reference_number (str):
-        api_auth_id (str):
-        api_auth_signature (str):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -153,8 +128,6 @@ async def asyncio_detailed(
 
     kwargs = _get_kwargs(
         reference_number=reference_number,
-        api_auth_id=api_auth_id,
-        api_auth_signature=api_auth_signature,
     )
 
     response = await client.get_async_httpx_client().request(**kwargs)
@@ -166,15 +139,11 @@ async def asyncio(
     reference_number: str,
     *,
     client: AuthenticatedClient | Client,
-    api_auth_id: str,
-    api_auth_signature: str,
 ) -> Any | ProblemDetails | PurchaseOrderResponseDto | None:
     """Get a purchase order by reference number
 
     Args:
         reference_number (str):
-        api_auth_id (str):
-        api_auth_signature (str):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -188,7 +157,5 @@ async def asyncio(
         await asyncio_detailed(
             reference_number=reference_number,
             client=client,
-            api_auth_id=api_auth_id,
-            api_auth_signature=api_auth_signature,
         )
     ).parsed

@@ -6,20 +6,7 @@ paths:
   /api/boms:
     post:
       tags:
-        - BillOfMaterials
-      parameters:
-        - name: api-auth-id
-          in: header
-          description: Tenant Id
-          required: true
-          schema:
-            type: string
-        - name: api-auth-signature
-          in: header
-          description: Tenant Name
-          required: true
-          schema:
-            type: string
+      - BillOfMaterials
       requestBody:
         content:
           application/json-patch+json:
@@ -51,28 +38,16 @@ paths:
           description: Server Error
     get:
       tags:
-        - BillOfMaterials
+      - BillOfMaterials
       parameters:
-        - name: productId
-          in: query
-          schema:
-            type: string
-        - name: componentId
-          in: query
-          schema:
-            type: string
-        - name: api-auth-id
-          in: header
-          description: Tenant Id
-          required: true
-          schema:
-            type: string
-        - name: api-auth-signature
-          in: header
-          description: Tenant Name
-          required: true
-          schema:
-            type: string
+      - name: productId
+        in: query
+        schema:
+          type: string
+      - name: componentId
+        in: query
+        schema:
+          type: string
       responses:
         '201':
           description: Created
@@ -90,28 +65,16 @@ paths:
           description: Server Error
     delete:
       tags:
-        - BillOfMaterials
+      - BillOfMaterials
       parameters:
-        - name: productId
-          in: query
-          schema:
-            type: string
-        - name: componentId
-          in: query
-          schema:
-            type: string
-        - name: api-auth-id
-          in: header
-          description: Tenant Id
-          required: true
-          schema:
-            type: string
-        - name: api-auth-signature
-          in: header
-          description: Tenant Name
-          required: true
-          schema:
-            type: string
+      - name: productId
+        in: query
+        schema:
+          type: string
+      - name: componentId
+        in: query
+        schema:
+          type: string
       responses:
         '201':
           description: Created
@@ -123,28 +86,16 @@ paths:
                 $ref: '#/components/schemas/ProblemDetails'
         '500':
           description: Server Error
-  '/api/Configuration/{configurationName}':
+  /api/Configuration/{configurationName}:
     get:
       tags:
-        - Configuration
+      - Configuration
       parameters:
-        - name: configurationName
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: api-auth-id
-          in: header
-          description: Tenant Id
-          required: true
-          schema:
-            type: string
-        - name: api-auth-signature
-          in: header
-          description: Tenant Name
-          required: true
-          schema:
-            type: string
+      - name: configurationName
+        in: path
+        required: true
+        schema:
+          type: string
       responses:
         '200':
           description: Success
@@ -163,21 +114,8 @@ paths:
   /api/Customers:
     get:
       tags:
-        - Customers
+      - Customers
       description: 'Get all customers '
-      parameters:
-        - name: api-auth-id
-          in: header
-          description: Tenant Id
-          required: true
-          schema:
-            type: string
-        - name: api-auth-signature
-          in: header
-          description: Tenant Name
-          required: true
-          schema:
-            type: string
       responses:
         '200':
           description: Success
@@ -197,21 +135,8 @@ paths:
           description: Server Error
     put:
       tags:
-        - Customers
+      - Customers
       description: Preforms a Create or Update based on Code.
-      parameters:
-        - name: api-auth-id
-          in: header
-          description: Tenant Id
-          required: true
-          schema:
-            type: string
-        - name: api-auth-signature
-          in: header
-          description: Tenant Name
-          required: true
-          schema:
-            type: string
       requestBody:
         content:
           application/json-patch+json:
@@ -243,29 +168,17 @@ paths:
                 $ref: '#/components/schemas/ProblemDetails'
         '500':
           description: Server Error
-  '/api/Customers/{code}':
+  /api/Customers/{code}:
     get:
       tags:
-        - Customers
+      - Customers
       description: Get a Customer by Code
       parameters:
-        - name: code
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: api-auth-id
-          in: header
-          description: Tenant Id
-          required: true
-          schema:
-            type: string
-        - name: api-auth-signature
-          in: header
-          description: Tenant Name
-          required: true
-          schema:
-            type: string
+      - name: code
+        in: path
+        required: true
+        schema:
+          type: string
       responses:
         '200':
           description: Success
@@ -281,28 +194,16 @@ paths:
                 $ref: '#/components/schemas/ProblemDetails'
         '500':
           description: Server Error
-  '/api/InFlow/{tenantId}':
+  /api/InFlow/{tenantId}:
     post:
       tags:
-        - InFlow
+      - InFlow
       parameters:
-        - name: tenantId
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: api-auth-id
-          in: header
-          description: Tenant Id
-          required: true
-          schema:
-            type: string
-        - name: api-auth-signature
-          in: header
-          description: Tenant Name
-          required: true
-          schema:
-            type: string
+      - name: tenantId
+        in: path
+        required: true
+        schema:
+          type: string
       responses:
         '200':
           description: Success
@@ -317,21 +218,8 @@ paths:
   /api/Inventory:
     post:
       tags:
-        - Inventory
+      - Inventory
       description: Sets stock on hand and stock on order for products
-      parameters:
-        - name: api-auth-id
-          in: header
-          description: Tenant Id
-          required: true
-          schema:
-            type: string
-        - name: api-auth-signature
-          in: header
-          description: Tenant Name
-          required: true
-          schema:
-            type: string
       requestBody:
         content:
           application/json-patch+json:
@@ -364,20 +252,7 @@ paths:
   /api/InventoryManagementSystemSettings:
     get:
       tags:
-        - InventoryManagementSystemSettings
-      parameters:
-        - name: api-auth-id
-          in: header
-          description: Tenant Id
-          required: true
-          schema:
-            type: string
-        - name: api-auth-signature
-          in: header
-          description: Tenant Name
-          required: true
-          schema:
-            type: string
+      - InventoryManagementSystemSettings
       responses:
         '200':
           description: Success
@@ -395,20 +270,7 @@ paths:
           description: Server Error
     post:
       tags:
-        - InventoryManagementSystemSettings
-      parameters:
-        - name: api-auth-id
-          in: header
-          description: Tenant Id
-          required: true
-          schema:
-            type: string
-        - name: api-auth-signature
-          in: header
-          description: Tenant Name
-          required: true
-          schema:
-            type: string
+      - InventoryManagementSystemSettings
       requestBody:
         content:
           application/json-patch+json:
@@ -437,24 +299,12 @@ paths:
   /api/Locations:
     get:
       tags:
-        - Locations
+      - Locations
       parameters:
-        - name: code
-          in: query
-          schema:
-            type: string
-        - name: api-auth-id
-          in: header
-          description: Tenant Id
-          required: true
-          schema:
-            type: string
-        - name: api-auth-signature
-          in: header
-          description: Tenant Name
-          required: true
-          schema:
-            type: string
+      - name: code
+        in: query
+        schema:
+          type: string
       responses:
         '200':
           description: Success
@@ -472,21 +322,10 @@ paths:
           description: Server Error
     post:
       tags:
-        - Locations
-      description: Creates or Updates a location using Code OR Name as the unique identifiers. Ie the same name cannot be used twice for different locations. Use V2 endpoint if you would like to do this
-      parameters:
-        - name: api-auth-id
-          in: header
-          description: Tenant Id
-          required: true
-          schema:
-            type: string
-        - name: api-auth-signature
-          in: header
-          description: Tenant Name
-          required: true
-          schema:
-            type: string
+      - Locations
+      description: Creates or Updates a location using Code OR Name as the unique
+        identifiers. Ie the same name cannot be used twice for different locations.
+        Use V2 endpoint if you would like to do this
       requestBody:
         content:
           application/json-patch+json:
@@ -519,21 +358,8 @@ paths:
   /api/V2/Locations:
     post:
       tags:
-        - LocationsV2
+      - LocationsV2
       description: Creates or Updates a location using Code as the unique identifier
-      parameters:
-        - name: api-auth-id
-          in: header
-          description: Tenant Id
-          required: true
-          schema:
-            type: string
-        - name: api-auth-signature
-          in: header
-          description: Tenant Name
-          required: true
-          schema:
-            type: string
       requestBody:
         content:
           application/json-patch+json:
@@ -566,20 +392,7 @@ paths:
   /api/OrderPlan:
     post:
       tags:
-        - OrderPlan
-      parameters:
-        - name: api-auth-id
-          in: header
-          description: Tenant Id
-          required: true
-          schema:
-            type: string
-        - name: api-auth-signature
-          in: header
-          description: Tenant Name
-          required: true
-          schema:
-            type: string
+      - OrderPlan
       requestBody:
         content:
           application/json-patch+json:
@@ -612,20 +425,7 @@ paths:
   /api/ProcessingStatus:
     get:
       tags:
-        - ProcessingStatus
-      parameters:
-        - name: api-auth-id
-          in: header
-          description: Tenant Id
-          required: true
-          schema:
-            type: string
-        - name: api-auth-signature
-          in: header
-          description: Tenant Name
-          required: true
-          schema:
-            type: string
+      - ProcessingStatus
       responses:
         '200':
           description: Success
@@ -644,28 +444,16 @@ paths:
   /api/Products:
     get:
       tags:
-        - Products
+      - Products
       parameters:
-        - name: code
-          in: query
-          schema:
-            type: string
-        - name: pageNo
-          in: query
-          schema:
-            type: string
-        - name: api-auth-id
-          in: header
-          description: Tenant Id
-          required: true
-          schema:
-            type: string
-        - name: api-auth-signature
-          in: header
-          description: Tenant Name
-          required: true
-          schema:
-            type: string
+      - name: code
+        in: query
+        schema:
+          type: string
+      - name: pageNo
+        in: query
+        schema:
+          type: string
       responses:
         '200':
           description: Success
@@ -685,20 +473,7 @@ paths:
           description: Server Error
     post:
       tags:
-        - Products
-      parameters:
-        - name: api-auth-id
-          in: header
-          description: Tenant Id
-          required: true
-          schema:
-            type: string
-        - name: api-auth-signature
-          in: header
-          description: Tenant Name
-          required: true
-          schema:
-            type: string
+      - Products
       requestBody:
         content:
           application/json-patch+json:
@@ -730,24 +505,12 @@ paths:
           description: Server Error
     delete:
       tags:
-        - Products
+      - Products
       parameters:
-        - name: productId
-          in: query
-          schema:
-            type: string
-        - name: api-auth-id
-          in: header
-          description: Tenant Id
-          required: true
-          schema:
-            type: string
-        - name: api-auth-signature
-          in: header
-          description: Tenant Name
-          required: true
-          schema:
-            type: string
+      - name: productId
+        in: query
+        schema:
+          type: string
       responses:
         '200':
           description: Success
@@ -762,24 +525,12 @@ paths:
   /api/PurchaseOrders:
     get:
       tags:
-        - PurchaseOrders
+      - PurchaseOrders
       parameters:
-        - name: referenceNumber
-          in: query
-          schema:
-            type: string
-        - name: api-auth-id
-          in: header
-          description: Tenant Id
-          required: true
-          schema:
-            type: string
-        - name: api-auth-signature
-          in: header
-          description: Tenant Name
-          required: true
-          schema:
-            type: string
+      - name: referenceNumber
+        in: query
+        schema:
+          type: string
       responses:
         '200':
           description: Success
@@ -797,20 +548,7 @@ paths:
           description: Server Error
     post:
       tags:
-        - PurchaseOrders
-      parameters:
-        - name: api-auth-id
-          in: header
-          description: Tenant Id
-          required: true
-          schema:
-            type: string
-        - name: api-auth-signature
-          in: header
-          description: Tenant Name
-          required: true
-          schema:
-            type: string
+      - PurchaseOrders
       requestBody:
         content:
           application/json-patch+json:
@@ -842,24 +580,12 @@ paths:
           description: Server Error
     delete:
       tags:
-        - PurchaseOrders
+      - PurchaseOrders
       parameters:
-        - name: referenceNumber
-          in: query
-          schema:
-            type: string
-        - name: api-auth-id
-          in: header
-          description: Tenant Id
-          required: true
-          schema:
-            type: string
-        - name: api-auth-signature
-          in: header
-          description: Tenant Name
-          required: true
-          schema:
-            type: string
+      - name: referenceNumber
+        in: query
+        schema:
+          type: string
       responses:
         '200':
           description: Success
@@ -875,29 +601,17 @@ paths:
                 $ref: '#/components/schemas/ProblemDetails'
         '500':
           description: Server Error
-  '/api/V2/PurchaseOrders/{referenceNumber}':
+  /api/V2/PurchaseOrders/{referenceNumber}:
     get:
       tags:
-        - PurchaseOrdersV2
+      - PurchaseOrdersV2
       description: Get a purchase order by reference number
       parameters:
-        - name: referenceNumber
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: api-auth-id
-          in: header
-          description: Tenant Id
-          required: true
-          schema:
-            type: string
-        - name: api-auth-signature
-          in: header
-          description: Tenant Name
-          required: true
-          schema:
-            type: string
+      - name: referenceNumber
+        in: path
+        required: true
+        schema:
+          type: string
       responses:
         '200':
           description: Success
@@ -916,21 +630,9 @@ paths:
   /api/V2/PurchaseOrders/OrderPlan:
     post:
       tags:
-        - PurchaseOrdersV2
-      description: 'Generate purchase orders based on the filters passed in. Same as how the StockTrim Order plan screen works '
-      parameters:
-        - name: api-auth-id
-          in: header
-          description: Tenant Id
-          required: true
-          schema:
-            type: string
-        - name: api-auth-signature
-          in: header
-          description: Tenant Name
-          required: true
-          schema:
-            type: string
+      - PurchaseOrdersV2
+      description: 'Generate purchase orders based on the filters passed in. Same
+        as how the StockTrim Order plan screen works '
       requestBody:
         content:
           application/json-patch+json:
@@ -965,37 +667,25 @@ paths:
   /api/V2/PurchaseOrders:
     get:
       tags:
-        - PurchaseOrdersV2
+      - PurchaseOrdersV2
       description: Get all purchase orders
       parameters:
-        - name: page
-          in: query
-          schema:
-            type: integer
-            format: int32
-            default: 0
-        - name: pageSize
-          in: query
-          schema:
-            type: integer
-            format: int32
-            default: 10
-        - name: status
-          in: query
-          schema:
-            $ref: '#/components/schemas/PurchaseOrderStatusDto'
-        - name: api-auth-id
-          in: header
-          description: Tenant Id
-          required: true
-          schema:
-            type: string
-        - name: api-auth-signature
-          in: header
-          description: Tenant Name
-          required: true
-          schema:
-            type: string
+      - name: page
+        in: query
+        schema:
+          type: integer
+          format: int32
+          default: 0
+      - name: pageSize
+        in: query
+        schema:
+          type: integer
+          format: int32
+          default: 10
+      - name: status
+        in: query
+        schema:
+          $ref: '#/components/schemas/PurchaseOrderStatusDto'
       responses:
         '200':
           description: Success
@@ -1016,20 +706,7 @@ paths:
   /api/RunForecastCalculations:
     post:
       tags:
-        - RunForecastCalculations
-      parameters:
-        - name: api-auth-id
-          in: header
-          description: Tenant Id
-          required: true
-          schema:
-            type: string
-        - name: api-auth-signature
-          in: header
-          description: Tenant Name
-          required: true
-          schema:
-            type: string
+      - RunForecastCalculations
       responses:
         '201':
           description: Created
@@ -1044,24 +721,12 @@ paths:
   /api/SalesOrders:
     get:
       tags:
-        - SalesOrders
+      - SalesOrders
       parameters:
-        - name: productId
-          in: query
-          schema:
-            type: string
-        - name: api-auth-id
-          in: header
-          description: Tenant Id
-          required: true
-          schema:
-            type: string
-        - name: api-auth-signature
-          in: header
-          description: Tenant Name
-          required: true
-          schema:
-            type: string
+      - name: productId
+        in: query
+        schema:
+          type: string
       responses:
         '200':
           description: Success
@@ -1081,20 +746,7 @@ paths:
           description: Server Error
     post:
       tags:
-        - SalesOrders
-      parameters:
-        - name: api-auth-id
-          in: header
-          description: Tenant Id
-          required: true
-          schema:
-            type: string
-        - name: api-auth-signature
-          in: header
-          description: Tenant Name
-          required: true
-          schema:
-            type: string
+      - SalesOrders
       requestBody:
         content:
           application/json-patch+json:
@@ -1126,24 +778,12 @@ paths:
           description: Server Error
     delete:
       tags:
-        - SalesOrders
+      - SalesOrders
       parameters:
-        - name: productId
-          in: query
-          schema:
-            type: string
-        - name: api-auth-id
-          in: header
-          description: Tenant Id
-          required: true
-          schema:
-            type: string
-        - name: api-auth-signature
-          in: header
-          description: Tenant Name
-          required: true
-          schema:
-            type: string
+      - name: productId
+        in: query
+        schema:
+          type: string
       responses:
         '200':
           description: Success
@@ -1158,20 +798,7 @@ paths:
   /api/SalesOrders/All:
     delete:
       tags:
-        - SalesOrders
-      parameters:
-        - name: api-auth-id
-          in: header
-          description: Tenant Id
-          required: true
-          schema:
-            type: string
-        - name: api-auth-signature
-          in: header
-          description: Tenant Name
-          required: true
-          schema:
-            type: string
+      - SalesOrders
       responses:
         '200':
           description: Success
@@ -1186,36 +813,24 @@ paths:
   /api/SalesOrders/Range:
     delete:
       tags:
-        - SalesOrders
+      - SalesOrders
       parameters:
-        - name: fromDate
-          in: query
-          required: true
-          schema:
-            type: string
-            format: date-time
-        - name: toDate
-          in: query
-          required: true
-          schema:
-            type: string
-            format: date-time
-        - name: productId
-          in: query
-          schema:
-            type: string
-        - name: api-auth-id
-          in: header
-          description: Tenant Id
-          required: true
-          schema:
-            type: string
-        - name: api-auth-signature
-          in: header
-          description: Tenant Name
-          required: true
-          schema:
-            type: string
+      - name: fromDate
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date-time
+      - name: toDate
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date-time
+      - name: productId
+        in: query
+        schema:
+          type: string
       responses:
         '200':
           description: Success
@@ -1230,20 +845,7 @@ paths:
   /api/SalesOrdersBulk:
     post:
       tags:
-        - SalesOrdersBulk
-      parameters:
-        - name: api-auth-id
-          in: header
-          description: Tenant Id
-          required: true
-          schema:
-            type: string
-        - name: api-auth-signature
-          in: header
-          description: Tenant Name
-          required: true
-          schema:
-            type: string
+      - SalesOrdersBulk
       requestBody:
         content:
           application/json-patch+json:
@@ -1275,21 +877,8 @@ paths:
           description: Server Error
     put:
       tags:
-        - SalesOrdersBulk
+      - SalesOrdersBulk
       description: Preforms a Create or Update based on ExternalReferenceId.
-      parameters:
-        - name: api-auth-id
-          in: header
-          description: Tenant Id
-          required: true
-          schema:
-            type: string
-        - name: api-auth-signature
-          in: header
-          description: Tenant Name
-          required: true
-          schema:
-            type: string
       requestBody:
         content:
           application/json-patch+json:
@@ -1322,24 +911,12 @@ paths:
   /api/SalesOrdersLocation:
     delete:
       tags:
-        - SalesOrdersLocation
+      - SalesOrdersLocation
       parameters:
-        - name: locationCodeOrName
-          in: query
-          schema:
-            type: string
-        - name: api-auth-id
-          in: header
-          description: Tenant Id
-          required: true
-          schema:
-            type: string
-        - name: api-auth-signature
-          in: header
-          description: Tenant Name
-          required: true
-          schema:
-            type: string
+      - name: locationCodeOrName
+        in: query
+        schema:
+          type: string
       responses:
         '200':
           description: Success
@@ -1354,20 +931,7 @@ paths:
   /api/Square:
     post:
       tags:
-        - Square
-      parameters:
-        - name: api-auth-id
-          in: header
-          description: Tenant Id
-          required: true
-          schema:
-            type: string
-        - name: api-auth-signature
-          in: header
-          description: Tenant Name
-          required: true
-          schema:
-            type: string
+      - Square
       requestBody:
         content:
           application/json-patch+json:
@@ -1396,24 +960,12 @@ paths:
   /api/Suppliers:
     get:
       tags:
-        - Suppliers
+      - Suppliers
       parameters:
-        - name: code
-          in: query
-          schema:
-            type: string
-        - name: api-auth-id
-          in: header
-          description: Tenant Id
-          required: true
-          schema:
-            type: string
-        - name: api-auth-signature
-          in: header
-          description: Tenant Name
-          required: true
-          schema:
-            type: string
+      - name: code
+        in: query
+        schema:
+          type: string
       responses:
         '200':
           description: Success
@@ -1431,20 +983,7 @@ paths:
           description: Server Error
     post:
       tags:
-        - Suppliers
-      parameters:
-        - name: api-auth-id
-          in: header
-          description: Tenant Id
-          required: true
-          schema:
-            type: string
-        - name: api-auth-signature
-          in: header
-          description: Tenant Name
-          required: true
-          schema:
-            type: string
+      - Suppliers
       requestBody:
         content:
           application/json-patch+json:
@@ -1486,24 +1025,12 @@ paths:
           description: Server Error
     delete:
       tags:
-        - Suppliers
+      - Suppliers
       parameters:
-        - name: supplierCodeOrName
-          in: query
-          schema:
-            type: string
-        - name: api-auth-id
-          in: header
-          description: Tenant Id
-          required: true
-          schema:
-            type: string
-        - name: api-auth-signature
-          in: header
-          description: Tenant Name
-          required: true
-          schema:
-            type: string
+      - name: supplierCodeOrName
+        in: query
+        schema:
+          type: string
       responses:
         '201':
           description: Created
@@ -1518,20 +1045,7 @@ paths:
   /api/SuppliersBulk:
     get:
       tags:
-        - SuppliersBulk
-      parameters:
-        - name: api-auth-id
-          in: header
-          description: Tenant Id
-          required: true
-          schema:
-            type: string
-        - name: api-auth-signature
-          in: header
-          description: Tenant Name
-          required: true
-          schema:
-            type: string
+      - SuppliersBulk
       responses:
         '200':
           description: Success
@@ -1575,38 +1089,38 @@ components:
       additionalProperties: false
     ApiEnum:
       enum:
-        - Shopify
-        - Vend
-        - Unleashed
-        - TradeGecko
-        - Cin7
-        - Myob
-        - Quickbooks
-        - StockTrimIncomingApi
-        - Xero
-        - Dear
-        - CsvUpload
-        - Katana
-        - Odoo
-        - WooCommerce
-        - Finale
-        - AmazonFba
-        - Zoho
-        - BigCommerce
-        - SquareInventory
-        - Magento
-        - MrpEasy
-        - Fishbowl
-        - SkuVault
-        - InFlow
-        - Neto
-        - Sellercloud
-        - Acumatica
+      - Shopify
+      - Vend
+      - Unleashed
+      - TradeGecko
+      - Cin7
+      - Myob
+      - Quickbooks
+      - StockTrimIncomingApi
+      - Xero
+      - Dear
+      - CsvUpload
+      - Katana
+      - Odoo
+      - WooCommerce
+      - Finale
+      - AmazonFba
+      - Zoho
+      - BigCommerce
+      - SquareInventory
+      - Magento
+      - MrpEasy
+      - Fishbowl
+      - SkuVault
+      - InFlow
+      - Neto
+      - Sellercloud
+      - Acumatica
       type: string
     BillOfMaterialsRequestDto:
       required:
-        - componentId
-        - productId
+      - componentId
+      - productId
       type: object
       properties:
         productId:
@@ -1622,8 +1136,8 @@ components:
       additionalProperties: false
     BillOfMaterialsResponseDto:
       required:
-        - componentId
-        - productId
+      - componentId
+      - productId
       type: object
       properties:
         id:
@@ -1650,9 +1164,9 @@ components:
       additionalProperties: false
     CurrentStatusEnum:
       enum:
-        - Current
-        - Discontinued
-        - All
+      - Current
+      - Discontinued
+      - All
       type: string
     Customer:
       type: object
@@ -1789,7 +1303,7 @@ components:
       additionalProperties: false
     LocationRequestDto:
       required:
-        - locationCode
+      - locationCode
       type: object
       properties:
         locationCode:
@@ -1804,7 +1318,7 @@ components:
       additionalProperties: false
     LocationResponseDto:
       required:
-        - locationCode
+      - locationCode
       type: object
       properties:
         id:
@@ -1917,7 +1431,7 @@ components:
         instance:
           type: string
           nullable: true
-      additionalProperties: { }
+      additionalProperties: {}
     ProcessingStatusResponseDto:
       type: object
       properties:
@@ -1935,7 +1449,7 @@ components:
       additionalProperties: false
     ProductLocation:
       required:
-        - locationCode
+      - locationCode
       type: object
       properties:
         locationCode:
@@ -1955,7 +1469,7 @@ components:
       additionalProperties: false
     ProductSupplier:
       required:
-        - supplierId
+      - supplierId
       type: object
       properties:
         supplierId:
@@ -1970,7 +1484,7 @@ components:
       additionalProperties: false
     ProductsRequestDto:
       required:
-        - productId
+      - productId
       type: object
       properties:
         productId:
@@ -2110,7 +1624,7 @@ components:
       additionalProperties: false
     ProductsResponseDto:
       required:
-        - productId
+      - productId
       type: object
       properties:
         id:
@@ -2253,8 +1767,8 @@ components:
       additionalProperties: false
     PurchaseOrderLineItem:
       required:
-        - productId
-        - quantity
+      - productId
+      - quantity
       type: object
       properties:
         productId:
@@ -2284,9 +1798,9 @@ components:
       additionalProperties: false
     PurchaseOrderRequestDto:
       required:
-        - orderDate
-        - purchaseOrderLineItems
-        - supplier
+      - orderDate
+      - purchaseOrderLineItems
+      - supplier
       type: object
       properties:
         orderDate:
@@ -2322,9 +1836,9 @@ components:
       additionalProperties: false
     PurchaseOrderResponseDto:
       required:
-        - orderDate
-        - purchaseOrderLineItems
-        - supplier
+      - orderDate
+      - purchaseOrderLineItems
+      - supplier
       type: object
       properties:
         id:
@@ -2366,10 +1880,10 @@ components:
       additionalProperties: false
     PurchaseOrderStatusDto:
       enum:
-        - Draft
-        - Approved
-        - Sent
-        - Received
+      - Draft
+      - Approved
+      - Sent
+      - Received
       type: string
     PurchaseOrderSupplier:
       type: object
@@ -2383,9 +1897,9 @@ components:
       additionalProperties: false
     SalesOrderRequestDto:
       required:
-        - orderDate
-        - productId
-        - quantity
+      - orderDate
+      - productId
+      - quantity
       type: object
       properties:
         productId:
@@ -2420,9 +1934,9 @@ components:
       additionalProperties: false
     SalesOrderResponseDto:
       required:
-        - orderDate
-        - productId
-        - quantity
+      - orderDate
+      - productId
+      - quantity
       type: object
       properties:
         id:
@@ -2463,7 +1977,7 @@ components:
       additionalProperties: false
     SalesOrderWithLineItemsRequestDto:
       required:
-        - orderDate
+      - orderDate
       type: object
       properties:
         orderDate:
@@ -2874,7 +2388,7 @@ components:
       additionalProperties: false
     SupplierRequestDto:
       required:
-        - supplierCode
+      - supplierCode
       type: object
       properties:
         supplierCode:
@@ -2917,7 +2431,7 @@ components:
       additionalProperties: false
     SupplierResponseDto:
       required:
-        - supplierCode
+      - supplierCode
       type: object
       properties:
         id:
@@ -2961,3 +2475,11 @@ components:
           type: string
           nullable: true
       additionalProperties: false
+  securitySchemes:
+    StockTrimAuth:
+      type: apiKey
+      in: header
+      name: api-auth-id
+      description: StockTrim authentication (api-auth-id and api-auth-signature)
+security:
+- StockTrimAuth: []

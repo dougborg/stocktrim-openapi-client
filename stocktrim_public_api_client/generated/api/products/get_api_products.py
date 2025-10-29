@@ -14,14 +14,7 @@ def _get_kwargs(
     *,
     code: str | Unset = UNSET,
     page_no: str | Unset = UNSET,
-    api_auth_id: str,
-    api_auth_signature: str,
 ) -> dict[str, Any]:
-    headers: dict[str, Any] = {}
-    headers["api-auth-id"] = api_auth_id
-
-    headers["api-auth-signature"] = api_auth_signature
-
     params: dict[str, Any] = {}
 
     params["code"] = code
@@ -36,7 +29,6 @@ def _get_kwargs(
         "params": params,
     }
 
-    _kwargs["headers"] = headers
     return _kwargs
 
 
@@ -84,15 +76,11 @@ def sync_detailed(
     client: AuthenticatedClient | Client,
     code: str | Unset = UNSET,
     page_no: str | Unset = UNSET,
-    api_auth_id: str,
-    api_auth_signature: str,
 ) -> Response[Any | ProblemDetails | list[ProductsResponseDto]]:
     """
     Args:
         code (str | Unset):
         page_no (str | Unset):
-        api_auth_id (str):
-        api_auth_signature (str):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -105,8 +93,6 @@ def sync_detailed(
     kwargs = _get_kwargs(
         code=code,
         page_no=page_no,
-        api_auth_id=api_auth_id,
-        api_auth_signature=api_auth_signature,
     )
 
     response = client.get_httpx_client().request(
@@ -121,15 +107,11 @@ def sync(
     client: AuthenticatedClient | Client,
     code: str | Unset = UNSET,
     page_no: str | Unset = UNSET,
-    api_auth_id: str,
-    api_auth_signature: str,
 ) -> Any | ProblemDetails | list[ProductsResponseDto] | None:
     """
     Args:
         code (str | Unset):
         page_no (str | Unset):
-        api_auth_id (str):
-        api_auth_signature (str):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -143,8 +125,6 @@ def sync(
         client=client,
         code=code,
         page_no=page_no,
-        api_auth_id=api_auth_id,
-        api_auth_signature=api_auth_signature,
     ).parsed
 
 
@@ -153,15 +133,11 @@ async def asyncio_detailed(
     client: AuthenticatedClient | Client,
     code: str | Unset = UNSET,
     page_no: str | Unset = UNSET,
-    api_auth_id: str,
-    api_auth_signature: str,
 ) -> Response[Any | ProblemDetails | list[ProductsResponseDto]]:
     """
     Args:
         code (str | Unset):
         page_no (str | Unset):
-        api_auth_id (str):
-        api_auth_signature (str):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -174,8 +150,6 @@ async def asyncio_detailed(
     kwargs = _get_kwargs(
         code=code,
         page_no=page_no,
-        api_auth_id=api_auth_id,
-        api_auth_signature=api_auth_signature,
     )
 
     response = await client.get_async_httpx_client().request(**kwargs)
@@ -188,15 +162,11 @@ async def asyncio(
     client: AuthenticatedClient | Client,
     code: str | Unset = UNSET,
     page_no: str | Unset = UNSET,
-    api_auth_id: str,
-    api_auth_signature: str,
 ) -> Any | ProblemDetails | list[ProductsResponseDto] | None:
     """
     Args:
         code (str | Unset):
         page_no (str | Unset):
-        api_auth_id (str):
-        api_auth_signature (str):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -211,7 +181,5 @@ async def asyncio(
             client=client,
             code=code,
             page_no=page_no,
-            api_auth_id=api_auth_id,
-            api_auth_signature=api_auth_signature,
         )
     ).parsed

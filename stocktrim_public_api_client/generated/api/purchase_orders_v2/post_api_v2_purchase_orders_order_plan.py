@@ -16,13 +16,8 @@ def _get_kwargs(
     body: OrderPlanFilterCriteriaDto
     | OrderPlanFilterCriteriaDto
     | OrderPlanFilterCriteriaDto,
-    api_auth_id: str,
-    api_auth_signature: str,
 ) -> dict[str, Any]:
     headers: dict[str, Any] = {}
-    headers["api-auth-id"] = api_auth_id
-
-    headers["api-auth-signature"] = api_auth_signature
 
     _kwargs: dict[str, Any] = {
         "method": "post",
@@ -93,15 +88,11 @@ def sync_detailed(
     body: OrderPlanFilterCriteriaDto
     | OrderPlanFilterCriteriaDto
     | OrderPlanFilterCriteriaDto,
-    api_auth_id: str,
-    api_auth_signature: str,
 ) -> Response[Any | ProblemDetails | list[PurchaseOrderResponseDto]]:
     """Generate purchase orders based on the filters passed in. Same as how the StockTrim Order plan screen
     works
 
     Args:
-        api_auth_id (str):
-        api_auth_signature (str):
         body (OrderPlanFilterCriteriaDto):
         body (OrderPlanFilterCriteriaDto):
         body (OrderPlanFilterCriteriaDto):
@@ -116,8 +107,6 @@ def sync_detailed(
 
     kwargs = _get_kwargs(
         body=body,
-        api_auth_id=api_auth_id,
-        api_auth_signature=api_auth_signature,
     )
 
     response = client.get_httpx_client().request(
@@ -133,15 +122,11 @@ def sync(
     body: OrderPlanFilterCriteriaDto
     | OrderPlanFilterCriteriaDto
     | OrderPlanFilterCriteriaDto,
-    api_auth_id: str,
-    api_auth_signature: str,
 ) -> Any | ProblemDetails | list[PurchaseOrderResponseDto] | None:
     """Generate purchase orders based on the filters passed in. Same as how the StockTrim Order plan screen
     works
 
     Args:
-        api_auth_id (str):
-        api_auth_signature (str):
         body (OrderPlanFilterCriteriaDto):
         body (OrderPlanFilterCriteriaDto):
         body (OrderPlanFilterCriteriaDto):
@@ -157,8 +142,6 @@ def sync(
     return sync_detailed(
         client=client,
         body=body,
-        api_auth_id=api_auth_id,
-        api_auth_signature=api_auth_signature,
     ).parsed
 
 
@@ -168,15 +151,11 @@ async def asyncio_detailed(
     body: OrderPlanFilterCriteriaDto
     | OrderPlanFilterCriteriaDto
     | OrderPlanFilterCriteriaDto,
-    api_auth_id: str,
-    api_auth_signature: str,
 ) -> Response[Any | ProblemDetails | list[PurchaseOrderResponseDto]]:
     """Generate purchase orders based on the filters passed in. Same as how the StockTrim Order plan screen
     works
 
     Args:
-        api_auth_id (str):
-        api_auth_signature (str):
         body (OrderPlanFilterCriteriaDto):
         body (OrderPlanFilterCriteriaDto):
         body (OrderPlanFilterCriteriaDto):
@@ -191,8 +170,6 @@ async def asyncio_detailed(
 
     kwargs = _get_kwargs(
         body=body,
-        api_auth_id=api_auth_id,
-        api_auth_signature=api_auth_signature,
     )
 
     response = await client.get_async_httpx_client().request(**kwargs)
@@ -206,15 +183,11 @@ async def asyncio(
     body: OrderPlanFilterCriteriaDto
     | OrderPlanFilterCriteriaDto
     | OrderPlanFilterCriteriaDto,
-    api_auth_id: str,
-    api_auth_signature: str,
 ) -> Any | ProblemDetails | list[PurchaseOrderResponseDto] | None:
     """Generate purchase orders based on the filters passed in. Same as how the StockTrim Order plan screen
     works
 
     Args:
-        api_auth_id (str):
-        api_auth_signature (str):
         body (OrderPlanFilterCriteriaDto):
         body (OrderPlanFilterCriteriaDto):
         body (OrderPlanFilterCriteriaDto):
@@ -231,7 +204,5 @@ async def asyncio(
         await asyncio_detailed(
             client=client,
             body=body,
-            api_auth_id=api_auth_id,
-            api_auth_signature=api_auth_signature,
         )
     ).parsed
