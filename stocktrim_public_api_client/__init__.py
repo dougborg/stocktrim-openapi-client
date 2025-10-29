@@ -8,5 +8,31 @@ retries and custom authentication.
 __version__ = "0.1.0"
 
 from .stocktrim_client import StockTrimClient
+from .utils import (
+    APIError,
+    AuthenticationError,
+    NotFoundError,
+    PermissionError,
+    ServerError,
+    ValidationError,
+    get_error_message,
+    is_error,
+    is_success,
+    unwrap,
+)
 
-__all__ = ["StockTrimClient"]
+__all__ = [
+    # Exceptions
+    "APIError",
+    "AuthenticationError",
+    "NotFoundError",
+    "PermissionError",
+    "ServerError",
+    "StockTrimClient",
+    "ValidationError",
+    "get_error_message",
+    "is_error",
+    "is_success",
+    # Utils
+    "unwrap",
+]
