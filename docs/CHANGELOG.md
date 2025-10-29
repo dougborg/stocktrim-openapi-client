@@ -2,6 +2,17 @@
 
 <!-- version list -->
 
+## v0.2.2 (2025-10-29)
+
+### Bug Fixes
+
+- Properly handle workspace dependencies in MCP server release
+  ([`79c0e49`](https://github.com/dougborg/stocktrim-openapi-client/commit/79c0e49ba3c54bee09b4dd7aad2c1d15de2ee97b))
+
+- Remove workspace source override when building MCP server for PyPI - Ensures MCP
+  server uses versioned dependency from PyPI instead of workspace - Fixes build failures
+  in release workflow for future releases
+
 ## v0.2.1 (2025-10-29)
 
 ### Bug Fixes
