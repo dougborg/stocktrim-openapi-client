@@ -74,7 +74,7 @@ dev = [
   "tox>=4.0.0",
   # Code quality and linting
   "ruff>=0.12.4,<0.13",
-  "mypy>=1.17.0,<2.0.0",
+
   "pre-commit>=4.2.0",
   # Build tools
   "build>=1.0.0",
@@ -88,11 +88,11 @@ dev = [
   "mdformat-gfm>=0.3.0",
   "mdformat-tables>=0.4.0",
   "mdformat-toc>=0.3.0",
+
   # Type stubs
   "types-python-dateutil>=2.8.0",
   "types-PyYAML>=6.0.0",
   "types-urllib3>=1.26.0",
-  "mypy-extensions>=1.1.0",
   # OpenAPI tools
   "openapi-python-client>=0.25.2",
   # Semantic release
@@ -116,6 +116,7 @@ build-backend = "hatchling.build"
 [dependency-groups]
 dev = [
     "poethepoet>=0.37.0",
+    "ty>=0.0.1a24",
 ]
 
 # =============================================================================
@@ -132,48 +133,19 @@ packages = ["stocktrim_public_api_client"]
 [tool.hatch.build.targets.wheel.force-include]
 "stocktrim-openapi.yaml" = "stocktrim_public_api_client/stocktrim-openapi.yaml"
 
-[tool.mypy]
-files = ["stocktrim_public_api_client", "tests", "scripts"]
-exclude = [
-  "tests/conftest.py",                        # Avoid duplicate module name issue
-  "stocktrim_public_api_client/generated/.*", # Exclude generated code
-]
-# TODO: enable "strict" once all these individual checks are passing
-# strict = true
+[tool.ty.src]
+# Include our main source directories
+include = ["stocktrim_public_api_client", "tests", "scripts"]
+# Exclude generated code from type checking
+exclude = ["stocktrim_public_api_client/generated/**"]
 
-# List from: https://mypy.readthedocs.io/en/stable/existing_code.html#introduce-stricter-options
-warn_unused_configs = true
-warn_redundant_casts = true
-warn_unused_ignores = true
+[tool.ty.environment]
+# Set up the project root paths for first-party module resolution
+root = [".", "stocktrim_public_api_client"]
 
-## Getting these passing should be easy
-strict_equality = true
-extra_checks = true
-
-## Strongly recommend enabling this one as soon as you can
-check_untyped_defs = true
-
-## These shouldn't be too much additional work, but may be tricky to
-## get passing if you use a lot of untyped libraries
-disallow_subclassing_any = true
-disallow_untyped_decorators = true
-disallow_any_generics = true
-
-### These next few are various gradations of forcing use of type annotations
-#disallow_untyped_calls = true
-#disallow_incomplete_defs = true
-#disallow_untyped_defs = true
-#
-### This one isn't too hard to get passing, but return on investment is lower
-#no_implicit_reexport = true
-#
-### This one can be tricky to get passing if you use a lot of untyped libraries
-#warn_return_any = true
-
-[[tool.mypy.overrides]]
-module = ["stocktrim_public_api_client.stocktrim_client"]
-# Allow unknown types for JSON parsing methods
-disable_error_code = ["misc", "arg-type"]
+[tool.ty.terminal]
+# Use concise output format for cleaner CI logs
+output-format = "concise"
 
 [tool.pytest.ini_options]
 minversion = "7.0"
@@ -338,12 +310,12 @@ format-check = ["format-python-check", "format-markdown-check"]
 # -----------------------------------------------------------------------------
 # Linting and Type Checking Tasks
 # -----------------------------------------------------------------------------
-lint-mypy = "mypy stocktrim_public_api_client tests scripts"
+lint-ty = "ty check"
 lint-ruff = "ruff check ."
 lint-ruff-fix = "ruff check --fix ."
 lint-yaml = "yamllint ."
 
-lint = ["lint-ruff", "lint-mypy", "lint-yaml"]
+lint = ["lint-ruff", "lint-ty", "lint-yaml"]
 
 # -----------------------------------------------------------------------------
 # Testing Tasks
@@ -414,8 +386,8 @@ echo "   poe format-python       - Format Python code with ruff"
 echo "   poe format-markdown     - Format markdown files"
 echo ""
 echo "📁 Linting & Type Checking:"
-echo "   poe lint                - Run all linters (mypy, ruff, yaml)"
-echo "   poe lint-mypy           - Type checking with mypy"
+echo "   poe lint                - Run all linters (ty, ruff, yaml)"
+echo "   poe lint-ty             - Type checking with ty (Astral's fast type checker)"
 echo "   poe lint-ruff           - Fast linting with ruff"
 echo "   poe lint-yaml           - YAML file linting"
 echo ""
@@ -459,7 +431,7 @@ echo ""
 help = "Clean up build artifacts and cache files"
 shell = """
 echo "🧹 Cleaning build artifacts and cache files..."
-rm -rf .pytest_cache .mypy_cache .ruff_cache .coverage htmlcov dist build *.egg-info docs/_build site
+rm -rf .pytest_cache .ty_cache .ruff_cache .coverage htmlcov dist build *.egg-info docs/_build site
 find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
 echo "✨ Workspace cleaned!"
 """
