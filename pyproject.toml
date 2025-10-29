@@ -134,10 +134,10 @@ packages = ["stocktrim_public_api_client"]
 "stocktrim-openapi.yaml" = "stocktrim_public_api_client/stocktrim-openapi.yaml"
 
 [tool.ty.src]
-# Include our main source directories
-include = ["stocktrim_public_api_client", "tests", "scripts"]
-# Exclude generated code from type checking
-exclude = ["stocktrim_public_api_client/generated/**"]
+# Configure source paths and exclusions for ty type checker
+include = ["stocktrim_public_api_client/**/*.py", "tests/**/*.py"]
+# Generated code type issues are now fixed during regeneration
+# exclude = ["stocktrim_public_api_client/generated/**"]
 
 [tool.ty.environment]
 # Set up the project root paths for first-party module resolution

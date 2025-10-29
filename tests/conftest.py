@@ -221,5 +221,5 @@ def stocktrim_client_with_mock_transport(mock_api_credentials, mock_transport):
     """Create a StockTrimClient with mock transport for testing without network calls."""
     client = StockTrimClient(**mock_api_credentials)
     # Replace the transport with mock
-    client._client._transport = mock_transport
+    client._client._transport = mock_transport  # type: ignore[union-attr]
     return client
