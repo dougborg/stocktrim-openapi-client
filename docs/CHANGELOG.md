@@ -2,6 +2,30 @@
 
 <!-- version list -->
 
+## v0.1.1 (2025-10-29)
+
+### Bug Fixes
+
+- Tidy __all__ ordering and comments
+  ([`32de7af`](https://github.com/dougborg/stocktrim-openapi-client/commit/32de7aff9c1b7bf7a485f6f1557c191e55ead5d6))
+
+### Chores
+
+- Update GitHub Actions to latest versions
+  ([`465a7b7`](https://github.com/dougborg/stocktrim-openapi-client/commit/465a7b77735d243c70a69f12e6c52d504c01b532))
+
+- Update upload-pages-artifact from v3 to v4 - Pin trivy-action to v0.29.0 instead of
+  @master - All other actions already on latest versions
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+
+### Documentation
+
+- Add PyPI badges to README for both packages
+  ([`a88f81c`](https://github.com/dougborg/stocktrim-openapi-client/commit/a88f81cb17707021d22b643bf91d77e87363b1a2))
+
 ## v0.1.0 (2025-10-29)
 
 ### Bug Fixes
