@@ -31,7 +31,9 @@ class Customers(Base):
         """
         response = await get_api_customers.asyncio_detailed(client=self._client)
         result = unwrap(response)
-        return result if isinstance(result, list) else []
+        # unwrap() returns the actual type or raises an exception on error
+        # Type checker sees the union but at runtime we get the expected type
+        return result if isinstance(result, list) else []  # type: ignore[return-value]
 
     async def get(self, code: str) -> CustomerDto:
         """Get a specific customer by code.

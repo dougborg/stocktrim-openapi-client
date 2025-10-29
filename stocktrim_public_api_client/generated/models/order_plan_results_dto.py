@@ -72,7 +72,7 @@ class OrderPlanResultsDto:
                 _results_type_0 = data
                 for results_type_0_item_data in _results_type_0:
                     results_type_0_item = SkuOptimizedResultsDto.from_dict(
-                        results_type_0_item_data
+                        cast(Mapping[str, Any], results_type_0_item_data)
                     )
 
                     results_type_0.append(results_type_0_item)
@@ -89,7 +89,9 @@ class OrderPlanResultsDto:
         if isinstance(_filter_criteria, Unset):
             filter_criteria = UNSET
         else:
-            filter_criteria = OrderPlanFilterCriteria.from_dict(_filter_criteria)
+            filter_criteria = OrderPlanFilterCriteria.from_dict(
+                cast(Mapping[str, Any], _filter_criteria)
+            )
 
         order_plan_results_dto = cls(
             results=results,

@@ -89,7 +89,7 @@ class SetInventoryRequest:
                 _inventory_type_0 = data
                 for inventory_type_0_item_data in _inventory_type_0:
                     inventory_type_0_item = Inventory.from_dict(
-                        inventory_type_0_item_data
+                        cast(Mapping[str, Any], inventory_type_0_item_data)
                     )
 
                     inventory_type_0.append(inventory_type_0_item)

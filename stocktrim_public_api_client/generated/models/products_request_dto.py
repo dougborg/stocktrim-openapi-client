@@ -530,7 +530,7 @@ class ProductsRequestDto:
                 _suppliers_type_0 = data
                 for suppliers_type_0_item_data in _suppliers_type_0:
                     suppliers_type_0_item = ProductSupplier.from_dict(
-                        suppliers_type_0_item_data
+                        cast(Mapping[str, Any], suppliers_type_0_item_data)
                     )
 
                     suppliers_type_0.append(suppliers_type_0_item)
@@ -701,7 +701,7 @@ class ProductsRequestDto:
                 _stock_locations_type_0 = data
                 for stock_locations_type_0_item_data in _stock_locations_type_0:
                     stock_locations_type_0_item = ProductLocation.from_dict(
-                        stock_locations_type_0_item_data
+                        cast(Mapping[str, Any], stock_locations_type_0_item_data)
                     )
 
                     stock_locations_type_0.append(stock_locations_type_0_item)

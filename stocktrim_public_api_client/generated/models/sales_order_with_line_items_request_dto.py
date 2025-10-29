@@ -155,7 +155,7 @@ class SalesOrderWithLineItemsRequestDto:
                     sale_order_line_items_type_0_item_data
                 ) in _sale_order_line_items_type_0:
                     sale_order_line_items_type_0_item = SalesOrderRequestDto.from_dict(
-                        sale_order_line_items_type_0_item_data
+                        cast(Mapping[str, Any], sale_order_line_items_type_0_item_data)
                     )
 
                     sale_order_line_items_type_0.append(

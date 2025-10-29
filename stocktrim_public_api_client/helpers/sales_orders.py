@@ -47,7 +47,8 @@ class SalesOrders(Base):
             product_id=product_id,
         )
         result = unwrap(response)
-        return result if isinstance(result, list) else []
+        # unwrap() returns the actual type or raises an exception on error
+        return result if isinstance(result, list) else []  # type: ignore[return-value]
 
     async def create(self, order: SalesOrderRequestDto) -> SalesOrderResponseDto:
         """Create a new sales order.

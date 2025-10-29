@@ -90,14 +90,18 @@ class SquareWebHookObject:
         if isinstance(_order_updated, Unset):
             order_updated = UNSET
         else:
-            order_updated = SquareWebHookOrderUpdatedData.from_dict(_order_updated)
+            order_updated = SquareWebHookOrderUpdatedData.from_dict(
+                cast(Mapping[str, Any], _order_updated)
+            )
 
         _catalog_version = d.pop("catalog_version", UNSET)
         catalog_version: SquareWebHookCatalog | Unset
         if isinstance(_catalog_version, Unset):
             catalog_version = UNSET
         else:
-            catalog_version = SquareWebHookCatalog.from_dict(_catalog_version)
+            catalog_version = SquareWebHookCatalog.from_dict(
+                cast(Mapping[str, Any], _catalog_version)
+            )
 
         def _parse_inventory_counts(
             data: object,
@@ -113,7 +117,7 @@ class SquareWebHookObject:
                 _inventory_counts_type_0 = data
                 for inventory_counts_type_0_item_data in _inventory_counts_type_0:
                     inventory_counts_type_0_item = InventoryCountWebHook.from_dict(
-                        inventory_counts_type_0_item_data
+                        cast(Mapping[str, Any], inventory_counts_type_0_item_data)
                     )
 
                     inventory_counts_type_0.append(inventory_counts_type_0_item)
@@ -130,7 +134,7 @@ class SquareWebHookObject:
         if isinstance(_customer, Unset):
             customer = UNSET
         else:
-            customer = Customer.from_dict(_customer)
+            customer = Customer.from_dict(cast(Mapping[str, Any], _customer))
 
         square_web_hook_object = cls(
             order_updated=order_updated,

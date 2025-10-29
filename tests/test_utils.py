@@ -77,7 +77,7 @@ class TestUnwrap:
         )
         with pytest.raises(AuthenticationError) as exc_info:
             unwrap(response)
-        assert exc_info.value.status_code == 401
+        assert cast(AuthenticationError, exc_info.value).status_code == 401
 
     def test_unwrap_403_raises_permission_error(self):
         """Test 403 status raises PermissionError."""
@@ -86,7 +86,7 @@ class TestUnwrap:
         )
         with pytest.raises(PermissionError) as exc_info:
             unwrap(response)
-        assert exc_info.value.status_code == 403
+        assert cast(PermissionError, exc_info.value).status_code == 403
 
     def test_unwrap_404_raises_not_found_error(self):
         """Test 404 status raises NotFoundError."""
@@ -95,7 +95,7 @@ class TestUnwrap:
         )
         with pytest.raises(NotFoundError) as exc_info:
             unwrap(response)
-        assert exc_info.value.status_code == 404
+        assert cast(NotFoundError, exc_info.value).status_code == 404
 
     def test_unwrap_400_raises_validation_error(self):
         """Test 400 status raises ValidationError."""
@@ -104,7 +104,7 @@ class TestUnwrap:
         )
         with pytest.raises(ValidationError) as exc_info:
             unwrap(response)
-        assert exc_info.value.status_code == 400
+        assert cast(ValidationError, exc_info.value).status_code == 400
 
     def test_unwrap_422_raises_validation_error(self):
         """Test 422 status raises ValidationError."""
@@ -116,7 +116,7 @@ class TestUnwrap:
         )
         with pytest.raises(ValidationError) as exc_info:
             unwrap(response)
-        assert exc_info.value.status_code == 422
+        assert cast(ValidationError, exc_info.value).status_code == 422
 
     def test_unwrap_500_raises_server_error(self):
         """Test 500 status raises ServerError."""
@@ -128,7 +128,7 @@ class TestUnwrap:
         )
         with pytest.raises(ServerError) as exc_info:
             unwrap(response)
-        assert exc_info.value.status_code == 500
+        assert cast(ServerError, exc_info.value).status_code == 500
 
     def test_unwrap_503_raises_server_error(self):
         """Test 503 status raises ServerError."""
@@ -140,7 +140,7 @@ class TestUnwrap:
         )
         with pytest.raises(ServerError) as exc_info:
             unwrap(response)
-        assert exc_info.value.status_code == 503
+        assert cast(ServerError, exc_info.value).status_code == 503
 
     def test_unwrap_error_returns_none_when_not_raising(self):
         """Test error response returns None when raise_on_error=False."""
@@ -160,7 +160,7 @@ class TestUnwrap:
         )
         with pytest.raises(APIError) as exc_info:
             unwrap(response)
-        assert exc_info.value.status_code == 418
+        assert cast(APIError, exc_info.value).status_code == 418
         assert not isinstance(
             exc_info.value,
             AuthenticationError | PermissionError | NotFoundError | ValidationError,
