@@ -1,12 +1,14 @@
+from __future__ import annotations
+
 import datetime
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, TypeVar, Union, cast
+from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 from dateutil.parser import isoparse
 
+from ..client_types import UNSET, Unset
 from ..models.purchase_order_status_dto import PurchaseOrderStatusDto
-from ..types import UNSET, Unset
 
 if TYPE_CHECKING:
     from ..models.purchase_order_line_item import PurchaseOrderLineItem
@@ -23,30 +25,30 @@ class PurchaseOrderResponseDto:
     Attributes:
         order_date (datetime.datetime):
         supplier (PurchaseOrderSupplier):
-        purchase_order_line_items (list['PurchaseOrderLineItem']):
-        id (Union[Unset, int]):
-        message (Union[None, Unset, str]):
-        created_date (Union[None, Unset, datetime.datetime]):
-        fully_received_date (Union[None, Unset, datetime.datetime]):
-        external_id (Union[None, Unset, str]):
-        reference_number (Union[None, Unset, str]):
-        client_reference_number (Union[None, Unset, str]):
-        location (Union[Unset, PurchaseOrderLocation]):
-        status (Union[Unset, PurchaseOrderStatusDto]):
+        purchase_order_line_items (list[PurchaseOrderLineItem]):
+        id (int | Unset):
+        message (None | str | Unset):
+        created_date (datetime.datetime | None | Unset):
+        fully_received_date (datetime.datetime | None | Unset):
+        external_id (None | str | Unset):
+        reference_number (None | str | Unset):
+        client_reference_number (None | str | Unset):
+        location (PurchaseOrderLocation | Unset):
+        status (PurchaseOrderStatusDto | Unset):
     """
 
     order_date: datetime.datetime
-    supplier: "PurchaseOrderSupplier"
-    purchase_order_line_items: list["PurchaseOrderLineItem"]
-    id: Union[Unset, int] = UNSET
-    message: Union[None, Unset, str] = UNSET
-    created_date: Union[None, Unset, datetime.datetime] = UNSET
-    fully_received_date: Union[None, Unset, datetime.datetime] = UNSET
-    external_id: Union[None, Unset, str] = UNSET
-    reference_number: Union[None, Unset, str] = UNSET
-    client_reference_number: Union[None, Unset, str] = UNSET
-    location: Union[Unset, "PurchaseOrderLocation"] = UNSET
-    status: Union[Unset, PurchaseOrderStatusDto] = UNSET
+    supplier: PurchaseOrderSupplier
+    purchase_order_line_items: list[PurchaseOrderLineItem]
+    id: int | Unset = UNSET
+    message: None | str | Unset = UNSET
+    created_date: datetime.datetime | None | Unset = UNSET
+    fully_received_date: datetime.datetime | None | Unset = UNSET
+    external_id: None | str | Unset = UNSET
+    reference_number: None | str | Unset = UNSET
+    client_reference_number: None | str | Unset = UNSET
+    location: PurchaseOrderLocation | Unset = UNSET
+    status: PurchaseOrderStatusDto | Unset = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         order_date = self.order_date.isoformat()
@@ -55,18 +57,20 @@ class PurchaseOrderResponseDto:
 
         purchase_order_line_items = []
         for purchase_order_line_items_item_data in self.purchase_order_line_items:
-            purchase_order_line_items_item = purchase_order_line_items_item_data.to_dict()
+            purchase_order_line_items_item = (
+                purchase_order_line_items_item_data.to_dict()
+            )
             purchase_order_line_items.append(purchase_order_line_items_item)
 
         id = self.id
 
-        message: Union[None, Unset, str]
+        message: None | str | Unset
         if isinstance(self.message, Unset):
             message = UNSET
         else:
             message = self.message
 
-        created_date: Union[None, Unset, str]
+        created_date: None | str | Unset
         if isinstance(self.created_date, Unset):
             created_date = UNSET
         elif isinstance(self.created_date, datetime.datetime):
@@ -74,7 +78,7 @@ class PurchaseOrderResponseDto:
         else:
             created_date = self.created_date
 
-        fully_received_date: Union[None, Unset, str]
+        fully_received_date: None | str | Unset
         if isinstance(self.fully_received_date, Unset):
             fully_received_date = UNSET
         elif isinstance(self.fully_received_date, datetime.datetime):
@@ -82,29 +86,29 @@ class PurchaseOrderResponseDto:
         else:
             fully_received_date = self.fully_received_date
 
-        external_id: Union[None, Unset, str]
+        external_id: None | str | Unset
         if isinstance(self.external_id, Unset):
             external_id = UNSET
         else:
             external_id = self.external_id
 
-        reference_number: Union[None, Unset, str]
+        reference_number: None | str | Unset
         if isinstance(self.reference_number, Unset):
             reference_number = UNSET
         else:
             reference_number = self.reference_number
 
-        client_reference_number: Union[None, Unset, str]
+        client_reference_number: None | str | Unset
         if isinstance(self.client_reference_number, Unset):
             client_reference_number = UNSET
         else:
             client_reference_number = self.client_reference_number
 
-        location: Union[Unset, dict[str, Any]] = UNSET
+        location: dict[str, Any] | Unset = UNSET
         if not isinstance(self.location, Unset):
             location = self.location.to_dict()
 
-        status: Union[Unset, str] = UNSET
+        status: str | Unset = UNSET
         if not isinstance(self.status, Unset):
             status = self.status.value
 
@@ -152,22 +156,24 @@ class PurchaseOrderResponseDto:
         purchase_order_line_items = []
         _purchase_order_line_items = d.pop("purchaseOrderLineItems")
         for purchase_order_line_items_item_data in _purchase_order_line_items:
-            purchase_order_line_items_item = PurchaseOrderLineItem.from_dict(purchase_order_line_items_item_data)
+            purchase_order_line_items_item = PurchaseOrderLineItem.from_dict(
+                purchase_order_line_items_item_data
+            )
 
             purchase_order_line_items.append(purchase_order_line_items_item)
 
         id = d.pop("id", UNSET)
 
-        def _parse_message(data: object) -> Union[None, Unset, str]:
+        def _parse_message(data: object) -> None | str | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(Union[None, Unset, str], data)
+            return cast(None | str | Unset, data)
 
         message = _parse_message(d.pop("message", UNSET))
 
-        def _parse_created_date(data: object) -> Union[None, Unset, datetime.datetime]:
+        def _parse_created_date(data: object) -> datetime.datetime | None | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -180,11 +186,13 @@ class PurchaseOrderResponseDto:
                 return created_date_type_0
             except:  # noqa: E722
                 pass
-            return cast(Union[None, Unset, datetime.datetime], data)
+            return cast(datetime.datetime | None | Unset, data)
 
         created_date = _parse_created_date(d.pop("createdDate", UNSET))
 
-        def _parse_fully_received_date(data: object) -> Union[None, Unset, datetime.datetime]:
+        def _parse_fully_received_date(
+            data: object,
+        ) -> datetime.datetime | None | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -197,46 +205,50 @@ class PurchaseOrderResponseDto:
                 return fully_received_date_type_0
             except:  # noqa: E722
                 pass
-            return cast(Union[None, Unset, datetime.datetime], data)
+            return cast(datetime.datetime | None | Unset, data)
 
-        fully_received_date = _parse_fully_received_date(d.pop("fullyReceivedDate", UNSET))
+        fully_received_date = _parse_fully_received_date(
+            d.pop("fullyReceivedDate", UNSET)
+        )
 
-        def _parse_external_id(data: object) -> Union[None, Unset, str]:
+        def _parse_external_id(data: object) -> None | str | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(Union[None, Unset, str], data)
+            return cast(None | str | Unset, data)
 
         external_id = _parse_external_id(d.pop("externalId", UNSET))
 
-        def _parse_reference_number(data: object) -> Union[None, Unset, str]:
+        def _parse_reference_number(data: object) -> None | str | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(Union[None, Unset, str], data)
+            return cast(None | str | Unset, data)
 
         reference_number = _parse_reference_number(d.pop("referenceNumber", UNSET))
 
-        def _parse_client_reference_number(data: object) -> Union[None, Unset, str]:
+        def _parse_client_reference_number(data: object) -> None | str | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(Union[None, Unset, str], data)
+            return cast(None | str | Unset, data)
 
-        client_reference_number = _parse_client_reference_number(d.pop("clientReferenceNumber", UNSET))
+        client_reference_number = _parse_client_reference_number(
+            d.pop("clientReferenceNumber", UNSET)
+        )
 
         _location = d.pop("location", UNSET)
-        location: Union[Unset, PurchaseOrderLocation]
+        location: PurchaseOrderLocation | Unset
         if isinstance(_location, Unset):
             location = UNSET
         else:
             location = PurchaseOrderLocation.from_dict(_location)
 
         _status = d.pop("status", UNSET)
-        status: Union[Unset, PurchaseOrderStatusDto]
+        status: PurchaseOrderStatusDto | Unset
         if isinstance(_status, Unset):
             status = UNSET
         else:

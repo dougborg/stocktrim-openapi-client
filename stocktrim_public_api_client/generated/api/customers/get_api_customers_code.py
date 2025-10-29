@@ -1,13 +1,13 @@
 from http import HTTPStatus
-from typing import Any, Optional, Union, cast
+from typing import Any, cast
 
 import httpx
 
 from ... import errors
 from ...client import AuthenticatedClient, Client
+from ...client_types import Response
 from ...models.customer_dto import CustomerDto
 from ...models.problem_details import ProblemDetails
-from ...types import Response
 
 
 def _get_kwargs(
@@ -31,19 +31,22 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[Union[Any, CustomerDto, ProblemDetails]]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> Any | CustomerDto | ProblemDetails | None:
     if response.status_code == 200:
         response_200 = CustomerDto.from_dict(response.json())
 
         return response_200
+
     if response.status_code == 400:
         response_400 = ProblemDetails.from_dict(response.json())
 
         return response_400
+
     if response.status_code == 500:
         response_500 = cast(Any, None)
         return response_500
+
     if client.raise_on_unexpected_status:
         raise errors.UnexpectedStatus(response.status_code, response.content)
     else:
@@ -51,8 +54,8 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Response[Union[Any, CustomerDto, ProblemDetails]]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> Response[Any | CustomerDto | ProblemDetails]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -64,10 +67,10 @@ def _build_response(
 def sync_detailed(
     code: str,
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     api_auth_id: str,
     api_auth_signature: str,
-) -> Response[Union[Any, CustomerDto, ProblemDetails]]:
+) -> Response[Any | CustomerDto | ProblemDetails]:
     """Get a Customer by Code
 
     Args:
@@ -80,7 +83,7 @@ def sync_detailed(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Union[Any, CustomerDto, ProblemDetails]]
+        Response[Any | CustomerDto | ProblemDetails]
     """
 
     kwargs = _get_kwargs(
@@ -99,10 +102,10 @@ def sync_detailed(
 def sync(
     code: str,
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     api_auth_id: str,
     api_auth_signature: str,
-) -> Optional[Union[Any, CustomerDto, ProblemDetails]]:
+) -> Any | CustomerDto | ProblemDetails | None:
     """Get a Customer by Code
 
     Args:
@@ -115,7 +118,7 @@ def sync(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Union[Any, CustomerDto, ProblemDetails]
+        Any | CustomerDto | ProblemDetails
     """
 
     return sync_detailed(
@@ -129,10 +132,10 @@ def sync(
 async def asyncio_detailed(
     code: str,
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     api_auth_id: str,
     api_auth_signature: str,
-) -> Response[Union[Any, CustomerDto, ProblemDetails]]:
+) -> Response[Any | CustomerDto | ProblemDetails]:
     """Get a Customer by Code
 
     Args:
@@ -145,7 +148,7 @@ async def asyncio_detailed(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Union[Any, CustomerDto, ProblemDetails]]
+        Response[Any | CustomerDto | ProblemDetails]
     """
 
     kwargs = _get_kwargs(
@@ -162,10 +165,10 @@ async def asyncio_detailed(
 async def asyncio(
     code: str,
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     api_auth_id: str,
     api_auth_signature: str,
-) -> Optional[Union[Any, CustomerDto, ProblemDetails]]:
+) -> Any | CustomerDto | ProblemDetails | None:
     """Get a Customer by Code
 
     Args:
@@ -178,7 +181,7 @@ async def asyncio(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Union[Any, CustomerDto, ProblemDetails]
+        Any | CustomerDto | ProblemDetails
     """
 
     return (

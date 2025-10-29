@@ -2,6 +2,7 @@ from enum import Enum
 
 
 class ApiEnum(str, Enum):
+    ACUMATICA = "Acumatica"
     AMAZONFBA = "AmazonFba"
     BIGCOMMERCE = "BigCommerce"
     CIN7 = "Cin7"

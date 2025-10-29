@@ -1,10 +1,12 @@
+from __future__ import annotations
+
 from collections.abc import Mapping
-from typing import Any, TypeVar, Union, cast
+from typing import Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 
+from ..client_types import UNSET, Unset
 from ..models.current_status_enum import CurrentStatusEnum
-from ..types import UNSET, Unset
 
 T = TypeVar("T", bound="OrderPlanFilterCriteriaDto")
 
@@ -13,29 +15,29 @@ T = TypeVar("T", bound="OrderPlanFilterCriteriaDto")
 class OrderPlanFilterCriteriaDto:
     """
     Attributes:
-        search_string (Union[None, Unset, str]):
-        current_status (Union[Unset, CurrentStatusEnum]):
-        location_codes (Union[None, Unset, list[str]]):
-        supplier_codes (Union[None, Unset, list[str]]):
+        search_string (None | str | Unset):
+        current_status (CurrentStatusEnum | Unset):
+        location_codes (list[str] | None | Unset):
+        supplier_codes (list[str] | None | Unset):
     """
 
-    search_string: Union[None, Unset, str] = UNSET
-    current_status: Union[Unset, CurrentStatusEnum] = UNSET
-    location_codes: Union[None, Unset, list[str]] = UNSET
-    supplier_codes: Union[None, Unset, list[str]] = UNSET
+    search_string: None | str | Unset = UNSET
+    current_status: CurrentStatusEnum | Unset = UNSET
+    location_codes: list[str] | None | Unset = UNSET
+    supplier_codes: list[str] | None | Unset = UNSET
 
     def to_dict(self) -> dict[str, Any]:
-        search_string: Union[None, Unset, str]
+        search_string: None | str | Unset
         if isinstance(self.search_string, Unset):
             search_string = UNSET
         else:
             search_string = self.search_string
 
-        current_status: Union[Unset, str] = UNSET
+        current_status: str | Unset = UNSET
         if not isinstance(self.current_status, Unset):
             current_status = self.current_status.value
 
-        location_codes: Union[None, Unset, list[str]]
+        location_codes: list[str] | None | Unset
         if isinstance(self.location_codes, Unset):
             location_codes = UNSET
         elif isinstance(self.location_codes, list):
@@ -44,7 +46,7 @@ class OrderPlanFilterCriteriaDto:
         else:
             location_codes = self.location_codes
 
-        supplier_codes: Union[None, Unset, list[str]]
+        supplier_codes: list[str] | None | Unset
         if isinstance(self.supplier_codes, Unset):
             supplier_codes = UNSET
         elif isinstance(self.supplier_codes, list):
@@ -71,23 +73,23 @@ class OrderPlanFilterCriteriaDto:
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
 
-        def _parse_search_string(data: object) -> Union[None, Unset, str]:
+        def _parse_search_string(data: object) -> None | str | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(Union[None, Unset, str], data)
+            return cast(None | str | Unset, data)
 
         search_string = _parse_search_string(d.pop("searchString", UNSET))
 
         _current_status = d.pop("currentStatus", UNSET)
-        current_status: Union[Unset, CurrentStatusEnum]
+        current_status: CurrentStatusEnum | Unset
         if isinstance(_current_status, Unset):
             current_status = UNSET
         else:
             current_status = CurrentStatusEnum(_current_status)
 
-        def _parse_location_codes(data: object) -> Union[None, Unset, list[str]]:
+        def _parse_location_codes(data: object) -> list[str] | None | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -100,11 +102,11 @@ class OrderPlanFilterCriteriaDto:
                 return location_codes_type_0
             except:  # noqa: E722
                 pass
-            return cast(Union[None, Unset, list[str]], data)
+            return cast(list[str] | None | Unset, data)
 
         location_codes = _parse_location_codes(d.pop("locationCodes", UNSET))
 
-        def _parse_supplier_codes(data: object) -> Union[None, Unset, list[str]]:
+        def _parse_supplier_codes(data: object) -> list[str] | None | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -117,7 +119,7 @@ class OrderPlanFilterCriteriaDto:
                 return supplier_codes_type_0
             except:  # noqa: E722
                 pass
-            return cast(Union[None, Unset, list[str]], data)
+            return cast(list[str] | None | Unset, data)
 
         supplier_codes = _parse_supplier_codes(d.pop("supplierCodes", UNSET))
 

@@ -1,11 +1,13 @@
+from __future__ import annotations
+
 import datetime
 from collections.abc import Mapping
-from typing import Any, TypeVar, Union, cast
+from typing import Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 from dateutil.parser import isoparse
 
-from ..types import UNSET, Unset
+from ..client_types import UNSET, Unset
 
 T = TypeVar("T", bound="PurchaseOrderLineItem")
 
@@ -16,21 +18,21 @@ class PurchaseOrderLineItem:
     Attributes:
         product_id (str):
         quantity (float):
-        received_date (Union[None, Unset, datetime.datetime]):
-        unit_price (Union[None, Unset, float]):
+        received_date (datetime.datetime | None | Unset):
+        unit_price (float | None | Unset):
     """
 
     product_id: str
     quantity: float
-    received_date: Union[None, Unset, datetime.datetime] = UNSET
-    unit_price: Union[None, Unset, float] = UNSET
+    received_date: datetime.datetime | None | Unset = UNSET
+    unit_price: float | None | Unset = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         product_id = self.product_id
 
         quantity = self.quantity
 
-        received_date: Union[None, Unset, str]
+        received_date: None | str | Unset
         if isinstance(self.received_date, Unset):
             received_date = UNSET
         elif isinstance(self.received_date, datetime.datetime):
@@ -38,7 +40,7 @@ class PurchaseOrderLineItem:
         else:
             received_date = self.received_date
 
-        unit_price: Union[None, Unset, float]
+        unit_price: float | None | Unset
         if isinstance(self.unit_price, Unset):
             unit_price = UNSET
         else:
@@ -66,7 +68,7 @@ class PurchaseOrderLineItem:
 
         quantity = d.pop("quantity")
 
-        def _parse_received_date(data: object) -> Union[None, Unset, datetime.datetime]:
+        def _parse_received_date(data: object) -> datetime.datetime | None | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -79,16 +81,16 @@ class PurchaseOrderLineItem:
                 return received_date_type_0
             except:  # noqa: E722
                 pass
-            return cast(Union[None, Unset, datetime.datetime], data)
+            return cast(datetime.datetime | None | Unset, data)
 
         received_date = _parse_received_date(d.pop("receivedDate", UNSET))
 
-        def _parse_unit_price(data: object) -> Union[None, Unset, float]:
+        def _parse_unit_price(data: object) -> float | None | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(Union[None, Unset, float], data)
+            return cast(float | None | Unset, data)
 
         unit_price = _parse_unit_price(d.pop("unitPrice", UNSET))
 

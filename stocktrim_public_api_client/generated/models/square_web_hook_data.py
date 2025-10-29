@@ -1,9 +1,11 @@
+from __future__ import annotations
+
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, TypeVar, Union, cast
+from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 
-from ..types import UNSET, Unset
+from ..client_types import UNSET, Unset
 
 if TYPE_CHECKING:
     from ..models.square_web_hook_object import SquareWebHookObject
@@ -16,29 +18,29 @@ T = TypeVar("T", bound="SquareWebHookData")
 class SquareWebHookData:
     """
     Attributes:
-        type_ (Union[None, Unset, str]):
-        id (Union[None, Unset, str]):
-        object_ (Union[Unset, SquareWebHookObject]):
+        type_ (None | str | Unset):
+        id (None | str | Unset):
+        object_ (SquareWebHookObject | Unset):
     """
 
-    type_: Union[None, Unset, str] = UNSET
-    id: Union[None, Unset, str] = UNSET
-    object_: Union[Unset, "SquareWebHookObject"] = UNSET
+    type_: None | str | Unset = UNSET
+    id: None | str | Unset = UNSET
+    object_: SquareWebHookObject | Unset = UNSET
 
     def to_dict(self) -> dict[str, Any]:
-        type_: Union[None, Unset, str]
+        type_: None | str | Unset
         if isinstance(self.type_, Unset):
             type_ = UNSET
         else:
             type_ = self.type_
 
-        id: Union[None, Unset, str]
+        id: None | str | Unset
         if isinstance(self.id, Unset):
             id = UNSET
         else:
             id = self.id
 
-        object_: Union[Unset, dict[str, Any]] = UNSET
+        object_: dict[str, Any] | Unset = UNSET
         if not isinstance(self.object_, Unset):
             object_ = self.object_.to_dict()
 
@@ -60,26 +62,26 @@ class SquareWebHookData:
 
         d = dict(src_dict)
 
-        def _parse_type_(data: object) -> Union[None, Unset, str]:
+        def _parse_type_(data: object) -> None | str | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(Union[None, Unset, str], data)
+            return cast(None | str | Unset, data)
 
         type_ = _parse_type_(d.pop("type", UNSET))
 
-        def _parse_id(data: object) -> Union[None, Unset, str]:
+        def _parse_id(data: object) -> None | str | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(Union[None, Unset, str], data)
+            return cast(None | str | Unset, data)
 
         id = _parse_id(d.pop("id", UNSET))
 
         _object_ = d.pop("object", UNSET)
-        object_: Union[Unset, SquareWebHookObject]
+        object_: SquareWebHookObject | Unset
         if isinstance(_object_, Unset):
             object_ = UNSET
         else:

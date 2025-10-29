@@ -1,23 +1,19 @@
 from http import HTTPStatus
-from typing import Any, Optional, Union, cast
+from typing import Any, cast
 
 import httpx
 
 from ... import errors
 from ...client import AuthenticatedClient, Client
+from ...client_types import Response
 from ...models.location_request_dto import LocationRequestDto
 from ...models.location_response_dto import LocationResponseDto
 from ...models.problem_details import ProblemDetails
-from ...types import Response
 
 
 def _get_kwargs(
     *,
-    body: Union[
-        LocationRequestDto,
-        LocationRequestDto,
-        LocationRequestDto,
-    ],
+    body: LocationRequestDto | LocationRequestDto | LocationRequestDto,
     api_auth_id: str,
     api_auth_signature: str,
 ) -> dict[str, Any]:
@@ -49,19 +45,22 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[Union[Any, LocationResponseDto, ProblemDetails]]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> Any | LocationResponseDto | ProblemDetails | None:
     if response.status_code == 201:
         response_201 = LocationResponseDto.from_dict(response.json())
 
         return response_201
+
     if response.status_code == 400:
         response_400 = ProblemDetails.from_dict(response.json())
 
         return response_400
+
     if response.status_code == 500:
         response_500 = cast(Any, None)
         return response_500
+
     if client.raise_on_unexpected_status:
         raise errors.UnexpectedStatus(response.status_code, response.content)
     else:
@@ -69,8 +68,8 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Response[Union[Any, LocationResponseDto, ProblemDetails]]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> Response[Any | LocationResponseDto | ProblemDetails]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -81,15 +80,11 @@ def _build_response(
 
 def sync_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
-    body: Union[
-        LocationRequestDto,
-        LocationRequestDto,
-        LocationRequestDto,
-    ],
+    client: AuthenticatedClient | Client,
+    body: LocationRequestDto | LocationRequestDto | LocationRequestDto,
     api_auth_id: str,
     api_auth_signature: str,
-) -> Response[Union[Any, LocationResponseDto, ProblemDetails]]:
+) -> Response[Any | LocationResponseDto | ProblemDetails]:
     """Creates or Updates a location using Code OR Name as the unique identifiers. Ie the same name cannot
     be used twice for different locations. Use V2 endpoint if you would like to do this
 
@@ -105,7 +100,7 @@ def sync_detailed(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Union[Any, LocationResponseDto, ProblemDetails]]
+        Response[Any | LocationResponseDto | ProblemDetails]
     """
 
     kwargs = _get_kwargs(
@@ -123,15 +118,11 @@ def sync_detailed(
 
 def sync(
     *,
-    client: Union[AuthenticatedClient, Client],
-    body: Union[
-        LocationRequestDto,
-        LocationRequestDto,
-        LocationRequestDto,
-    ],
+    client: AuthenticatedClient | Client,
+    body: LocationRequestDto | LocationRequestDto | LocationRequestDto,
     api_auth_id: str,
     api_auth_signature: str,
-) -> Optional[Union[Any, LocationResponseDto, ProblemDetails]]:
+) -> Any | LocationResponseDto | ProblemDetails | None:
     """Creates or Updates a location using Code OR Name as the unique identifiers. Ie the same name cannot
     be used twice for different locations. Use V2 endpoint if you would like to do this
 
@@ -147,7 +138,7 @@ def sync(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Union[Any, LocationResponseDto, ProblemDetails]
+        Any | LocationResponseDto | ProblemDetails
     """
 
     return sync_detailed(
@@ -160,15 +151,11 @@ def sync(
 
 async def asyncio_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
-    body: Union[
-        LocationRequestDto,
-        LocationRequestDto,
-        LocationRequestDto,
-    ],
+    client: AuthenticatedClient | Client,
+    body: LocationRequestDto | LocationRequestDto | LocationRequestDto,
     api_auth_id: str,
     api_auth_signature: str,
-) -> Response[Union[Any, LocationResponseDto, ProblemDetails]]:
+) -> Response[Any | LocationResponseDto | ProblemDetails]:
     """Creates or Updates a location using Code OR Name as the unique identifiers. Ie the same name cannot
     be used twice for different locations. Use V2 endpoint if you would like to do this
 
@@ -184,7 +171,7 @@ async def asyncio_detailed(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Union[Any, LocationResponseDto, ProblemDetails]]
+        Response[Any | LocationResponseDto | ProblemDetails]
     """
 
     kwargs = _get_kwargs(
@@ -200,15 +187,11 @@ async def asyncio_detailed(
 
 async def asyncio(
     *,
-    client: Union[AuthenticatedClient, Client],
-    body: Union[
-        LocationRequestDto,
-        LocationRequestDto,
-        LocationRequestDto,
-    ],
+    client: AuthenticatedClient | Client,
+    body: LocationRequestDto | LocationRequestDto | LocationRequestDto,
     api_auth_id: str,
     api_auth_signature: str,
-) -> Optional[Union[Any, LocationResponseDto, ProblemDetails]]:
+) -> Any | LocationResponseDto | ProblemDetails | None:
     """Creates or Updates a location using Code OR Name as the unique identifiers. Ie the same name cannot
     be used twice for different locations. Use V2 endpoint if you would like to do this
 
@@ -224,7 +207,7 @@ async def asyncio(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Union[Any, LocationResponseDto, ProblemDetails]
+        Any | LocationResponseDto | ProblemDetails
     """
 
     return (

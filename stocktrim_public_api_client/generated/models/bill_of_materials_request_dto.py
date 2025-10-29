@@ -1,9 +1,11 @@
+from __future__ import annotations
+
 from collections.abc import Mapping
-from typing import Any, TypeVar, Union, cast
+from typing import Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 
-from ..types import UNSET, Unset
+from ..client_types import UNSET, Unset
 
 T = TypeVar("T", bound="BillOfMaterialsRequestDto")
 
@@ -14,19 +16,19 @@ class BillOfMaterialsRequestDto:
     Attributes:
         product_id (str):
         component_id (str):
-        quantity (Union[None, Unset, float]):
+        quantity (float | None | Unset):
     """
 
     product_id: str
     component_id: str
-    quantity: Union[None, Unset, float] = UNSET
+    quantity: float | None | Unset = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         product_id = self.product_id
 
         component_id = self.component_id
 
-        quantity: Union[None, Unset, float]
+        quantity: float | None | Unset
         if isinstance(self.quantity, Unset):
             quantity = UNSET
         else:
@@ -52,12 +54,12 @@ class BillOfMaterialsRequestDto:
 
         component_id = d.pop("componentId")
 
-        def _parse_quantity(data: object) -> Union[None, Unset, float]:
+        def _parse_quantity(data: object) -> float | None | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(Union[None, Unset, float], data)
+            return cast(float | None | Unset, data)
 
         quantity = _parse_quantity(d.pop("quantity", UNSET))
 

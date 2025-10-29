@@ -1,9 +1,11 @@
+from __future__ import annotations
+
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, TypeVar, Union, cast
+from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 
-from ..types import UNSET, Unset
+from ..client_types import UNSET, Unset
 
 if TYPE_CHECKING:
     from ..models.order_plan_filter_criteria import OrderPlanFilterCriteria
@@ -17,15 +19,15 @@ T = TypeVar("T", bound="OrderPlanResultsDto")
 class OrderPlanResultsDto:
     """
     Attributes:
-        results (Union[None, Unset, list['SkuOptimizedResultsDto']]):
-        filter_criteria (Union[Unset, OrderPlanFilterCriteria]):
+        results (list[SkuOptimizedResultsDto] | None | Unset):
+        filter_criteria (OrderPlanFilterCriteria | Unset):
     """
 
-    results: Union[None, Unset, list["SkuOptimizedResultsDto"]] = UNSET
-    filter_criteria: Union[Unset, "OrderPlanFilterCriteria"] = UNSET
+    results: list[SkuOptimizedResultsDto] | None | Unset = UNSET
+    filter_criteria: OrderPlanFilterCriteria | Unset = UNSET
 
     def to_dict(self) -> dict[str, Any]:
-        results: Union[None, Unset, list[dict[str, Any]]]
+        results: list[dict[str, Any]] | None | Unset
         if isinstance(self.results, Unset):
             results = UNSET
         elif isinstance(self.results, list):
@@ -37,7 +39,7 @@ class OrderPlanResultsDto:
         else:
             results = self.results
 
-        filter_criteria: Union[Unset, dict[str, Any]] = UNSET
+        filter_criteria: dict[str, Any] | Unset = UNSET
         if not isinstance(self.filter_criteria, Unset):
             filter_criteria = self.filter_criteria.to_dict()
 
@@ -58,7 +60,7 @@ class OrderPlanResultsDto:
 
         d = dict(src_dict)
 
-        def _parse_results(data: object) -> Union[None, Unset, list["SkuOptimizedResultsDto"]]:
+        def _parse_results(data: object) -> list[SkuOptimizedResultsDto] | None | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
@@ -69,19 +71,21 @@ class OrderPlanResultsDto:
                 results_type_0 = []
                 _results_type_0 = data
                 for results_type_0_item_data in _results_type_0:
-                    results_type_0_item = SkuOptimizedResultsDto.from_dict(results_type_0_item_data)
+                    results_type_0_item = SkuOptimizedResultsDto.from_dict(
+                        results_type_0_item_data
+                    )
 
                     results_type_0.append(results_type_0_item)
 
                 return results_type_0
             except:  # noqa: E722
                 pass
-            return cast(Union[None, Unset, list["SkuOptimizedResultsDto"]], data)
+            return cast(list[SkuOptimizedResultsDto] | None | Unset, data)
 
         results = _parse_results(d.pop("results", UNSET))
 
         _filter_criteria = d.pop("filterCriteria", UNSET)
-        filter_criteria: Union[Unset, OrderPlanFilterCriteria]
+        filter_criteria: OrderPlanFilterCriteria | Unset
         if isinstance(_filter_criteria, Unset):
             filter_criteria = UNSET
         else:

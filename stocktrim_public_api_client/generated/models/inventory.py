@@ -1,9 +1,11 @@
+from __future__ import annotations
+
 from collections.abc import Mapping
-from typing import Any, TypeVar, Union, cast
+from typing import Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 
-from ..types import UNSET, Unset
+from ..client_types import UNSET, Unset
 
 T = TypeVar("T", bound="Inventory")
 
@@ -12,33 +14,33 @@ T = TypeVar("T", bound="Inventory")
 class Inventory:
     """
     Attributes:
-        product_id (Union[None, Unset, str]):
-        location_code (Union[None, Unset, str]):
-        location_name (Union[None, Unset, str]):
-        stock_on_hand (Union[Unset, float]):
-        stock_on_order (Union[Unset, float]):
+        product_id (None | str | Unset):
+        location_code (None | str | Unset):
+        location_name (None | str | Unset):
+        stock_on_hand (float | Unset):
+        stock_on_order (float | Unset):
     """
 
-    product_id: Union[None, Unset, str] = UNSET
-    location_code: Union[None, Unset, str] = UNSET
-    location_name: Union[None, Unset, str] = UNSET
-    stock_on_hand: Union[Unset, float] = UNSET
-    stock_on_order: Union[Unset, float] = UNSET
+    product_id: None | str | Unset = UNSET
+    location_code: None | str | Unset = UNSET
+    location_name: None | str | Unset = UNSET
+    stock_on_hand: float | Unset = UNSET
+    stock_on_order: float | Unset = UNSET
 
     def to_dict(self) -> dict[str, Any]:
-        product_id: Union[None, Unset, str]
+        product_id: None | str | Unset
         if isinstance(self.product_id, Unset):
             product_id = UNSET
         else:
             product_id = self.product_id
 
-        location_code: Union[None, Unset, str]
+        location_code: None | str | Unset
         if isinstance(self.location_code, Unset):
             location_code = UNSET
         else:
             location_code = self.location_code
 
-        location_name: Union[None, Unset, str]
+        location_name: None | str | Unset
         if isinstance(self.location_name, Unset):
             location_name = UNSET
         else:
@@ -68,30 +70,30 @@ class Inventory:
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
 
-        def _parse_product_id(data: object) -> Union[None, Unset, str]:
+        def _parse_product_id(data: object) -> None | str | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(Union[None, Unset, str], data)
+            return cast(None | str | Unset, data)
 
         product_id = _parse_product_id(d.pop("productId", UNSET))
 
-        def _parse_location_code(data: object) -> Union[None, Unset, str]:
+        def _parse_location_code(data: object) -> None | str | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(Union[None, Unset, str], data)
+            return cast(None | str | Unset, data)
 
         location_code = _parse_location_code(d.pop("locationCode", UNSET))
 
-        def _parse_location_name(data: object) -> Union[None, Unset, str]:
+        def _parse_location_name(data: object) -> None | str | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(Union[None, Unset, str], data)
+            return cast(None | str | Unset, data)
 
         location_name = _parse_location_name(d.pop("locationName", UNSET))
 

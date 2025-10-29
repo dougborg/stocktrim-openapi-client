@@ -1,23 +1,21 @@
 from http import HTTPStatus
-from typing import Any, Optional, Union, cast
+from typing import Any, cast
 
 import httpx
 
 from ... import errors
 from ...client import AuthenticatedClient, Client
+from ...client_types import Response
 from ...models.problem_details import ProblemDetails
 from ...models.supplier_request_dto import SupplierRequestDto
 from ...models.supplier_response_dto import SupplierResponseDto
-from ...types import Response
 
 
 def _get_kwargs(
     *,
-    body: Union[
-        list["SupplierRequestDto"],
-        list["SupplierRequestDto"],
-        list["SupplierRequestDto"],
-    ],
+    body: list[SupplierRequestDto]
+    | list[SupplierRequestDto]
+    | list[SupplierRequestDto],
     api_auth_id: str,
     api_auth_signature: str,
 ) -> dict[str, Any]:
@@ -31,21 +29,21 @@ def _get_kwargs(
         "url": "/api/Suppliers",
     }
 
-    if isinstance(body, list["SupplierRequestDto"]):
+    if isinstance(body, list[SupplierRequestDto]):
         _kwargs["json"] = []
         for body_item_data in body:
             body_item = body_item_data.to_dict()
             _kwargs["json"].append(body_item)
 
         headers["Content-Type"] = "application/json-patch+json"
-    if isinstance(body, list["SupplierRequestDto"]):
+    if isinstance(body, list[SupplierRequestDto]):
         _kwargs["json"] = []
         for body_item_data in body:
             body_item = body_item_data.to_dict()
             _kwargs["json"].append(body_item)
 
         headers["Content-Type"] = "application/json"
-    if isinstance(body, list["SupplierRequestDto"]):
+    if isinstance(body, list[SupplierRequestDto]):
         _kwargs["json"] = []
         for body_item_data in body:
             body_item = body_item_data.to_dict()
@@ -58,8 +56,8 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[Union[Any, ProblemDetails, list["SupplierResponseDto"]]]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> Any | ProblemDetails | list[SupplierResponseDto] | None:
     if response.status_code == 201:
         response_201 = []
         _response_201 = response.json()
@@ -69,13 +67,16 @@ def _parse_response(
             response_201.append(response_201_item)
 
         return response_201
+
     if response.status_code == 400:
         response_400 = ProblemDetails.from_dict(response.json())
 
         return response_400
+
     if response.status_code == 500:
         response_500 = cast(Any, None)
         return response_500
+
     if client.raise_on_unexpected_status:
         raise errors.UnexpectedStatus(response.status_code, response.content)
     else:
@@ -83,8 +84,8 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Response[Union[Any, ProblemDetails, list["SupplierResponseDto"]]]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> Response[Any | ProblemDetails | list[SupplierResponseDto]]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -95,29 +96,27 @@ def _build_response(
 
 def sync_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
-    body: Union[
-        list["SupplierRequestDto"],
-        list["SupplierRequestDto"],
-        list["SupplierRequestDto"],
-    ],
+    client: AuthenticatedClient | Client,
+    body: list[SupplierRequestDto]
+    | list[SupplierRequestDto]
+    | list[SupplierRequestDto],
     api_auth_id: str,
     api_auth_signature: str,
-) -> Response[Union[Any, ProblemDetails, list["SupplierResponseDto"]]]:
+) -> Response[Any | ProblemDetails | list[SupplierResponseDto]]:
     """
     Args:
         api_auth_id (str):
         api_auth_signature (str):
-        body (list['SupplierRequestDto']):
-        body (list['SupplierRequestDto']):
-        body (list['SupplierRequestDto']):
+        body (list[SupplierRequestDto]):
+        body (list[SupplierRequestDto]):
+        body (list[SupplierRequestDto]):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Union[Any, ProblemDetails, list['SupplierResponseDto']]]
+        Response[Any | ProblemDetails | list[SupplierResponseDto]]
     """
 
     kwargs = _get_kwargs(
@@ -135,29 +134,27 @@ def sync_detailed(
 
 def sync(
     *,
-    client: Union[AuthenticatedClient, Client],
-    body: Union[
-        list["SupplierRequestDto"],
-        list["SupplierRequestDto"],
-        list["SupplierRequestDto"],
-    ],
+    client: AuthenticatedClient | Client,
+    body: list[SupplierRequestDto]
+    | list[SupplierRequestDto]
+    | list[SupplierRequestDto],
     api_auth_id: str,
     api_auth_signature: str,
-) -> Optional[Union[Any, ProblemDetails, list["SupplierResponseDto"]]]:
+) -> Any | ProblemDetails | list[SupplierResponseDto] | None:
     """
     Args:
         api_auth_id (str):
         api_auth_signature (str):
-        body (list['SupplierRequestDto']):
-        body (list['SupplierRequestDto']):
-        body (list['SupplierRequestDto']):
+        body (list[SupplierRequestDto]):
+        body (list[SupplierRequestDto]):
+        body (list[SupplierRequestDto]):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Union[Any, ProblemDetails, list['SupplierResponseDto']]
+        Any | ProblemDetails | list[SupplierResponseDto]
     """
 
     return sync_detailed(
@@ -170,29 +167,27 @@ def sync(
 
 async def asyncio_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
-    body: Union[
-        list["SupplierRequestDto"],
-        list["SupplierRequestDto"],
-        list["SupplierRequestDto"],
-    ],
+    client: AuthenticatedClient | Client,
+    body: list[SupplierRequestDto]
+    | list[SupplierRequestDto]
+    | list[SupplierRequestDto],
     api_auth_id: str,
     api_auth_signature: str,
-) -> Response[Union[Any, ProblemDetails, list["SupplierResponseDto"]]]:
+) -> Response[Any | ProblemDetails | list[SupplierResponseDto]]:
     """
     Args:
         api_auth_id (str):
         api_auth_signature (str):
-        body (list['SupplierRequestDto']):
-        body (list['SupplierRequestDto']):
-        body (list['SupplierRequestDto']):
+        body (list[SupplierRequestDto]):
+        body (list[SupplierRequestDto]):
+        body (list[SupplierRequestDto]):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Union[Any, ProblemDetails, list['SupplierResponseDto']]]
+        Response[Any | ProblemDetails | list[SupplierResponseDto]]
     """
 
     kwargs = _get_kwargs(
@@ -208,29 +203,27 @@ async def asyncio_detailed(
 
 async def asyncio(
     *,
-    client: Union[AuthenticatedClient, Client],
-    body: Union[
-        list["SupplierRequestDto"],
-        list["SupplierRequestDto"],
-        list["SupplierRequestDto"],
-    ],
+    client: AuthenticatedClient | Client,
+    body: list[SupplierRequestDto]
+    | list[SupplierRequestDto]
+    | list[SupplierRequestDto],
     api_auth_id: str,
     api_auth_signature: str,
-) -> Optional[Union[Any, ProblemDetails, list["SupplierResponseDto"]]]:
+) -> Any | ProblemDetails | list[SupplierResponseDto] | None:
     """
     Args:
         api_auth_id (str):
         api_auth_signature (str):
-        body (list['SupplierRequestDto']):
-        body (list['SupplierRequestDto']):
-        body (list['SupplierRequestDto']):
+        body (list[SupplierRequestDto]):
+        body (list[SupplierRequestDto]):
+        body (list[SupplierRequestDto]):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Union[Any, ProblemDetails, list['SupplierResponseDto']]
+        Any | ProblemDetails | list[SupplierResponseDto]
     """
 
     return (

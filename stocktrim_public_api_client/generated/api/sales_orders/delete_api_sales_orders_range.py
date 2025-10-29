@@ -1,20 +1,20 @@
 import datetime
 from http import HTTPStatus
-from typing import Any, Optional, Union, cast
+from typing import Any, cast
 
 import httpx
 
 from ... import errors
 from ...client import AuthenticatedClient, Client
+from ...client_types import UNSET, Response, Unset
 from ...models.problem_details import ProblemDetails
-from ...types import UNSET, Response, Unset
 
 
 def _get_kwargs(
     *,
     from_date: datetime.datetime,
     to_date: datetime.datetime,
-    product_id: Union[Unset, str] = UNSET,
+    product_id: str | Unset = UNSET,
     api_auth_id: str,
     api_auth_signature: str,
 ) -> dict[str, Any]:
@@ -46,18 +46,21 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[Union[Any, ProblemDetails]]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> Any | ProblemDetails | None:
     if response.status_code == 200:
         response_200 = cast(Any, None)
         return response_200
+
     if response.status_code == 400:
         response_400 = ProblemDetails.from_dict(response.json())
 
         return response_400
+
     if response.status_code == 500:
         response_500 = cast(Any, None)
         return response_500
+
     if client.raise_on_unexpected_status:
         raise errors.UnexpectedStatus(response.status_code, response.content)
     else:
@@ -65,8 +68,8 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Response[Union[Any, ProblemDetails]]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> Response[Any | ProblemDetails]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -77,18 +80,18 @@ def _build_response(
 
 def sync_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     from_date: datetime.datetime,
     to_date: datetime.datetime,
-    product_id: Union[Unset, str] = UNSET,
+    product_id: str | Unset = UNSET,
     api_auth_id: str,
     api_auth_signature: str,
-) -> Response[Union[Any, ProblemDetails]]:
+) -> Response[Any | ProblemDetails]:
     """
     Args:
         from_date (datetime.datetime):
         to_date (datetime.datetime):
-        product_id (Union[Unset, str]):
+        product_id (str | Unset):
         api_auth_id (str):
         api_auth_signature (str):
 
@@ -97,7 +100,7 @@ def sync_detailed(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Union[Any, ProblemDetails]]
+        Response[Any | ProblemDetails]
     """
 
     kwargs = _get_kwargs(
@@ -117,18 +120,18 @@ def sync_detailed(
 
 def sync(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     from_date: datetime.datetime,
     to_date: datetime.datetime,
-    product_id: Union[Unset, str] = UNSET,
+    product_id: str | Unset = UNSET,
     api_auth_id: str,
     api_auth_signature: str,
-) -> Optional[Union[Any, ProblemDetails]]:
+) -> Any | ProblemDetails | None:
     """
     Args:
         from_date (datetime.datetime):
         to_date (datetime.datetime):
-        product_id (Union[Unset, str]):
+        product_id (str | Unset):
         api_auth_id (str):
         api_auth_signature (str):
 
@@ -137,7 +140,7 @@ def sync(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Union[Any, ProblemDetails]
+        Any | ProblemDetails
     """
 
     return sync_detailed(
@@ -152,18 +155,18 @@ def sync(
 
 async def asyncio_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     from_date: datetime.datetime,
     to_date: datetime.datetime,
-    product_id: Union[Unset, str] = UNSET,
+    product_id: str | Unset = UNSET,
     api_auth_id: str,
     api_auth_signature: str,
-) -> Response[Union[Any, ProblemDetails]]:
+) -> Response[Any | ProblemDetails]:
     """
     Args:
         from_date (datetime.datetime):
         to_date (datetime.datetime):
-        product_id (Union[Unset, str]):
+        product_id (str | Unset):
         api_auth_id (str):
         api_auth_signature (str):
 
@@ -172,7 +175,7 @@ async def asyncio_detailed(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Union[Any, ProblemDetails]]
+        Response[Any | ProblemDetails]
     """
 
     kwargs = _get_kwargs(
@@ -190,18 +193,18 @@ async def asyncio_detailed(
 
 async def asyncio(
     *,
-    client: Union[AuthenticatedClient, Client],
+    client: AuthenticatedClient | Client,
     from_date: datetime.datetime,
     to_date: datetime.datetime,
-    product_id: Union[Unset, str] = UNSET,
+    product_id: str | Unset = UNSET,
     api_auth_id: str,
     api_auth_signature: str,
-) -> Optional[Union[Any, ProblemDetails]]:
+) -> Any | ProblemDetails | None:
     """
     Args:
         from_date (datetime.datetime):
         to_date (datetime.datetime):
-        product_id (Union[Unset, str]):
+        product_id (str | Unset):
         api_auth_id (str):
         api_auth_signature (str):
 
@@ -210,7 +213,7 @@ async def asyncio(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Union[Any, ProblemDetails]
+        Any | ProblemDetails
     """
 
     return (

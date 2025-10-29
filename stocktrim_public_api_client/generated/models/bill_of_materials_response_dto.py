@@ -1,9 +1,11 @@
+from __future__ import annotations
+
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, TypeVar, Union, cast
+from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 
-from ..types import UNSET, Unset
+from ..client_types import UNSET, Unset
 
 if TYPE_CHECKING:
     from ..models.products_response_dto import ProductsResponseDto
@@ -18,20 +20,20 @@ class BillOfMaterialsResponseDto:
     Attributes:
         product_id (str):
         component_id (str):
-        id (Union[Unset, int]):
-        assembly_time_days (Union[None, Unset, int]):
-        sku_component (Union[Unset, ProductsResponseDto]):
-        sku_product (Union[Unset, ProductsResponseDto]):
-        quantity (Union[None, Unset, float]):
+        id (int | Unset):
+        assembly_time_days (int | None | Unset):
+        sku_component (ProductsResponseDto | Unset):
+        sku_product (ProductsResponseDto | Unset):
+        quantity (float | None | Unset):
     """
 
     product_id: str
     component_id: str
-    id: Union[Unset, int] = UNSET
-    assembly_time_days: Union[None, Unset, int] = UNSET
-    sku_component: Union[Unset, "ProductsResponseDto"] = UNSET
-    sku_product: Union[Unset, "ProductsResponseDto"] = UNSET
-    quantity: Union[None, Unset, float] = UNSET
+    id: int | Unset = UNSET
+    assembly_time_days: int | None | Unset = UNSET
+    sku_component: ProductsResponseDto | Unset = UNSET
+    sku_product: ProductsResponseDto | Unset = UNSET
+    quantity: float | None | Unset = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         product_id = self.product_id
@@ -40,21 +42,21 @@ class BillOfMaterialsResponseDto:
 
         id = self.id
 
-        assembly_time_days: Union[None, Unset, int]
+        assembly_time_days: int | None | Unset
         if isinstance(self.assembly_time_days, Unset):
             assembly_time_days = UNSET
         else:
             assembly_time_days = self.assembly_time_days
 
-        sku_component: Union[Unset, dict[str, Any]] = UNSET
+        sku_component: dict[str, Any] | Unset = UNSET
         if not isinstance(self.sku_component, Unset):
             sku_component = self.sku_component.to_dict()
 
-        sku_product: Union[Unset, dict[str, Any]] = UNSET
+        sku_product: dict[str, Any] | Unset = UNSET
         if not isinstance(self.sku_product, Unset):
             sku_product = self.sku_product.to_dict()
 
-        quantity: Union[None, Unset, float]
+        quantity: float | None | Unset
         if isinstance(self.quantity, Unset):
             quantity = UNSET
         else:
@@ -92,35 +94,35 @@ class BillOfMaterialsResponseDto:
 
         id = d.pop("id", UNSET)
 
-        def _parse_assembly_time_days(data: object) -> Union[None, Unset, int]:
+        def _parse_assembly_time_days(data: object) -> int | None | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(Union[None, Unset, int], data)
+            return cast(int | None | Unset, data)
 
         assembly_time_days = _parse_assembly_time_days(d.pop("assemblyTimeDays", UNSET))
 
         _sku_component = d.pop("skuComponent", UNSET)
-        sku_component: Union[Unset, ProductsResponseDto]
+        sku_component: ProductsResponseDto | Unset
         if isinstance(_sku_component, Unset):
             sku_component = UNSET
         else:
             sku_component = ProductsResponseDto.from_dict(_sku_component)
 
         _sku_product = d.pop("skuProduct", UNSET)
-        sku_product: Union[Unset, ProductsResponseDto]
+        sku_product: ProductsResponseDto | Unset
         if isinstance(_sku_product, Unset):
             sku_product = UNSET
         else:
             sku_product = ProductsResponseDto.from_dict(_sku_product)
 
-        def _parse_quantity(data: object) -> Union[None, Unset, float]:
+        def _parse_quantity(data: object) -> float | None | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(Union[None, Unset, float], data)
+            return cast(float | None | Unset, data)
 
         quantity = _parse_quantity(d.pop("quantity", UNSET))
 

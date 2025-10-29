@@ -1,9 +1,11 @@
+from __future__ import annotations
+
 from collections.abc import Mapping
-from typing import Any, TypeVar, Union, cast
+from typing import Any, TypeVar, cast
 
 from attrs import define as _attrs_define
 
-from ..types import UNSET, Unset
+from ..client_types import UNSET, Unset
 
 T = TypeVar("T", bound="LocationRequestDto")
 
@@ -13,24 +15,24 @@ class LocationRequestDto:
     """
     Attributes:
         location_code (str):
-        location_name (Union[None, Unset, str]):
-        external_id (Union[None, Unset, str]):
+        location_name (None | str | Unset):
+        external_id (None | str | Unset):
     """
 
     location_code: str
-    location_name: Union[None, Unset, str] = UNSET
-    external_id: Union[None, Unset, str] = UNSET
+    location_name: None | str | Unset = UNSET
+    external_id: None | str | Unset = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         location_code = self.location_code
 
-        location_name: Union[None, Unset, str]
+        location_name: None | str | Unset
         if isinstance(self.location_name, Unset):
             location_name = UNSET
         else:
             location_name = self.location_name
 
-        external_id: Union[None, Unset, str]
+        external_id: None | str | Unset
         if isinstance(self.external_id, Unset):
             external_id = UNSET
         else:
@@ -55,21 +57,21 @@ class LocationRequestDto:
         d = dict(src_dict)
         location_code = d.pop("locationCode")
 
-        def _parse_location_name(data: object) -> Union[None, Unset, str]:
+        def _parse_location_name(data: object) -> None | str | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(Union[None, Unset, str], data)
+            return cast(None | str | Unset, data)
 
         location_name = _parse_location_name(d.pop("locationName", UNSET))
 
-        def _parse_external_id(data: object) -> Union[None, Unset, str]:
+        def _parse_external_id(data: object) -> None | str | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(Union[None, Unset, str], data)
+            return cast(None | str | Unset, data)
 
         external_id = _parse_external_id(d.pop("externalId", UNSET))
 

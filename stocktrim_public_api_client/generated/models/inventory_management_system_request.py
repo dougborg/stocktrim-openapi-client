@@ -1,10 +1,12 @@
+from __future__ import annotations
+
 from collections.abc import Mapping
-from typing import Any, TypeVar, Union
+from typing import Any, TypeVar
 
 from attrs import define as _attrs_define
 
+from ..client_types import UNSET, Unset
 from ..models.api_enum import ApiEnum
-from ..types import UNSET, Unset
 
 T = TypeVar("T", bound="InventoryManagementSystemRequest")
 
@@ -13,13 +15,13 @@ T = TypeVar("T", bound="InventoryManagementSystemRequest")
 class InventoryManagementSystemRequest:
     """
     Attributes:
-        api (Union[Unset, ApiEnum]):
+        api (ApiEnum | Unset):
     """
 
-    api: Union[Unset, ApiEnum] = UNSET
+    api: ApiEnum | Unset = UNSET
 
     def to_dict(self) -> dict[str, Any]:
-        api: Union[Unset, str] = UNSET
+        api: str | Unset = UNSET
         if not isinstance(self.api, Unset):
             api = self.api.value
 
@@ -35,7 +37,7 @@ class InventoryManagementSystemRequest:
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
         _api = d.pop("api", UNSET)
-        api: Union[Unset, ApiEnum]
+        api: ApiEnum | Unset
         if isinstance(_api, Unset):
             api = UNSET
         else:

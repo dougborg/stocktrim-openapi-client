@@ -1,23 +1,21 @@
 from http import HTTPStatus
-from typing import Any, Optional, Union, cast
+from typing import Any, cast
 
 import httpx
 
 from ... import errors
 from ...client import AuthenticatedClient, Client
+from ...client_types import Response
 from ...models.order_plan_filter_criteria_dto import OrderPlanFilterCriteriaDto
 from ...models.problem_details import ProblemDetails
 from ...models.purchase_order_response_dto import PurchaseOrderResponseDto
-from ...types import Response
 
 
 def _get_kwargs(
     *,
-    body: Union[
-        OrderPlanFilterCriteriaDto,
-        OrderPlanFilterCriteriaDto,
-        OrderPlanFilterCriteriaDto,
-    ],
+    body: OrderPlanFilterCriteriaDto
+    | OrderPlanFilterCriteriaDto
+    | OrderPlanFilterCriteriaDto,
     api_auth_id: str,
     api_auth_signature: str,
 ) -> dict[str, Any]:
@@ -49,24 +47,29 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[Union[Any, ProblemDetails, list["PurchaseOrderResponseDto"]]]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> Any | ProblemDetails | list[PurchaseOrderResponseDto] | None:
     if response.status_code == 200:
         response_200 = []
         _response_200 = response.json()
         for response_200_item_data in _response_200:
-            response_200_item = PurchaseOrderResponseDto.from_dict(response_200_item_data)
+            response_200_item = PurchaseOrderResponseDto.from_dict(
+                response_200_item_data
+            )
 
             response_200.append(response_200_item)
 
         return response_200
+
     if response.status_code == 400:
         response_400 = ProblemDetails.from_dict(response.json())
 
         return response_400
+
     if response.status_code == 500:
         response_500 = cast(Any, None)
         return response_500
+
     if client.raise_on_unexpected_status:
         raise errors.UnexpectedStatus(response.status_code, response.content)
     else:
@@ -74,8 +77,8 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Response[Union[Any, ProblemDetails, list["PurchaseOrderResponseDto"]]]:
+    *, client: AuthenticatedClient | Client, response: httpx.Response
+) -> Response[Any | ProblemDetails | list[PurchaseOrderResponseDto]]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -86,15 +89,13 @@ def _build_response(
 
 def sync_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
-    body: Union[
-        OrderPlanFilterCriteriaDto,
-        OrderPlanFilterCriteriaDto,
-        OrderPlanFilterCriteriaDto,
-    ],
+    client: AuthenticatedClient | Client,
+    body: OrderPlanFilterCriteriaDto
+    | OrderPlanFilterCriteriaDto
+    | OrderPlanFilterCriteriaDto,
     api_auth_id: str,
     api_auth_signature: str,
-) -> Response[Union[Any, ProblemDetails, list["PurchaseOrderResponseDto"]]]:
+) -> Response[Any | ProblemDetails | list[PurchaseOrderResponseDto]]:
     """Generate purchase orders based on the filters passed in. Same as how the StockTrim Order plan screen
     works
 
@@ -110,7 +111,7 @@ def sync_detailed(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Union[Any, ProblemDetails, list['PurchaseOrderResponseDto']]]
+        Response[Any | ProblemDetails | list[PurchaseOrderResponseDto]]
     """
 
     kwargs = _get_kwargs(
@@ -128,15 +129,13 @@ def sync_detailed(
 
 def sync(
     *,
-    client: Union[AuthenticatedClient, Client],
-    body: Union[
-        OrderPlanFilterCriteriaDto,
-        OrderPlanFilterCriteriaDto,
-        OrderPlanFilterCriteriaDto,
-    ],
+    client: AuthenticatedClient | Client,
+    body: OrderPlanFilterCriteriaDto
+    | OrderPlanFilterCriteriaDto
+    | OrderPlanFilterCriteriaDto,
     api_auth_id: str,
     api_auth_signature: str,
-) -> Optional[Union[Any, ProblemDetails, list["PurchaseOrderResponseDto"]]]:
+) -> Any | ProblemDetails | list[PurchaseOrderResponseDto] | None:
     """Generate purchase orders based on the filters passed in. Same as how the StockTrim Order plan screen
     works
 
@@ -152,7 +151,7 @@ def sync(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Union[Any, ProblemDetails, list['PurchaseOrderResponseDto']]
+        Any | ProblemDetails | list[PurchaseOrderResponseDto]
     """
 
     return sync_detailed(
@@ -165,15 +164,13 @@ def sync(
 
 async def asyncio_detailed(
     *,
-    client: Union[AuthenticatedClient, Client],
-    body: Union[
-        OrderPlanFilterCriteriaDto,
-        OrderPlanFilterCriteriaDto,
-        OrderPlanFilterCriteriaDto,
-    ],
+    client: AuthenticatedClient | Client,
+    body: OrderPlanFilterCriteriaDto
+    | OrderPlanFilterCriteriaDto
+    | OrderPlanFilterCriteriaDto,
     api_auth_id: str,
     api_auth_signature: str,
-) -> Response[Union[Any, ProblemDetails, list["PurchaseOrderResponseDto"]]]:
+) -> Response[Any | ProblemDetails | list[PurchaseOrderResponseDto]]:
     """Generate purchase orders based on the filters passed in. Same as how the StockTrim Order plan screen
     works
 
@@ -189,7 +186,7 @@ async def asyncio_detailed(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Union[Any, ProblemDetails, list['PurchaseOrderResponseDto']]]
+        Response[Any | ProblemDetails | list[PurchaseOrderResponseDto]]
     """
 
     kwargs = _get_kwargs(
@@ -205,15 +202,13 @@ async def asyncio_detailed(
 
 async def asyncio(
     *,
-    client: Union[AuthenticatedClient, Client],
-    body: Union[
-        OrderPlanFilterCriteriaDto,
-        OrderPlanFilterCriteriaDto,
-        OrderPlanFilterCriteriaDto,
-    ],
+    client: AuthenticatedClient | Client,
+    body: OrderPlanFilterCriteriaDto
+    | OrderPlanFilterCriteriaDto
+    | OrderPlanFilterCriteriaDto,
     api_auth_id: str,
     api_auth_signature: str,
-) -> Optional[Union[Any, ProblemDetails, list["PurchaseOrderResponseDto"]]]:
+) -> Any | ProblemDetails | list[PurchaseOrderResponseDto] | None:
     """Generate purchase orders based on the filters passed in. Same as how the StockTrim Order plan screen
     works
 
@@ -229,7 +224,7 @@ async def asyncio(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Union[Any, ProblemDetails, list['PurchaseOrderResponseDto']]
+        Any | ProblemDetails | list[PurchaseOrderResponseDto]
     """
 
     return (

@@ -1,10 +1,14 @@
+from __future__ import annotations
+
 from collections.abc import Mapping
-from typing import Any, TypeVar, Union, cast
+from typing import Any, TypeVar, cast
 
-from attrs import define as _attrs_define
-from attrs import field as _attrs_field
+from attrs import (
+    define as _attrs_define,
+    field as _attrs_field,
+)
 
-from ..types import UNSET, Unset
+from ..client_types import UNSET, Unset
 
 T = TypeVar("T", bound="ProblemDetails")
 
@@ -13,46 +17,46 @@ T = TypeVar("T", bound="ProblemDetails")
 class ProblemDetails:
     """
     Attributes:
-        type_ (Union[None, Unset, str]):
-        title (Union[None, Unset, str]):
-        status (Union[None, Unset, int]):
-        detail (Union[None, Unset, str]):
-        instance (Union[None, Unset, str]):
+        type_ (None | str | Unset):
+        title (None | str | Unset):
+        status (int | None | Unset):
+        detail (None | str | Unset):
+        instance (None | str | Unset):
     """
 
-    type_: Union[None, Unset, str] = UNSET
-    title: Union[None, Unset, str] = UNSET
-    status: Union[None, Unset, int] = UNSET
-    detail: Union[None, Unset, str] = UNSET
-    instance: Union[None, Unset, str] = UNSET
+    type_: None | str | Unset = UNSET
+    title: None | str | Unset = UNSET
+    status: int | None | Unset = UNSET
+    detail: None | str | Unset = UNSET
+    instance: None | str | Unset = UNSET
     additional_properties: dict[str, Any] = _attrs_field(init=False, factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        type_: Union[None, Unset, str]
+        type_: None | str | Unset
         if isinstance(self.type_, Unset):
             type_ = UNSET
         else:
             type_ = self.type_
 
-        title: Union[None, Unset, str]
+        title: None | str | Unset
         if isinstance(self.title, Unset):
             title = UNSET
         else:
             title = self.title
 
-        status: Union[None, Unset, int]
+        status: int | None | Unset
         if isinstance(self.status, Unset):
             status = UNSET
         else:
             status = self.status
 
-        detail: Union[None, Unset, str]
+        detail: None | str | Unset
         if isinstance(self.detail, Unset):
             detail = UNSET
         else:
             detail = self.detail
 
-        instance: Union[None, Unset, str]
+        instance: None | str | Unset
         if isinstance(self.instance, Unset):
             instance = UNSET
         else:
@@ -78,48 +82,48 @@ class ProblemDetails:
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
 
-        def _parse_type_(data: object) -> Union[None, Unset, str]:
+        def _parse_type_(data: object) -> None | str | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(Union[None, Unset, str], data)
+            return cast(None | str | Unset, data)
 
         type_ = _parse_type_(d.pop("type", UNSET))
 
-        def _parse_title(data: object) -> Union[None, Unset, str]:
+        def _parse_title(data: object) -> None | str | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(Union[None, Unset, str], data)
+            return cast(None | str | Unset, data)
 
         title = _parse_title(d.pop("title", UNSET))
 
-        def _parse_status(data: object) -> Union[None, Unset, int]:
+        def _parse_status(data: object) -> int | None | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(Union[None, Unset, int], data)
+            return cast(int | None | Unset, data)
 
         status = _parse_status(d.pop("status", UNSET))
 
-        def _parse_detail(data: object) -> Union[None, Unset, str]:
+        def _parse_detail(data: object) -> None | str | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(Union[None, Unset, str], data)
+            return cast(None | str | Unset, data)
 
         detail = _parse_detail(d.pop("detail", UNSET))
 
-        def _parse_instance(data: object) -> Union[None, Unset, str]:
+        def _parse_instance(data: object) -> None | str | Unset:
             if data is None:
                 return data
             if isinstance(data, Unset):
                 return data
-            return cast(Union[None, Unset, str], data)
+            return cast(None | str | Unset, data)
 
         instance = _parse_instance(d.pop("instance", UNSET))
 

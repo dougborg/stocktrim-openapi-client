@@ -1,11 +1,13 @@
+from __future__ import annotations
+
 import datetime
 from collections.abc import Mapping
-from typing import Any, TypeVar, Union
+from typing import Any, TypeVar
 
 from attrs import define as _attrs_define
 from dateutil.parser import isoparse
 
-from ..types import UNSET, Unset
+from ..client_types import UNSET, Unset
 
 T = TypeVar("T", bound="SquareWebHookCatalog")
 
@@ -14,13 +16,13 @@ T = TypeVar("T", bound="SquareWebHookCatalog")
 class SquareWebHookCatalog:
     """
     Attributes:
-        updated_at (Union[Unset, datetime.datetime]):
+        updated_at (datetime.datetime | Unset):
     """
 
-    updated_at: Union[Unset, datetime.datetime] = UNSET
+    updated_at: datetime.datetime | Unset = UNSET
 
     def to_dict(self) -> dict[str, Any]:
-        updated_at: Union[Unset, str] = UNSET
+        updated_at: str | Unset = UNSET
         if not isinstance(self.updated_at, Unset):
             updated_at = self.updated_at.isoformat()
 
@@ -36,7 +38,7 @@ class SquareWebHookCatalog:
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
         _updated_at = d.pop("updated_at", UNSET)
-        updated_at: Union[Unset, datetime.datetime]
+        updated_at: datetime.datetime | Unset
         if isinstance(_updated_at, Unset):
             updated_at = UNSET
         else:
