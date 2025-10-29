@@ -2,6 +2,16 @@
 
 <!-- version list -->
 
+## v0.2.1 (2025-10-29)
+
+### Bug Fixes
+
+- Temporarily disable UV cache due to service issues
+  ([`2508b7d`](https://github.com/dougborg/stocktrim-openapi-client/commit/2508b7daa0f7f526e543c106a56d522740f42b8b))
+
+- Comment out enable-cache: true in both test and release jobs - Addresses GitHub
+  Actions cache service problems - Can be re-enabled when cache service is stable
+
 ## v0.2.0 (2025-10-29)
 
 ### Bug Fixes
