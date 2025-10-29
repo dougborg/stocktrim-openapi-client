@@ -1,6 +1,6 @@
 [project]
 name = "stocktrim-openapi-client"
-version = "0.1.1"
+version = "0.2.0"
 description = "A modern, pythonic StockTrim Inventory Management API client with automatic retries, rate limiting, and smart pagination"
 authors = [
     {name = "Doug Borg", email = "dougborg@dougborg.org"},

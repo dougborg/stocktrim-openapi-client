@@ -2,6 +2,60 @@
 
 <!-- version list -->
 
+## v0.2.0 (2025-10-29)
+
+### Bug Fixes
+
+- Improve type casting in generated models and helpers
+  ([`367e3cd`](https://github.com/dougborg/stocktrim-openapi-client/commit/367e3cd6e493afbb9124f69a29f239572582375c))
+
+- Add proper type casting for .from_dict() methods in generated models - Enhance type
+  safety in helper files with better casting - Update test utilities with improved type
+  handling - Ensures strict type checking compliance with ty
+
+### Documentation
+
+- Update documentation from Poetry to UV
+  ([`adf6072`](https://github.com/dougborg/stocktrim-openapi-client/commit/adf6072f26686f67721585b7c42b002a46f231ba))
+
+- Update README.md with UV installation and usage instructions - Remove Poetry
+  references from all documentation files - Update STOCKTRIM_API_FEEDBACK.md with UV
+  commands - Ensure documentation consistency with current tooling
+
+### Features
+
+- Enhance regeneration script with automatic type fixing
+  ([`e28859b`](https://github.com/dougborg/stocktrim-openapi-client/commit/e28859ba3a6b4b31ee37ffdff9ce69c83e4f961f))
+
+- Add automatic type casting fixes for generated .from_dict() methods - Implement
+  automatic import management (cast, Mapping) - Fix nested if statement linting issues
+  (SIM102) - Improve error handling and progress reporting - Ensures generated code
+  passes strict type checking
+
+- Migrate from mypy to ty for faster type checking
+  ([`85fc18a`](https://github.com/dougborg/stocktrim-openapi-client/commit/85fc18a887ee57022cce0e34c7ea69f21ce0f4e0))
+
+- Replace mypy with Astral's ty type checker - Configure ty in pyproject.toml with
+  proper exclude patterns for generated code - Update poe tasks to use ty instead of
+  mypy - Maintain strict type checking with better performance - ty provides faster type
+  checking and clearer error messages
+
+- Migrate from mypy to ty type checker
+  ([`648e51b`](https://github.com/dougborg/stocktrim-openapi-client/commit/648e51b8a93709c0ddad1f8e659da09f8602dd7e))
+
+- Replace mypy with Astral's ty for faster, more accurate type checking - Update
+  pyproject.toml with ty configuration - Modify test configuration to work with ty -
+  Improves type checking performance and accuracy
+
+- Update copilot instructions and enable MCP auto-publishing
+  ([`a66d07b`](https://github.com/dougborg/stocktrim-openapi-client/commit/a66d07bf8ab4f730b2708557a3333b9a6bc44672))
+
+- Update .github/copilot-instructions.md to reflect UV usage (not Poetry) - Document
+  monorepo structure with client + MCP server packages - Add automatic type fixing
+  documentation for regeneration script - Fix GitHub workflow artifact paths for UV
+  build structure - Enable automatic MCP server publishing when client updates - Ensure
+  proper PyPI coordination between packages
+
 ## v0.1.1 (2025-10-29)
 
 ### Bug Fixes
