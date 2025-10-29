@@ -83,19 +83,20 @@ jobs:
           CLIENT_VERSION="${{ steps.release.outputs.version }}"
           echo "Updating MCP server to depend on client version $CLIENT_VERSION"
 
-          # Install toml for Python
-          uv run pip install toml
+          # Install tomli-w for TOML writing (tomllib is built-in for reading in Python 3.11+)
+          uv pip install tomli-w
 
           # Create update script
           cat > update_mcp_version.py << 'EOF'
-          import toml
+          import tomllib  # Python 3.11+ built-in
+          import tomli_w
           import sys
 
           client_version = sys.argv[1]
 
           # Read current pyproject.toml
-          with open('stocktrim_mcp_server/pyproject.toml', 'r') as f:
-              data = toml.load(f)
+          with open('stocktrim_mcp_server/pyproject.toml', 'rb') as f:
+              data = tomllib.load(f)
 
           # Update client dependency to specific version
           data['dependencies'][0] = f'stocktrim-openapi-client=={client_version}'
@@ -115,8 +116,8 @@ jobs:
           print(f'Updated MCP server to version {new_version} with client dependency stocktrim-openapi-client=={client_version}')
 
           # Write back
-          with open('stocktrim_mcp_server/pyproject.toml', 'w') as f:
-              toml.dump(data, f)
+          with open('stocktrim_mcp_server/pyproject.toml', 'wb') as f:
+              tomli_w.dump(data, f)
 
           print(f'::set-output name=mcp_version::{new_version}')
           EOF
