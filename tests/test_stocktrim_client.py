@@ -15,16 +15,19 @@ class TestStockTrimClient:
         """Test client can be initialized with credentials."""
         client = StockTrimClient(**mock_api_credentials)
 
-        assert client.api_auth_id == "test-tenant-id"
-        assert client.api_auth_signature == "test-tenant-name"
+        # New architecture: client inherits from AuthenticatedClient
+        assert isinstance(client, StockTrimClient)
         assert client.base_url == "https://api.test.stocktrim.example.com"
+        assert client.max_retries == 5
 
     def test_client_initialization_from_env(self, mock_env_credentials):
         """Test client can be initialized from environment variables."""
         client = StockTrimClient()
 
-        assert client.api_auth_id == "env-tenant-id"
-        assert client.api_auth_signature == "env-tenant-name"
+        # Verify client was created successfully
+        assert isinstance(client, StockTrimClient)
+        # The mock_env_credentials fixture sets a custom base URL
+        assert client.base_url == "https://api.env.stocktrim.example.com"
 
     def test_client_missing_credentials_raises_error(self):
         """Test client raises error when credentials are missing."""
@@ -36,7 +39,7 @@ class TestStockTrimClient:
                 {"STOCKTRIM_API_AUTH_ID": "", "STOCKTRIM_API_AUTH_SIGNATURE": ""},
                 clear=True,
             ),
-            pytest.raises(ValueError, match="StockTrim API credentials are required"),
+            pytest.raises(ValueError, match="API credentials required"),
         ):
             StockTrimClient()
 
@@ -52,6 +55,8 @@ class TestStockTrimClient:
         """Test client works as async context manager."""
         async with stocktrim_client as client:
             assert client is stocktrim_client
+            # New architecture: client IS the authenticated client
+            assert isinstance(client, StockTrimClient)
 
-        # Client should be properly closed
-        # Note: We can't easily test this without the actual generated client
+        # Client should be properly closed after context exit
+        # The underlying httpx client is closed by the parent class

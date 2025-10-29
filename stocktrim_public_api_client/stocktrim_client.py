@@ -7,168 +7,360 @@ decorators or wrapper methods needed.
 """
 
 import contextlib
+import json
 import logging
 import os
 from collections.abc import Awaitable, Callable
-from typing import TYPE_CHECKING, Any
+from typing import Any, cast
 
 import httpx
 from dotenv import load_dotenv
-from tenacity import (
-    RetryError,
-    retry,
-    retry_if_exception_type,
-    retry_if_result,
-    stop_after_attempt,
-    wait_exponential,
-)
+from httpx import AsyncHTTPTransport
+from httpx_retries import Retry, RetryTransport
 
-if TYPE_CHECKING:
-    from httpx import AsyncHTTPTransport
-else:
-    AsyncHTTPTransport = httpx.AsyncHTTPTransport
-
+from .client_types import Unset
 from .generated.client import AuthenticatedClient
 
+# StockTrim doesn't have standardized error response models in the OpenAPI spec
+# We'll add support for ProblemDetails if present, but also handle generic errors
+try:
+    from .generated.models.problem_details import ProblemDetails
+except ImportError:
+    ProblemDetails = None  # type: ignore[assignment]
 
-class ResilientAsyncTransport(AsyncHTTPTransport):
+
+class IdempotentOnlyRetry(Retry):
     """
-    Custom async transport that adds retry logic and custom authentication
-    directly at the HTTP transport layer.
+    Custom Retry class that only retries idempotent methods (GET, HEAD, OPTIONS, TRACE)
+    on server errors (5xx status codes).
 
-    This makes ALL requests through the client automatically resilient
-    without any wrapper methods or decorators.
+    StockTrim doesn't have rate limiting (429), so we only need to handle 5xx errors
+    and we only retry idempotent methods to avoid duplicate operations.
+    """
 
-    Features:
-    - Automatic retries with exponential backoff using tenacity
-    - Custom header authentication (api-auth-id, api-auth-signature)
-    - Request/response logging and metrics
+    # Idempotent methods that are always safe to retry
+    IDEMPOTENT_METHODS = frozenset(["HEAD", "GET", "OPTIONS", "TRACE"])
+
+    def __init__(self, *args: Any, **kwargs: Any):
+        """Initialize and track the current request method."""
+        super().__init__(*args, **kwargs)
+        self._current_method: str | None = None
+
+    def is_retryable_method(self, method: str) -> bool:
+        """
+        Allow all methods to pass through the initial check.
+
+        Store the method for later use in is_retryable_status_code.
+        """
+        self._current_method = method.upper()
+        # Accept all methods - we'll filter in is_retryable_status_code
+        return self._current_method in self.allowed_methods
+
+    def is_retryable_status_code(self, status_code: int) -> bool:
+        """
+        Check if a status code is retryable for the current method.
+
+        For 5xx errors, only allow idempotent methods.
+        """
+        # First check if the status code is in the allowed list at all
+        if status_code not in self.status_forcelist:
+            return False
+
+        # If we don't know the method, fall back to default behavior
+        if self._current_method is None:
+            return True
+
+        # Server errors (5xx) - only retry idempotent methods
+        return self._current_method in self.IDEMPOTENT_METHODS
+
+    def increment(self) -> "IdempotentOnlyRetry":
+        """Return a new retry instance with the attempt count incremented."""
+        # Call parent's increment which creates a new instance of our class
+        new_retry = cast(IdempotentOnlyRetry, super().increment())
+        # Preserve the current method across retry attempts
+        new_retry._current_method = self._current_method
+        return new_retry
+
+
+class ErrorLoggingTransport(AsyncHTTPTransport):
+    """
+    Transport layer that adds detailed error logging for 4xx client errors.
+
+    This transport wraps another AsyncHTTPTransport and intercepts responses
+    to log detailed error information using generated error models when available.
+    """
+
+    def __init__(
+        self,
+        wrapped_transport: AsyncHTTPTransport | None = None,
+        logger: logging.Logger | None = None,
+        **kwargs: Any,
+    ):
+        """
+        Initialize the error logging transport.
+
+        Args:
+            wrapped_transport: The transport to wrap. If None, creates a new AsyncHTTPTransport.
+            logger: Logger instance for capturing error details. If None, creates a default logger.
+            **kwargs: Additional arguments passed to AsyncHTTPTransport if wrapped_transport is None.
+        """
+        super().__init__()
+        if wrapped_transport is None:
+            wrapped_transport = AsyncHTTPTransport(**kwargs)
+        self._wrapped_transport = wrapped_transport
+        self.logger = logger or logging.getLogger(__name__)
+
+    async def handle_async_request(self, request: httpx.Request) -> httpx.Response:
+        """Handle request and log detailed error information for 4xx responses."""
+        response = await self._wrapped_transport.handle_async_request(request)
+
+        # Log detailed information for 400-level client errors
+        if 400 <= response.status_code < 500:
+            await self._log_client_error(response, request)
+
+        return response
+
+    async def _log_client_error(
+        self, response: httpx.Response, request: httpx.Request
+    ) -> None:
+        """
+        Log detailed information for 400-level client errors.
+
+        Tries to parse as ProblemDetails if available, otherwise logs raw error.
+        """
+        method = request.method
+        url = str(request.url)
+        status_code = response.status_code
+
+        # Read response content if it's streaming
+        if hasattr(response, "aread"):
+            with contextlib.suppress(TypeError, AttributeError):
+                await response.aread()
+
+        try:
+            error_data = response.json()
+        except (json.JSONDecodeError, TypeError, ValueError):
+            self.logger.error(
+                f"Client error {status_code} for {method} {url} - "
+                f"Response: {getattr(response, 'text', '')[:500]}..."
+            )
+            return
+
+        # Try to parse as ProblemDetails if the model is available
+        if ProblemDetails is not None:
+            try:
+                problem = ProblemDetails.from_dict(error_data)
+                self._log_problem_details(problem, method, url, status_code)
+                return
+            except (TypeError, ValueError, AttributeError) as e:
+                self.logger.debug(
+                    f"Failed to parse as ProblemDetails: {type(e).__name__}: {e}"
+                )
+
+        # Fallback: log raw error data
+        self.logger.error(
+            f"Client error {status_code} for {method} {url} - Error: {error_data}"
+        )
+
+    def _log_problem_details(
+        self, problem: Any, method: str, url: str, status_code: int
+    ) -> None:
+        """Log errors using the ProblemDetails model."""
+        log_message = f"Client error {status_code} for {method} {url}"
+
+        # Check for Unset values before logging
+        title = problem.title if not isinstance(problem.title, Unset) else None
+        detail = problem.detail if not isinstance(problem.detail, Unset) else None
+        type_ = problem.type_ if not isinstance(problem.type_, Unset) else None
+        instance = problem.instance if not isinstance(problem.instance, Unset) else None
+
+        if title:
+            log_message += f"\n  Title: {title}"
+        if detail:
+            log_message += f"\n  Detail: {detail}"
+        if type_:
+            log_message += f"\n  Type: {type_}"
+        if instance:
+            log_message += f"\n  Instance: {instance}"
+
+        # Log any additional properties
+        if hasattr(problem, "additional_properties") and problem.additional_properties:
+            formatted = ", ".join(
+                f"{k}: {v!r}" for k, v in problem.additional_properties.items()
+            )
+            log_message += f"\n  Additional info: {formatted}"
+
+        self.logger.error(log_message)
+
+
+class AuthHeaderTransport(AsyncHTTPTransport):
+    """
+    Transport layer that adds StockTrim-specific authentication headers.
+
+    StockTrim uses custom headers (api-auth-id, api-auth-signature) instead of
+    Bearer token authentication.
     """
 
     def __init__(
         self,
         api_auth_id: str,
         api_auth_signature: str,
-        max_retries: int = 5,
-        logger: logging.Logger | None = None,
+        wrapped_transport: AsyncHTTPTransport | None = None,
         **kwargs: Any,
     ):
-        super().__init__(**kwargs)
+        """
+        Initialize the auth header transport.
+
+        Args:
+            api_auth_id: StockTrim API authentication ID
+            api_auth_signature: StockTrim API authentication signature
+            wrapped_transport: The transport to wrap. If None, creates a new AsyncHTTPTransport.
+            **kwargs: Additional arguments passed to AsyncHTTPTransport if wrapped_transport is None.
+        """
+        super().__init__()
+        if wrapped_transport is None:
+            wrapped_transport = AsyncHTTPTransport(**kwargs)
+        self._wrapped_transport = wrapped_transport
         self.api_auth_id = api_auth_id
         self.api_auth_signature = api_auth_signature
-        self.max_retries = max_retries
-        self.logger = logger or logging.getLogger(__name__)
 
     async def handle_async_request(self, request: httpx.Request) -> httpx.Response:
-        """
-        Handle the request with automatic retries and custom authentication.
-
-        This method is called for every HTTP request made through the client.
-        """
-        # Add StockTrim authentication headers
+        """Add StockTrim authentication headers to the request."""
         request.headers["api-auth-id"] = self.api_auth_id
         request.headers["api-auth-signature"] = self.api_auth_signature
-
-        return await self._handle_single_request(request)
-
-    async def _handle_single_request(self, request: httpx.Request) -> httpx.Response:
-        """Handle a single request with retries using tenacity."""
-
-        # Define a properly typed retry decorator
-        def _make_retry_decorator() -> Callable[
-            [Callable[[], Awaitable[httpx.Response]]],
-            Callable[[], Awaitable[httpx.Response]],
-        ]:
-            return retry(
-                stop=stop_after_attempt(self.max_retries + 1),
-                wait=wait_exponential(multiplier=1, min=1, max=60),
-                retry=(
-                    retry_if_result(
-                        lambda response: response.status_code == 429
-                        or (500 <= response.status_code < 600)
-                    )
-                    | retry_if_exception_type(
-                        (httpx.ConnectError, httpx.TimeoutException, httpx.ReadError)
-                    )
-                ),
-                reraise=True,
-            )
-
-        @_make_retry_decorator()
-        async def _make_request_with_retry() -> httpx.Response:
-            """Make the actual HTTP request with retry logic."""
-            response = await super(ResilientAsyncTransport, self).handle_async_request(
-                request
-            )
-
-            if response.status_code == 429:
-                self.logger.warning("Rate limited, retrying after exponential backoff")
-
-            elif 500 <= response.status_code < 600:
-                self.logger.warning(
-                    f"Server error {response.status_code}, retrying with exponential backoff"
-                )
-
-            return response
-
-        # Execute the request with retries
-        try:
-            response = await _make_request_with_retry()
-            return response
-        except RetryError as e:
-            # For retry errors (when server keeps returning 4xx/5xx), return the last response
-            self.logger.error(
-                f"Request failed after {self.max_retries} retries, extracting last response"
-            )
-
-            # Extract the last response - tenacity stores it in the last_attempt
-            try:
-                if hasattr(e, "last_attempt") and e.last_attempt is not None:
-                    last_response = e.last_attempt.result()
-                    self.logger.debug(f"Got last response: {type(last_response)}")
-                    if isinstance(last_response, httpx.Response) or (
-                        hasattr(last_response, "status_code")
-                    ):
-                        # Handle both real responses and mocks (for testing)
-                        self.logger.debug(
-                            f"Returning last response with status {last_response.status_code}"
-                        )
-                        return last_response
-                    else:
-                        self.logger.debug(
-                            f"Last response is not httpx.Response, it's {type(last_response)}"
-                        )
-                else:
-                    self.logger.debug("No last_attempt found in retry error")
-            except Exception as extract_error:
-                self.logger.debug(f"Error extracting last response: {extract_error}")
-
-            # If we can't extract the response, re-raise
-            self.logger.error("Could not extract last response from retry error")
-            raise
-        except (httpx.ConnectError, httpx.TimeoutException, httpx.ReadError) as e:
-            # For network errors, we want to re-raise the exception
-            self.logger.error(f"Network error after {self.max_retries} retries: {e}")
-            raise
-        except Exception as e:
-            # For other unexpected errors, re-raise
-            self.logger.error(f"Unexpected error after {self.max_retries} retries: {e}")
-            raise
+        return await self._wrapped_transport.handle_async_request(request)
 
 
-class StockTrimClient:
+def create_resilient_transport(
+    api_auth_id: str,
+    api_auth_signature: str,
+    max_retries: int = 5,
+    logger: logging.Logger | None = None,
+    **kwargs: Any,
+) -> RetryTransport:
     """
-    A pythonic StockTrim API client with automatic resilience.
+    Factory function that creates a chained transport with auth, error logging, and retry capabilities.
 
-    This client provides:
-    - Automatic retries with exponential backoff
-    - Custom header authentication for StockTrim API
-    - Consistent error handling
-    - Modern async/await support
+    This function chains multiple transport layers:
+    1. AsyncHTTPTransport (base HTTP transport)
+    2. AuthHeaderTransport (adds StockTrim custom auth headers)
+    3. ErrorLoggingTransport (logs detailed 4xx errors)
+    4. RetryTransport (handles retries for 5xx errors on idempotent methods only)
 
-    Example usage:
+    Args:
+        api_auth_id: StockTrim API authentication ID
+        api_auth_signature: StockTrim API authentication signature
+        max_retries: Maximum number of retry attempts for failed requests. Defaults to 5.
+        logger: Logger instance for capturing operations. If None, creates a default logger.
+        **kwargs: Additional arguments passed to the base AsyncHTTPTransport.
+            Common parameters include:
+            - http2 (bool): Enable HTTP/2 support
+            - limits (httpx.Limits): Connection pool limits
+            - verify (bool | str | ssl.SSLContext): SSL certificate verification
+            - cert (str | tuple): Client-side certificates
+            - trust_env (bool): Trust environment variables for proxy configuration
+
+    Returns:
+        A RetryTransport instance wrapping all the layered transports.
+
+    Note:
+        StockTrim API simplifications compared to other APIs:
+        - No rate limiting (429) handling - StockTrim doesn't rate limit
+        - No pagination transport - StockTrim doesn't use pagination
+        - Only retries 5xx errors on idempotent methods (GET, HEAD, OPTIONS, TRACE)
+
+    Example:
+        ```python
+        transport = create_resilient_transport(
+            api_auth_id="your-id",
+            api_auth_signature="your-signature",
+            max_retries=3,
+        )
+        async with httpx.AsyncClient(transport=transport) as client:
+            response = await client.get(
+                "https://api.stocktrim.com/api/Products"
+            )
+        ```
+    """
+    if logger is None:
+        logger = logging.getLogger(__name__)
+
+    # Build the transport chain from inside out:
+    # 1. Base AsyncHTTPTransport
+    base_transport = AsyncHTTPTransport(**kwargs)
+
+    # 2. Wrap with StockTrim custom auth headers
+    auth_transport = AuthHeaderTransport(
+        api_auth_id=api_auth_id,
+        api_auth_signature=api_auth_signature,
+        wrapped_transport=base_transport,
+    )
+
+    # 3. Wrap with error logging
+    error_logging_transport = ErrorLoggingTransport(
+        wrapped_transport=auth_transport,
+        logger=logger,
+    )
+
+    # 4. Finally wrap with retry logic (outermost layer)
+    # Use IdempotentOnlyRetry which only retries idempotent methods for 5xx errors
+    retry = IdempotentOnlyRetry(
+        total=max_retries,
+        backoff_factor=1.0,  # Exponential backoff: 1, 2, 4, 8, 16 seconds
+        respect_retry_after_header=True,  # Honor server's Retry-After header if present
+        status_forcelist=[502, 503, 504],  # Only 5xx server errors (no 429)
+        allowed_methods=[
+            "HEAD",
+            "GET",
+            "OPTIONS",
+            "TRACE",
+            "POST",
+            "PATCH",
+            "PUT",
+            "DELETE",
+        ],  # Accept all, filter in is_retryable_status_code
+    )
+    retry_transport = RetryTransport(
+        transport=error_logging_transport,
+        retry=retry,
+    )
+
+    return retry_transport
+
+
+class StockTrimClient(AuthenticatedClient):
+    """
+    The pythonic StockTrim API client with automatic resilience.
+
+    This client inherits from AuthenticatedClient and can be passed directly to
+    generated API methods without needing a .client property.
+
+    Features:
+    - Automatic retries on server errors (5xx) for idempotent methods only
+    - Custom header authentication (api-auth-id, api-auth-signature)
+    - Rich error logging and observability
+    - Minimal configuration - just works out of the box
+
+    Simplifications vs other APIs:
+    - No rate limiting handling - StockTrim doesn't rate limit
+    - No automatic pagination - StockTrim API doesn't paginate
+    - Only retries idempotent methods (GET, HEAD, OPTIONS, TRACE) on 5xx errors
+
+    Usage:
+        # Basic usage with environment variables
         async with StockTrimClient() as client:
-            # All API calls automatically get retries and authentication
+            from stocktrim_public_api_client.api.products import get_api_products
+
+            response = await get_api_products.asyncio_detailed(
+                client=client  # Pass client directly - no .client needed!
+            )
+
+        # With explicit credentials
+        async with StockTrimClient(
+            api_auth_id="your-id",
+            api_auth_signature="your-signature"
+        ) as client:
+            # All API calls through client get automatic resilience
             response = await some_api_method.asyncio_detailed(client=client)
     """
 
@@ -176,88 +368,134 @@ class StockTrimClient:
         self,
         api_auth_id: str | None = None,
         api_auth_signature: str | None = None,
-        base_url: str = "https://api.stocktrim.com",
-        max_retries: int = 5,
+        base_url: str | None = None,
         timeout: float = 30.0,
+        max_retries: int = 5,
         logger: logging.Logger | None = None,
+        **httpx_kwargs: Any,
     ):
         """
-        Initialize the StockTrim API client.
+        Initialize the StockTrim API client with automatic resilience features.
 
         Args:
-            api_auth_id: StockTrim API authentication ID (or set STOCKTRIM_API_AUTH_ID env var)
-            api_auth_signature: StockTrim API authentication signature (or set STOCKTRIM_API_AUTH_SIGNATURE env var)
-            base_url: Base URL for the StockTrim API
-            max_retries: Maximum number of retries for failed requests
-            timeout: Request timeout in seconds
-            logger: Custom logger instance
+            api_auth_id: StockTrim API authentication ID. If None, will try to load from
+                STOCKTRIM_API_AUTH_ID env var.
+            api_auth_signature: StockTrim API authentication signature. If None, will try to
+                load from STOCKTRIM_API_AUTH_SIGNATURE env var.
+            base_url: Base URL for the StockTrim API. Defaults to https://api.stocktrim.com
+            timeout: Request timeout in seconds. Defaults to 30.0.
+            max_retries: Maximum number of retry attempts for failed requests. Defaults to 5.
+            logger: Logger instance for capturing client operations. If None, creates a default logger.
+            **httpx_kwargs: Additional arguments passed to the base AsyncHTTPTransport.
+                Common parameters include:
+                - http2 (bool): Enable HTTP/2 support
+                - limits (httpx.Limits): Connection pool limits
+                - verify (bool | str | ssl.SSLContext): SSL certificate verification
+                - cert (str | tuple): Client-side certificates
+                - trust_env (bool): Trust environment variables for proxy configuration
+                - event_hooks (dict): Custom event hooks (will be merged with built-in hooks)
+
+        Raises:
+            ValueError: If no API credentials are provided and environment variables are not set.
+
+        Note:
+            Transport-related parameters (http2, limits, verify, etc.) are correctly
+            passed to the innermost AsyncHTTPTransport layer, ensuring they take effect
+            even with the layered transport architecture.
+
+        Example:
+            >>> async with StockTrimClient() as client:
+            ...     # All API calls through client get automatic resilience
+            ...     response = await some_api_method.asyncio_detailed(client=client)
         """
         load_dotenv()
 
-        self.api_auth_id = api_auth_id or os.getenv("STOCKTRIM_API_AUTH_ID")
-        self.api_auth_signature = api_auth_signature or os.getenv(
+        # Setup credentials
+        api_auth_id = api_auth_id or os.getenv("STOCKTRIM_API_AUTH_ID")
+        api_auth_signature = api_auth_signature or os.getenv(
             "STOCKTRIM_API_AUTH_SIGNATURE"
         )
-        self.base_url = base_url
-        self.max_retries = max_retries
-        self.timeout = timeout
-        self.logger = logger or logging.getLogger(__name__)
+        base_url = (
+            base_url or os.getenv("STOCKTRIM_BASE_URL") or "https://api.stocktrim.com"
+        )
 
-        if not self.api_auth_id or not self.api_auth_signature:
+        if not api_auth_id or not api_auth_signature:
             raise ValueError(
-                "StockTrim API credentials are required. "
-                "Provide api_auth_id and api_auth_signature parameters or set "
-                "STOCKTRIM_API_AUTH_ID and STOCKTRIM_API_AUTH_SIGNATURE environment variables."
+                "API credentials required (STOCKTRIM_API_AUTH_ID and "
+                "STOCKTRIM_API_AUTH_SIGNATURE env vars or api_auth_id and "
+                "api_auth_signature params)"
             )
 
-        self._client: AuthenticatedClient | None = None
+        self.logger = logger or logging.getLogger(__name__)
+        self.max_retries = max_retries
+
+        # Extract client-level parameters that shouldn't go to the transport
+        # Event hooks for observability - start with our defaults
+        event_hooks: dict[str, list[Callable[[httpx.Response], Awaitable[None]]]] = {
+            "response": [
+                self._log_response_metrics,
+            ]
+        }
+
+        # Extract and merge user hooks
+        user_hooks = httpx_kwargs.pop("event_hooks", {})
+        for event, hooks in user_hooks.items():
+            # Normalize to list and add to existing or create new event
+            hook_list = cast(
+                list[Callable[[httpx.Response], Awaitable[None]]],
+                hooks if isinstance(hooks, list) else [hooks],
+            )
+            if event in event_hooks:
+                event_hooks[event].extend(hook_list)
+            else:
+                event_hooks[event] = hook_list
+
+        # Create resilient transport with all the layers
+        transport = create_resilient_transport(
+            api_auth_id=api_auth_id,
+            api_auth_signature=api_auth_signature,
+            max_retries=max_retries,
+            logger=self.logger,
+            **httpx_kwargs,  # Pass through http2, limits, verify, etc.
+        )
+
+        # Initialize parent with resilient transport
+        super().__init__(
+            base_url=base_url,
+            token="",  # StockTrim uses custom headers, not bearer token
+            timeout=httpx.Timeout(timeout),
+            httpx_args={
+                "transport": transport,
+                "event_hooks": event_hooks,
+            },
+        )
 
     @property
-    def client(self) -> AuthenticatedClient:
-        """
-        Get the authenticated client instance with resilient transport.
+    def base_url(self) -> str:
+        """Get the base URL for the API."""
+        return self._base_url
 
-        This property provides access to the fully configured OpenAPI client
-        with automatic retries and authentication built into the transport layer.
-        """
-        if self._client is None:
-            # Create the resilient transport
-            # At this point, credentials are guaranteed to be strings due to validation in __init__
-            assert self.api_auth_id is not None
-            assert self.api_auth_signature is not None
-
-            transport = ResilientAsyncTransport(
-                api_auth_id=self.api_auth_id,
-                api_auth_signature=self.api_auth_signature,
-                max_retries=self.max_retries,
-                logger=self.logger,
-            )
-
-            # Create the authenticated client with custom transport
-            self._client = AuthenticatedClient(
-                base_url=self.base_url,
-                token="",  # StockTrim uses custom headers, not bearer token
-                timeout=httpx.Timeout(self.timeout),
-                httpx_args={"transport": transport},
-            )
-
-        return self._client
-
-    async def __aenter__(self) -> "StockTrimClient":
-        """Async context manager entry."""
-        return self
-
-    async def __aexit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
-        """Async context manager exit with cleanup."""
-        await self.close()
-
-    async def close(self) -> None:
-        """Close the client and clean up resources."""
-        if self._client is not None:
-            with contextlib.suppress(Exception):
-                await self._client.get_async_httpx_client().aclose()
-            self._client = None
+    async def _log_response_metrics(self, response: httpx.Response) -> None:
+        """Log response metrics for observability."""
+        request = response.request
+        elapsed_ms = response.elapsed.total_seconds() * 1000
+        self.logger.debug(
+            f"{request.method} {request.url} -> {response.status_code} "
+            f"({elapsed_ms:.0f}ms)"
+        )
 
     def __repr__(self) -> str:
         """String representation of the client."""
-        return f"StockTrimClient(base_url='{self.base_url}', max_retries={self.max_retries})"
+        return (
+            f"StockTrimClient(base_url='{self._base_url}', "
+            f"max_retries={self.max_retries})"
+        )
+
+
+__all__ = [
+    "AuthHeaderTransport",
+    "ErrorLoggingTransport",
+    "IdempotentOnlyRetry",
+    "StockTrimClient",
+    "create_resilient_transport",
+]
