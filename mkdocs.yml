@@ -1,0 +1,135 @@
+site_name: StockTrim OpenAPI Client
+site_description: Python client library and MCP server for StockTrim Inventory Management API
+site_author: Doug Borg
+site_url: https://dougborg.github.io/stocktrim-openapi-client/
+repo_url: https://github.com/dougborg/stocktrim-openapi-client
+repo_name: dougborg/stocktrim-openapi-client
+edit_uri: edit/main/docs/
+
+theme:
+  name: material
+  palette:
+    # Light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    # Dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - navigation.tracking
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.code.annotate
+    - content.tabs.link
+  icon:
+    repo: fontawesome/brands/github
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          options:
+            docstring_style: google
+            show_source: true
+            show_root_heading: true
+            show_root_full_path: false
+            show_signature_annotations: true
+            separate_signature: true
+            merge_init_into_class: true
+
+markdown_extensions:
+  # Python Markdown
+  - abbr
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - toc:
+      permalink: true
+  # Python Markdown Extensions
+  - pymdownx.arithmatex:
+      generic: true
+  - pymdownx.betterem:
+      smart_enable: all
+  - pymdownx.caret
+  - pymdownx.details
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.keys
+  - pymdownx.mark
+  - pymdownx.smartsymbols
+  - pymdownx.snippets
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.tilde
+
+nav:
+  - Home: index.md
+  - Getting Started:
+      - Installation: getting-started/installation.md
+      - Quick Start: getting-started/quickstart.md
+      - Configuration: getting-started/configuration.md
+  - User Guide:
+      - Client Usage: user-guide/client-guide.md
+      - Helper Methods: user-guide/helper-methods.md
+      - Error Handling: user-guide/error-handling.md
+      - Testing: user-guide/testing.md
+  - MCP Server:
+      - Overview: mcp-server/overview.md
+      - Installation: mcp-server/installation.md
+      - Available Tools: mcp-server/tools.md
+      - Claude Desktop Setup: mcp-server/claude-desktop.md
+  - API Reference:
+      - Client: api/client.md
+      - Helpers: api/helpers.md
+      - Utils: api/utils.md
+  - Architecture:
+      - Overview: architecture/overview.md
+      - Transport Layer: architecture/transport.md
+      - Domain Helpers: architecture/helpers.md
+  - Contributing:
+      - Development Setup: contributing/development.md
+      - Code of Conduct: contributing/code-of-conduct.md
+      - API Feedback: contributing/api-feedback.md
+
+extra:
+  version:
+    provider: mike
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/dougborg
+    - icon: fontawesome/brands/python
+      link: https://pypi.org/project/stocktrim-openapi-client/
+
+copyright: Copyright &copy; 2024-2025 Doug Borg
