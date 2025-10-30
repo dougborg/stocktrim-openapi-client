@@ -159,8 +159,11 @@ class PurchaseOrdersV2(Base):
     ) -> list[PurchaseOrderResponseDto]:
         """Get all purchase orders for a specific supplier.
 
-        Note: This method fetches all pages and filters by supplier code.
-        For large datasets, consider using get_all_paginated directly.
+        Warning: This method fetches all pages and filters client-side, which can
+        be inefficient for suppliers with many purchase orders. For large datasets
+        (thousands of POs), this could result in fetching and filtering many pages
+        of data. Consider using get_all_paginated() directly with manual pagination
+        if you need more control over the number of records fetched.
 
         Args:
             supplier_code: Supplier code to filter by.

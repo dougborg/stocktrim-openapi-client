@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import time
 from typing import cast
 
 from stocktrim_public_api_client.generated.api.processing_status import (
@@ -101,8 +102,6 @@ class Forecasting(Base):
             ... )
             >>> print(f"Complete: {final_status.status_message}")
         """
-        import time
-
         start_time = time.time()
 
         while True:
