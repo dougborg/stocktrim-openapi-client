@@ -1,9 +1,9 @@
 """Test configuration and fixtures for StockTrim MCP Server tests."""
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock
 
-from stocktrim_public_api_client.client_types import UNSET
+import pytest
+
 from stocktrim_public_api_client.generated.models.products_response_dto import (
     ProductsResponseDto,
 )
@@ -18,21 +18,21 @@ def mock_context():
     context = MagicMock()
     context.request_context = MagicMock()
     context.request_context.lifespan_context = MagicMock()
-    
+
     # Create mock client
     mock_client = MagicMock()
-    
+
     # Mock products helper
     mock_client.products = MagicMock()
     mock_client.products.find_by_code = AsyncMock()
     mock_client.products.create = AsyncMock()
-    
+
     # Mock suppliers helper
     mock_client.suppliers = MagicMock()
     mock_client.suppliers.create_one = AsyncMock()
-    
+
     context.request_context.lifespan_context.client = mock_client
-    
+
     return context
 
 

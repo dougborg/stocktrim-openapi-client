@@ -136,7 +136,9 @@ async def manage_forecast_group(
 class UpdateForecastSettingsRequest(BaseModel):
     """Request for updating forecast settings."""
 
-    product_code: str = Field(description="Product code to update forecast settings for")
+    product_code: str = Field(
+        description="Product code to update forecast settings for"
+    )
     lead_time_days: int | None = Field(
         default=None,
         description="Lead time in days (maps to lead_time field)",
@@ -165,9 +167,13 @@ class UpdateForecastSettingsResponse(BaseModel):
 
     product_code: str = Field(description="Product code")
     lead_time: int | None = Field(description="Updated lead time in days")
-    forecast_period: int | None = Field(description="Updated forecast period (safety stock days)")
+    forecast_period: int | None = Field(
+        description="Updated forecast period (safety stock days)"
+    )
     service_level: float | None = Field(description="Updated service level")
-    minimum_order_quantity: float | None = Field(description="Updated minimum order quantity")
+    minimum_order_quantity: float | None = Field(
+        description="Updated minimum order quantity"
+    )
     message: str = Field(description="Success message")
 
 

@@ -12,7 +12,9 @@ from fastmcp import Context, FastMCP
 from pydantic import BaseModel, Field
 
 from stocktrim_public_api_client.client_types import UNSET
-from stocktrim_public_api_client.generated.models.product_supplier import ProductSupplier
+from stocktrim_public_api_client.generated.models.product_supplier import (
+    ProductSupplier,
+)
 from stocktrim_public_api_client.generated.models.products_request_dto import (
     ProductsRequestDto,
 )
