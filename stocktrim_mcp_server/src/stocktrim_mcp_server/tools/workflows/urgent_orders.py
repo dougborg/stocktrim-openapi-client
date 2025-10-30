@@ -133,26 +133,46 @@ async def _review_urgent_order_requirements_impl(
 
         # Group by supplier
         # Note: SkuOptimizedResultsDto doesn't have supplier info directly,
-        # we need to get product details to find the supplier
+        # we need to get product details to find the supplier.
+        # To avoid N+1 queries, we batch fetch all products first.
         supplier_groups: dict[str, list[UrgentItemInfo]] = defaultdict(list)
 
+        # Batch fetch product details for all urgent items
+        product_codes = [
+            item.product_code
+            for item in urgent_items
+            if item.product_code not in (None, UNSET)
+        ]
+
+        # Create a mapping of product_code -> supplier_code
+        product_to_supplier = {}
+        if product_codes:
+            try:
+                # Get all products to build supplier mapping
+                all_products = await client.products.get_all()
+                for product in all_products:
+                    if product.product_code_readable and product.supplier_code not in (
+                        None,
+                        UNSET,
+                    ):
+                        product_to_supplier[product.product_code_readable] = (
+                            product.supplier_code or "UNKNOWN"
+                        )
+            except Exception as e:
+                logger.warning(
+                    f"Could not batch fetch products for supplier mapping: {e}"
+                )
+
         for item in urgent_items:
-            # Get product details to find supplier
+            # Get supplier from pre-fetched mapping
             product_code = (
                 item.product_code if item.product_code not in (None, UNSET) else None
             )
-            supplier_code = "UNKNOWN"
-
-            if product_code:
-                try:
-                    # Try to get product details to find supplier
-                    product = await client.products.find_by_code(product_code)
-                    if product and product.supplier_code not in (None, UNSET):
-                        supplier_code = product.supplier_code or "UNKNOWN"
-                except Exception as e:
-                    logger.warning(
-                        f"Could not get supplier for product {product_code}: {e}"
-                    )
+            supplier_code = (
+                product_to_supplier.get(product_code, "UNKNOWN")
+                if product_code
+                else "UNKNOWN"
+            )
 
             # Create UrgentItemInfo
             urgent_item_info = UrgentItemInfo(
@@ -336,6 +356,12 @@ async def _generate_purchase_orders_from_urgent_items_impl(
         client = server_context.client
 
         # Build filter criteria for V2 API's generate_from_order_plan
+        # Note: The V2 API generates POs based on the order plan's recommendations,
+        # which already incorporate urgency and reorder logic. The days_threshold
+        # parameter is provided for API consistency with review_urgent_order_requirements,
+        # but the actual urgency filtering happens within StockTrim's forecast engine.
+        # If more granular control is needed, use review_urgent_order_requirements first
+        # to identify specific items, then manually create POs for selected suppliers.
         filter_criteria = OrderPlanFilterCriteriaDto(
             location_codes=request.location_codes or UNSET,
             supplier_codes=request.supplier_codes or UNSET,
@@ -393,6 +419,12 @@ async def generate_purchase_orders_from_urgent_items(
     This is a powerful feature that leverages StockTrim's forecast engine to
     automatically create purchase orders with appropriate quantities for items
     needing reorder.
+
+    Note on days_threshold: While this parameter is accepted for API consistency
+    with review_urgent_order_requirements, the V2 API's generate_from_order_plan
+    endpoint uses StockTrim's internal urgency logic. For more control over which
+    items are included based on days_until_stock_out, use review_urgent_order_requirements
+    first to analyze items, then generate POs for specific suppliers.
 
     Args:
         request: Request with filters for PO generation
