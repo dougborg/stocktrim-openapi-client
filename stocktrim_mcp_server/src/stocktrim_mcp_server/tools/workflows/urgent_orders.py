@@ -134,8 +134,18 @@ async def _review_urgent_order_requirements_impl(
         # Group by supplier
         # Note: SkuOptimizedResultsDto doesn't have supplier info directly,
         # we need to get product details to find the supplier.
-        # To avoid N+1 queries, we batch fetch all products first.
+        # We batch fetch products to avoid N+1 queries. This is more efficient
+        # than individual lookups but could be expensive for large catalogs.
+        # Only fetch if we have urgent items to process.
         supplier_groups: dict[str, list[UrgentItemInfo]] = defaultdict(list)
+
+        if not urgent_items:
+            # No urgent items, return empty response early
+            return ReviewUrgentOrdersResponse(
+                suppliers=[],
+                total_items=0,
+                total_estimated_cost=None,
+            )
 
         # Batch fetch product details for all urgent items
         product_codes = [
@@ -149,6 +159,9 @@ async def _review_urgent_order_requirements_impl(
         if product_codes:
             try:
                 # Get all products to build supplier mapping
+                # Note: This fetches the entire product catalog which could be expensive
+                # for large inventories. StockTrim API doesn't provide a batch lookup
+                # method, so this is more efficient than N individual API calls.
                 all_products = await client.products.get_all()
                 for product in all_products:
                     if product.product_code_readable and product.supplier_code not in (
@@ -162,6 +175,7 @@ async def _review_urgent_order_requirements_impl(
                 logger.warning(
                     f"Could not batch fetch products for supplier mapping: {e}"
                 )
+                # Continue without supplier mapping - will use "UNKNOWN"
 
         for item in urgent_items:
             # Get supplier from pre-fetched mapping
@@ -298,10 +312,18 @@ async def review_urgent_order_requirements(
 
 
 class GeneratePurchaseOrdersRequest(BaseModel):
-    """Request for generating purchase orders from urgent items."""
+    """Request for generating purchase orders from urgent items.
+
+    Note: The days_threshold parameter is included for API consistency with
+    review_urgent_order_requirements, but the V2 API's generate_from_order_plan
+    uses StockTrim's internal urgency logic and doesn't directly filter by this value.
+    For precise control over which items are included based on days_until_stock_out,
+    use review_urgent_order_requirements first, then manually create POs for selected items.
+    """
 
     days_threshold: int = Field(
-        default=30, description="Days until stockout threshold (default: 30)"
+        default=30,
+        description="Days until stockout threshold (for API consistency; not used in V2 API filtering)",
     )
     location_codes: list[str] | None = Field(
         default=None, description="Filter by specific locations"
