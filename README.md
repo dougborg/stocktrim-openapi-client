@@ -178,8 +178,8 @@ The client provides convenient helper classes that wrap the generated API:
 - `get_all()` - List all locations
 - `create(...)` - Create location
 
-See [docs/user-guide/helper-methods.md](docs/user-guide/helper-methods.md) for
-complete documentation.
+See [docs/user-guide/helper-methods.md](docs/user-guide/helper-methods.md) for complete
+documentation.
 
 ## Error Handling
 
@@ -378,7 +378,8 @@ stocktrim-openapi-client/
 - **Full Documentation**:
   [https://dougborg.github.io/stocktrim-openapi-client/](https://dougborg.github.io/stocktrim-openapi-client/)
 - **Client Guide**: [docs/user-guide/client-guide.md](docs/user-guide/client-guide.md)
-- **Helper Methods**: [docs/user-guide/helper-methods.md](docs/user-guide/helper-methods.md)
+- **Helper Methods**:
+  [docs/user-guide/helper-methods.md](docs/user-guide/helper-methods.md)
 - **Testing Guide**: [docs/user-guide/testing.md](docs/user-guide/testing.md)
 - **MCP Server**: [stocktrim_mcp_server/README.md](stocktrim_mcp_server/README.md)
 
@@ -388,8 +389,8 @@ Contributions are welcome! Please see:
 
 - [Development Setup](#development) above
 - [Code of Conduct](docs/contributing/code-of-conduct.md)
-- [API Feedback](docs/contributing/api-feedback.md) - Constructive feedback for StockTrim
-  developers
+- [API Feedback](docs/contributing/api-feedback.md) - Constructive feedback for
+  StockTrim developers
 
 ## License
 
