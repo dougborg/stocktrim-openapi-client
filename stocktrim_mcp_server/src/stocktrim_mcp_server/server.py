@@ -69,7 +69,7 @@ async def lifespan(server: FastMCP) -> AsyncIterator[ServerContext]:
     # Get configuration from environment
     api_auth_id = os.getenv("STOCKTRIM_API_AUTH_ID")
     api_auth_signature = os.getenv("STOCKTRIM_API_AUTH_SIGNATURE")
-    base_url = os.getenv("STOCKTRIM_BASE_URL", "https://app.stocktrim.com")
+    base_url = os.getenv("STOCKTRIM_BASE_URL", "https://api.stocktrim.com")
 
     # Validate required configuration
     if not api_auth_id:
