@@ -4,7 +4,7 @@
         {
             "label": "stocktrim: format",
             "type": "shell",
-            "command": "poetry",
+            "command": "uv",
             "args": ["run", "poe", "format"],
             "group": {
                 "kind": "build",
@@ -21,7 +21,7 @@
         {
             "label": "stocktrim: lint",
             "type": "shell",
-            "command": "poetry",
+            "command": "uv",
             "args": ["run", "poe", "lint"],
             "group": {
                 "kind": "test",
@@ -38,7 +38,7 @@
         {
             "label": "stocktrim: test",
             "type": "shell",
-            "command": "poetry",
+            "command": "uv",
             "args": ["run", "poe", "test"],
             "group": {
                 "kind": "test",
@@ -55,7 +55,7 @@
         {
             "label": "stocktrim: check",
             "type": "shell",
-            "command": "poetry",
+            "command": "uv",
             "args": ["run", "poe", "check"],
             "group": "build",
             "presentation": {
@@ -69,7 +69,7 @@
         {
             "label": "stocktrim: regenerate client",
             "type": "shell",
-            "command": "poetry",
+            "command": "uv",
             "args": ["run", "python", "scripts/regenerate_client.py"],
             "group": "build",
             "presentation": {

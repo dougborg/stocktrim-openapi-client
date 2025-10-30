@@ -9,27 +9,48 @@ than as decorators or wrapper methods.
 
 ### Core Components
 
-- **`stocktrim_public_api_client/stocktrim_client.py`**: Main client with
-  `ResilientAsyncTransport` - all resilience features happen here automatically
-- **`stocktrim_public_api_client/client.py`**: Generated OpenAPI client (base classes)
-- **`stocktrim_public_api_client/api/`**: Generated API endpoint modules (don't edit
-  directly)
-- **`stocktrim_public_api_client/models/`**: Generated data models (don't edit directly)
+- **`stocktrim_public_api_client/stocktrim_client.py`**: Main client with custom retry
+  transport (`IdempotentOnlyRetry`) - all resilience happens automatically
+- **`stocktrim_public_api_client/generated/client.py`**: Generated OpenAPI client (base
+  classes)
+- **`stocktrim_public_api_client/generated/api/`**: Generated API endpoint modules
+  (**don't edit directly**)
+- **`stocktrim_public_api_client/generated/models/`**: Generated data models (**don't
+  edit directly**)
+- **`stocktrim_public_api_client/helpers/`**: Domain-specific helper classes (Products,
+  Customers, Inventory, etc.)
+- **`stocktrim_public_api_client/utils.py`**: Error handling utilities with typed
+  exceptions
+- **`stocktrim_public_api_client/client_types.py`**: Renamed from `types.py` during
+  generation to avoid conflicts
 
 ### The Transport Layer Pattern
 
 **Key insight**: Instead of wrapping API methods, we intercept at the httpx transport
-level. This means ALL API calls through `StockTrimClient` get automatic retries and
-authentication without any code changes needed in the generated client.
+level using `IdempotentOnlyRetry` (extends `httpx_retries.Retry`). This means ALL API
+calls through `StockTrimClient` get automatic retries and authentication without code
+changes in the generated client.
+
+**Retry behavior**:
+
+- Only retries 5xx server errors (not 4xx client errors)
+- Only retries idempotent methods (GET, HEAD, OPTIONS, TRACE)
+- POST/PUT/DELETE are NOT retried to prevent duplicate operations
+- Uses exponential backoff via `httpx_retries`
+
+**Error logging**: `ErrorLoggingTransport` logs 4xx client errors with full request
+context for debugging.
 
 ```python
 # Generated API methods work transparently with resilience:
 from stocktrim_public_api_client import StockTrimClient
 from stocktrim_public_api_client.generated.api.products import get_api_products
+from stocktrim_public_api_client.utils import unwrap
 
 async with StockTrimClient() as client:
-    # This call automatically gets retries and auth headers:
+    # This call automatically gets retries (5xx only, idempotent methods) and auth headers:
     response = await get_api_products.asyncio_detailed(client=client)
+    products = unwrap(response)  # Raises typed exceptions on errors
 ```
 
 ### StockTrim-Specific Features
@@ -47,6 +68,13 @@ This is a **UV workspace** containing two packages:
 - **`stocktrim-openapi-client`**: The main OpenAPI client library (root package)
 - **`stocktrim-mcp-server`**: Model Context Protocol server for AI agents (in
   `stocktrim_mcp_server/`)
+
+For MCP server development, see comprehensive docs in `docs/mcp-server/`:
+
+- `overview.md` - Architecture and tool design
+- `tools.md` - Available tools and usage
+- `installation.md` - Setup instructions
+- `claude-desktop.md` - Claude Desktop integration
 
 ### Automatic MCP Publishing
 
@@ -152,6 +180,72 @@ StockTrim uses custom header authentication:
 
 The transport layer automatically adds these headers to all requests.
 
+### Error Handling Pattern
+
+The `utils.py` module provides typed exceptions that inherit from `APIError`:
+
+- **`AuthenticationError`** (401): Invalid credentials
+- **`PermissionError`** (403): Insufficient permissions
+- **`NotFoundError`** (404): Resource not found
+- **`ValidationError`** (400, 422): Invalid request data
+- **`ServerError`** (5xx): Server-side errors
+
+Use `unwrap()` to automatically raise typed exceptions:
+
+```python
+from stocktrim_public_api_client.utils import unwrap, NotFoundError
+
+try:
+    response = await get_api_products.asyncio_detailed(client=client)
+    products = unwrap(response)  # Raises on error status
+except NotFoundError:
+    # Handle specific error type
+    pass
+```
+
+### Helper Classes Architecture
+
+Helpers in `stocktrim_public_api_client/helpers/` follow a consistent pattern:
+
+1. **Inherit from `Base`**: Provides `self._client` access
+1. **Wrap generated API calls**: Use `unwrap()` for error handling
+1. **Provide convenience methods**: e.g., `find_by_code()`, `exists()`,
+   `find_or_create()`
+1. **Type annotations**: Full type hints for IDE support
+
+Example helper pattern:
+
+```python
+from stocktrim_public_api_client.helpers.base import Base
+from stocktrim_public_api_client.utils import unwrap
+
+class Products(Base):
+    async def find_by_code(self, code: str) -> ProductsResponseDto | None:
+        """Find product by exact code match."""
+        products = await self.get_all(code=code)
+        return products[0] if products else None
+```
+
+**Critical Idempotent Pattern** - `find_or_create()`:
+
+The `Customers.find_or_create()` method demonstrates the idempotent pattern used across
+helpers:
+
+```python
+async def find_or_create(self, code: str, **defaults) -> CustomerDto:
+    """Get customer by code, or create if doesn't exist (idempotent)."""
+    try:
+        return await self.get(code)
+    except Exception:
+        # Customer doesn't exist, create it
+        new_customer = CustomerDto(code=code, **defaults)
+        result = await self.update(new_customer)
+        return result[0] if result else new_customer
+```
+
+This pattern ensures operations are **safe to retry** - calling multiple times with the
+same parameters always results in the same state.
+
 ### Common API Endpoints
 
 Based on the OpenAPI spec, main endpoints include:
@@ -208,22 +302,80 @@ git commit -m "feat!: change authentication header format"
 
 ### Test Structure
 
-- **Unit tests**: Test individual components
-- **Integration tests**: Test API interactions
-- **Mock external dependencies**: Don't hit real APIs in tests
+- **Unit tests**: Test individual components in isolation
+- **Integration tests**: Test API interactions with mocked responses
+- **Mock external dependencies**: Never hit real APIs in tests (use httpx.MockTransport)
+- **Fixtures in conftest.py**: Centralized test fixtures for consistency
+
+### Common Testing Patterns
+
+**1. Fixture-Based Client Creation**
+
+```python
+# Use pre-configured fixtures from conftest.py
+def test_with_client(stocktrim_client):
+    """Tests receive a configured client instance."""
+    assert stocktrim_client is not None
+
+async def test_with_async_client(async_stocktrim_client):
+    """Async tests use the async fixture (auto-cleanup)."""
+    products = await async_stocktrim_client.products.get_all()
+```
+
+**2. Mock Response Factory Pattern**
+
+```python
+def test_custom_response(create_mock_response):
+    """Use factory fixture to create custom responses."""
+    response = create_mock_response(
+        status_code=200,
+        json_data={"code": "WIDGET-001", "name": "Widget"},
+        headers={"X-Custom": "value"}
+    )
+```
+
+**3. HTTP Error Response Fixtures**
+
+Pre-built fixtures for common error scenarios:
+
+- `mock_authentication_error_response` - 401 Unauthorized
+- `mock_validation_error_response` - 422 Unprocessable Entity
+- `mock_not_found_response` - 404 Not Found
+- `mock_server_error_response` - 500 Internal Server Error
+
+**4. Environment Isolation**
+
+The `clear_env` fixture (autouse) ensures clean environment between tests:
+
+```python
+def test_with_env_vars(mock_env_credentials):
+    """Tests with environment variables automatically cleaned up."""
+    # Environment vars set by fixture, cleared after test
+    pass
+```
+
+**5. MockTransport Pattern**
+
+```python
+def test_with_mock_transport(stocktrim_client_with_mock_transport):
+    """Client with httpx.MockTransport - no real network calls."""
+    # All HTTP requests go through the mock handler
+    pass
+```
 
 ### Running Tests
 
 ```bash
-# Run all tests
+# Run all tests (excludes slow docs tests)
 uv run poe test
 
 # Run with coverage
 uv run poe test-coverage
 
 # Run specific test types
-uv run poe test-unit
-uv run poe test-integration
+uv run poe test-unit          # Unit tests only
+uv run poe test-integration   # Integration tests only
+uv run poe test-docs          # Slow documentation tests (CI only)
 ```
 
 ## Common Tasks
@@ -250,6 +402,23 @@ uv run poe regenerate-client
 # Validate the generated code
 uv run poe validate-openapi
 ```
+
+**What happens during regeneration** (`scripts/regenerate_client.py`):
+
+1. Downloads latest OpenAPI spec from StockTrim API
+1. Fixes authentication (converts header params to securitySchemes)
+1. Validates spec using openapi-spec-validator and Redocly
+1. Generates client with openapi-python-client
+1. **Post-processing**:
+   - Renames `types.py` → `client_types.py` (avoids Python stdlib conflicts)
+   - Fixes all imports to use `client_types`
+   - Adds type casting for `.from_dict()` methods
+   - Modernizes Union types to `|` syntax
+   - Fixes RST docstring formatting
+1. Runs ruff auto-formatting
+1. Validates with ty type checker
+
+**NEVER manually edit generated code** - changes will be overwritten on regeneration.
 
 ### Code Quality Checks
 
@@ -303,15 +472,22 @@ The regeneration script automatically fixes type issues in generated code:
 ### Core Dependencies
 
 - **httpx**: Modern HTTP client with async support
-- **tenacity**: Retry logic with exponential backoff
+- **httpx-retries**: Retry logic with exponential backoff (base for
+  `IdempotentOnlyRetry`)
+- **tenacity**: Additional retry capabilities
 - **python-dotenv**: Environment variable management
 - **attrs**: Generated client models
 - **python-dateutil**: Date/time handling
+- **pydantic**: Type validation
 
 ### Development Dependencies
 
 - **ruff**: Fast Python linter and formatter
-- **ty**: Fast Rust-based Python type checker from Astral
-- **pytest**: Testing framework
+- **ty**: Fast Rust-based Python type checker from Astral (strict mode enabled)
+- **pytest** + **pytest-asyncio**: Testing framework with async support
 - **pre-commit**: Git hooks for code quality
 - **uv**: Modern Python package and project manager
+- **poethepoet**: Task runner for development commands
+- **mkdocs** + **mkdocs-material**: Documentation site generation
+- **openapi-python-client**: Client code generation from OpenAPI spec
+- **python-semantic-release**: Automated versioning and releases
