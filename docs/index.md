@@ -1,16 +1,20 @@
 # StockTrim OpenAPI Client
 
-Welcome to the **StockTrim OpenAPI Client** documentation. This library provides a modern, Pythonic client for the StockTrim Inventory Management API, along with a Model Context Protocol (MCP) server for AI agent integration.
+Welcome to the **StockTrim OpenAPI Client** documentation. This library provides a
+modern, Pythonic client for the StockTrim Inventory Management API, along with a Model
+Context Protocol (MCP) server for AI agent integration.
 
 ## Features
 
 ### Client Library
 
-- **Transport-layer resilience**: Automatic retries and custom authentication at the HTTP transport level
+- **Transport-layer resilience**: Automatic retries and custom authentication at the
+  HTTP transport level
 - **Type-safe**: Full type hints and mypy compatibility
 - **Async/await support**: Built on httpx for modern Python async patterns
 - **Production-ready**: Comprehensive error handling and logging
-- **Zero-wrapper philosophy**: All resilience features work transparently with the generated API client
+- **Zero-wrapper philosophy**: All resilience features work transparently with the
+  generated API client
 - **Helper methods**: Ergonomic convenience methods for common operations
 
 ### MCP Server
@@ -88,7 +92,9 @@ async with StockTrimClient(
 
 ## Architecture
 
-The client uses a **transport-layer resilience** approach where resilience features (retries, custom authentication) are implemented at the HTTP transport level rather than as decorators or wrapper methods. This means:
+The client uses a **transport-layer resilience** approach where resilience features
+(retries, custom authentication) are implemented at the HTTP transport level rather than
+as decorators or wrapper methods. This means:
 
 - All generated API methods automatically get resilience features
 - No code changes needed when the OpenAPI spec is updated
@@ -112,4 +118,6 @@ This is a monorepo containing two packages:
 
 ## License
 
-MIT License - see [LICENSE](https://github.com/dougborg/stocktrim-openapi-client/blob/main/LICENSE) for details.
+MIT License - see
+[LICENSE](https://github.com/dougborg/stocktrim-openapi-client/blob/main/LICENSE) for
+details.
