@@ -141,13 +141,18 @@ packages = ["stocktrim_public_api_client"]
 
 [tool.ty.src]
 # Configure source paths and exclusions for ty type checker
-include = ["stocktrim_public_api_client/**/*.py", "tests/**/*.py"]
+include = [
+  "stocktrim_public_api_client/**/*.py",
+  "tests/**/*.py",
+  "stocktrim_mcp_server/src/**/*.py",
+  "stocktrim_mcp_server/tests/**/*.py",
+]
 # Generated code type issues are now fixed during regeneration
 # exclude = ["stocktrim_public_api_client/generated/**"]
 
 [tool.ty.environment]
 # Set up the project root paths for first-party module resolution
-root = [".", "stocktrim_public_api_client"]
+root = [".", "stocktrim_public_api_client", "stocktrim_mcp_server/src"]
 
 [tool.ty.terminal]
 # Use concise output format for cleaner CI logs
@@ -161,7 +166,7 @@ addopts = [
   "--strict-config",
   "--timeout=30",     # 30 second timeout for tests
 ]
-testpaths = ["tests"]
+testpaths = ["tests", "stocktrim_mcp_server/tests"]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
 markers = [
@@ -173,7 +178,7 @@ markers = [
 ]
 
 [tool.coverage.run]
-source = ["stocktrim_public_api_client"]
+source = ["stocktrim_public_api_client", "stocktrim_mcp_server"]
 omit = ["*/tests/*", "*/test_*", "*/conftest.py"]
 
 [tool.coverage.report]
@@ -192,7 +197,7 @@ exclude_lines = [
 
 [tool.ruff]
 line-length = 88
-src = ["stocktrim_public_api_client", "tests", "scripts"]
+src = ["stocktrim_public_api_client", "tests", "scripts", "stocktrim_mcp_server/src", "stocktrim_mcp_server/tests"]
 target-version = "py311"  # Updated to reflect minimum Python version
 fix = true
 show-fixes = true
