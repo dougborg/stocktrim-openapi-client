@@ -247,11 +247,11 @@ async def _create_product_impl(
         server_context = context.request_context.lifespan_context
         client = server_context.client
 
-        # Import ProductDto from generated models
-        from stocktrim_public_api_client.generated.models import ProductDto
+        # Import ProductsRequestDto from generated models
+        from stocktrim_public_api_client.generated.models import ProductsRequestDto
 
         # Create product DTO
-        product_dto = ProductDto(
+        product_dto = ProductsRequestDto(
             code=request.code,
             description=request.description,
             unit_of_measurement=request.unit_of_measurement,
@@ -260,14 +260,11 @@ async def _create_product_impl(
             selling_price=request.selling_price,
         )
 
-        # Create product
-        created_products = await client.products.create([product_dto])
+        # Create product (API accepts single object, not list)
+        created_product = await client.products.create(product_dto)
 
-        if not created_products:
+        if not created_product:
             raise Exception(f"Failed to create product {request.code}")
-
-        # Get the first (and only) created product
-        created_product = created_products[0]
 
         # Build ProductInfo from response
         product_info = ProductInfo(

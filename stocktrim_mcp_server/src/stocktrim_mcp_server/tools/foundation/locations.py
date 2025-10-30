@@ -152,24 +152,21 @@ async def _create_location_impl(
         server_context = context.request_context.lifespan_context
         client = server_context.client
 
-        # Import LocationDto from generated models
-        from stocktrim_public_api_client.generated.models import LocationDto
+        # Import LocationRequestDto from generated models
+        from stocktrim_public_api_client.generated.models import LocationRequestDto
 
         # Create location DTO
-        location_dto = LocationDto(
+        location_dto = LocationRequestDto(
             code=request.code,
             name=request.name,
             is_active=request.is_active,
         )
 
-        # Create location
-        created_locations = await client.locations.create([location_dto])
+        # Create location (API accepts single object, not list)
+        created_location = await client.locations.create(location_dto)
 
-        if not created_locations:
+        if not created_location:
             raise Exception(f"Failed to create location {request.code}")
-
-        # Get the first (and only) created location
-        created_location = created_locations[0]
 
         # Build LocationInfo from response
         location_info = LocationInfo(

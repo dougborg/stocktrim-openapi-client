@@ -162,8 +162,11 @@ class PurchaseOrdersV2(Base):
         Warning: This method fetches all pages and filters client-side, which can
         be inefficient for suppliers with many purchase orders. For large datasets
         (thousands of POs), this could result in fetching and filtering many pages
-        of data. Consider using get_all_paginated() directly with manual pagination
-        if you need more control over the number of records fetched.
+        of data. The API's V2 endpoint does NOT support server-side filtering by
+        supplier, so all purchase orders must be fetched and filtered locally. This
+        can be extremely inefficient if you have a large number of purchase orders.
+        Consider using get_all_paginated() directly with manual pagination if you
+        need more control over the number of records fetched.
 
         Args:
             supplier_code: Supplier code to filter by.
