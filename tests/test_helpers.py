@@ -93,3 +93,71 @@ class TestHelpersIntegration:
         # Second access returns the same instance
         products2 = stocktrim_client.products
         assert products1 is products2
+
+    def test_order_plan_helper_exists(self, stocktrim_client):
+        """Test order_plan helper is accessible."""
+        assert hasattr(stocktrim_client, "order_plan")
+        assert stocktrim_client.order_plan is not None
+
+    def test_purchase_orders_v2_helper_exists(self, stocktrim_client):
+        """Test purchase_orders_v2 helper is accessible."""
+        assert hasattr(stocktrim_client, "purchase_orders_v2")
+        assert stocktrim_client.purchase_orders_v2 is not None
+
+    def test_forecasting_helper_exists(self, stocktrim_client):
+        """Test forecasting helper is accessible."""
+        assert hasattr(stocktrim_client, "forecasting")
+        assert stocktrim_client.forecasting is not None
+
+    def test_bill_of_materials_helper_exists(self, stocktrim_client):
+        """Test bill_of_materials helper is accessible."""
+        assert hasattr(stocktrim_client, "bill_of_materials")
+        assert stocktrim_client.bill_of_materials is not None
+
+    def test_new_helpers_have_methods(self, stocktrim_client):
+        """Test new helpers have expected core methods."""
+        # OrderPlan
+        assert hasattr(stocktrim_client.order_plan, "query")
+        assert hasattr(stocktrim_client.order_plan, "get_urgent_items")
+        assert hasattr(stocktrim_client.order_plan, "get_by_supplier")
+        assert hasattr(stocktrim_client.order_plan, "get_by_category")
+
+        # PurchaseOrdersV2
+        assert hasattr(stocktrim_client.purchase_orders_v2, "generate_from_order_plan")
+        assert hasattr(stocktrim_client.purchase_orders_v2, "get_all_paginated")
+        assert hasattr(stocktrim_client.purchase_orders_v2, "get_by_reference")
+        assert hasattr(stocktrim_client.purchase_orders_v2, "find_by_supplier")
+
+        # Forecasting
+        assert hasattr(stocktrim_client.forecasting, "run_calculations")
+        assert hasattr(stocktrim_client.forecasting, "get_processing_status")
+        assert hasattr(stocktrim_client.forecasting, "wait_for_completion")
+
+        # BillOfMaterials
+        assert hasattr(stocktrim_client.bill_of_materials, "get")
+        assert hasattr(stocktrim_client.bill_of_materials, "create")
+        assert hasattr(stocktrim_client.bill_of_materials, "delete")
+        assert hasattr(stocktrim_client.bill_of_materials, "get_for_product")
+        assert hasattr(stocktrim_client.bill_of_materials, "get_uses_of_component")
+
+    def test_new_helpers_lazy_loaded(self, stocktrim_client):
+        """Test that new helpers are lazy-loaded."""
+        # OrderPlan
+        order_plan1 = stocktrim_client.order_plan
+        order_plan2 = stocktrim_client.order_plan
+        assert order_plan1 is order_plan2
+
+        # PurchaseOrdersV2
+        po_v2_1 = stocktrim_client.purchase_orders_v2
+        po_v2_2 = stocktrim_client.purchase_orders_v2
+        assert po_v2_1 is po_v2_2
+
+        # Forecasting
+        forecasting1 = stocktrim_client.forecasting
+        forecasting2 = stocktrim_client.forecasting
+        assert forecasting1 is forecasting2
+
+        # BillOfMaterials
+        bom1 = stocktrim_client.bill_of_materials
+        bom2 = stocktrim_client.bill_of_materials
+        assert bom1 is bom2
