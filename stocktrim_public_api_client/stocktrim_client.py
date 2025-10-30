@@ -29,11 +29,15 @@ except ImportError:
     ProblemDetails = None  # type: ignore[assignment]
 
 if TYPE_CHECKING:
+    from .helpers.bill_of_materials import BillOfMaterials
     from .helpers.customers import Customers
+    from .helpers.forecasting import Forecasting
     from .helpers.inventory import Inventory
     from .helpers.locations import Locations
+    from .helpers.order_plan import OrderPlan
     from .helpers.products import Products
     from .helpers.purchase_orders import PurchaseOrders
+    from .helpers.purchase_orders_v2 import PurchaseOrdersV2
     from .helpers.sales_orders import SalesOrders
     from .helpers.suppliers import Suppliers
 
@@ -547,6 +551,42 @@ class StockTrimClient(AuthenticatedClient):
 
             self._locations = Locations(self)
         return self._locations
+
+    @property
+    def order_plan(self) -> "OrderPlan":
+        """Access the OrderPlan helper for forecast and demand planning operations."""
+        if not hasattr(self, "_order_plan"):
+            from .helpers.order_plan import OrderPlan
+
+            self._order_plan = OrderPlan(self)
+        return self._order_plan
+
+    @property
+    def purchase_orders_v2(self) -> "PurchaseOrdersV2":
+        """Access the PurchaseOrdersV2 helper for V2 purchase order operations (recommended over V1)."""
+        if not hasattr(self, "_purchase_orders_v2"):
+            from .helpers.purchase_orders_v2 import PurchaseOrdersV2
+
+            self._purchase_orders_v2 = PurchaseOrdersV2(self)
+        return self._purchase_orders_v2
+
+    @property
+    def forecasting(self) -> "Forecasting":
+        """Access the Forecasting helper for forecast management and processing status."""
+        if not hasattr(self, "_forecasting"):
+            from .helpers.forecasting import Forecasting
+
+            self._forecasting = Forecasting(self)
+        return self._forecasting
+
+    @property
+    def bill_of_materials(self) -> "BillOfMaterials":
+        """Access the BillOfMaterials helper for BOM management."""
+        if not hasattr(self, "_bill_of_materials"):
+            from .helpers.bill_of_materials import BillOfMaterials
+
+            self._bill_of_materials = BillOfMaterials(self)
+        return self._bill_of_materials
 
     async def _log_response_metrics(self, response: httpx.Response) -> None:
         """Log response metrics for observability."""
