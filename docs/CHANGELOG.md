@@ -2,6 +2,361 @@
 
 <!-- version list -->
 
+## v0.3.0 (2025-10-31)
+
+### Bug Fixes
+
+- Disable Bearer token prefix to prevent malformed Authorization header
+  ([#31](https://github.com/dougborg/stocktrim-openapi-client/pull/31),
+  [`c7498fa`](https://github.com/dougborg/stocktrim-openapi-client/commit/c7498fad639ce61496d71bd9f6f4e3cb8fee12e2))
+
+* fix: disable Bearer token prefix to prevent malformed Authorization header
+
+StockTrim uses custom auth headers (api-auth-id, api-auth-signature) instead of the
+standard Authorization Bearer token. Passing prefix='' to the parent AuthenticatedClient
+prevents it from adding 'Authorization: Bearer ' header.
+
+Fixes 'Illegal header value b"Bearer "' error when connecting to StockTrim API.
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+
+- refactor: use AuthenticatedClient's native auth_header_name for api-auth-id
+
+Improved StockTrim authentication to leverage AuthenticatedClient's built-in header
+customization instead of workarounds:
+
+- Set `auth_header_name="api-auth-id"` to use native header customization - Pass actual
+  `api_auth_id` value as `token` parameter - Simplified AuthHeaderTransport to only
+  handle `api-auth-signature` - Removed `api_auth_id` parameter from
+  `create_resilient_transport()`
+
+This approach is cleaner and more idiomatic than the previous solution that used an
+empty token with an empty prefix. It leverages the generated client's built-in
+capabilities while maintaining our custom transport for the signature header.
+
+Benefits: - No malformed Authorization headers - Uses built-in mechanisms (cleaner, more
+maintainable) - Clear separation: static header via client, dynamic header via transport
+\- Less custom code to maintain
+
+All tests pass (48/48).
+
+______________________________________________________________________
+
+Co-authored-by: Doug Borg <dougborg@apple.com>
+
+Co-authored-by: Claude <noreply@anthropic.com>
+
+- Use SEMANTIC_RELEASE_TOKEN to bypass branch protection in release workflow
+  ([`f3c09e5`](https://github.com/dougborg/stocktrim-openapi-client/commit/f3c09e5c818348df7bdc0e16ba0ec8f8559a6ff0))
+
+The release workflow was failing because repository branch protection rules require all
+changes to main go through pull requests. The semantic-release action needs to push
+version bump commits directly to main.
+
+Changes: - Updated checkout action to use SEMANTIC_RELEASE_TOKEN instead of GITHUB_TOKEN
+\- Updated python-semantic-release action to use SEMANTIC_RELEASE_TOKEN
+
+This matches the pattern used in katana-openapi-client and allows the release automation
+to bypass branch protection rules with a personal access token.
+
+Note: The SEMANTIC_RELEASE_TOKEN secret must be configured in repository
+
+settings with a personal access token that has repo permissions.
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+
+### Build System
+
+- **deps**: Bump mdformat from 0.7.22 to 1.0.0
+  ([#24](https://github.com/dougborg/stocktrim-openapi-client/pull/24),
+  [`b7a992a`](https://github.com/dougborg/stocktrim-openapi-client/commit/b7a992a016ba4b09bcb5ddd9b49f9573577b2aaf))
+
+Bumps [mdformat](https://github.com/hukkin/mdformat) from 0.7.22 to 1.0.0. -
+[Commits](https://github.com/hukkin/mdformat/compare/0.7.22...1.0.0)
+
+--- updated-dependencies: - dependency-name: mdformat dependency-version: 1.0.0
+
+dependency-type: direct:production
+
+update-type: version-update:semver-major
+
+...
+
+Signed-off-by: dependabot[bot] <support@github.com>
+
+Co-authored-by: dependabot[bot] \<49699333+dependabot[bot]@users.noreply.github.com>
+
+- **deps**: Bump ty from 0.0.1a24 to 0.0.1a25
+  ([#23](https://github.com/dougborg/stocktrim-openapi-client/pull/23),
+  [`a21794f`](https://github.com/dougborg/stocktrim-openapi-client/commit/a21794fff03a0d195e56125ea42696a23d76290f))
+
+Bumps [ty](https://github.com/astral-sh/ty) from 0.0.1a24 to 0.0.1a25. -
+[Release notes](https://github.com/astral-sh/ty/releases) -
+[Changelog](https://github.com/astral-sh/ty/blob/main/CHANGELOG.md) -
+[Commits](https://github.com/astral-sh/ty/compare/0.0.1-alpha.24...0.0.1-alpha.25)
+
+--- updated-dependencies: - dependency-name: ty dependency-version: 0.0.1a25
+
+dependency-type: direct:production
+
+update-type: version-update:semver-patch
+
+...
+
+Signed-off-by: dependabot[bot] <support@github.com>
+
+Co-authored-by: dependabot[bot] \<49699333+dependabot[bot]@users.noreply.github.com>
+
+### Documentation
+
+- Comprehensive documentation cleanup and consolidation
+  ([`f7ba132`](https://github.com/dougborg/stocktrim-openapi-client/commit/f7ba132bfe35ccdc10c0237e6d22fd20baf80f90))
+
+## Deleted Files - MIGRATION_PROGRESS.md - Migration complete, no longer needed -
+
+docs/POETRY_USAGE.md - Outdated (project uses UV) - docs/STOCKTRIM_CLIENT_GUIDE.md -
+Duplicate of docs/user-guide/client-guide.md - docs/TESTING_GUIDE.md - Duplicate of
+docs/user-guide/testing.md
+
+- docs/HELPER_CONVENIENCE_METHODS.md - Duplicate of docs/user-guide/helper-methods.md -
+  docs/CODE_OF_CONDUCT.md - Duplicate of docs/contributing/code-of-conduct.md
+
+## Consolidated Files - STOCKTRIM_API_FEEDBACK.md → docs/contributing/api-feedback.md
+
+## Fixed Base URLs Changed all instances from app.stocktrim.com to api.stocktrim.com: - README.md (2
+
+instances) - stocktrim_mcp_server/README.md (2 instances) - docs/mcp-server/overview.md
+(2 instances)
+
+## Fixed Method Names Changed list_all() to get_all() throughout: - docs/index.md -
+
+docs/getting-started/quickstart.md
+
+## Updated Poetry to UV Replaced all poetry commands with uv equivalents: -
+
+docs/user-guide/client-guide.md - docs/user-guide/testing.md -
+.github/pull_request_template.md
+
+## Fixed Documentation Links - Updated all internal links to point to docs/user-guide/ files -
+
+Updated README.md to reference correct documentation locations - Fixed code of conduct
+link
+
+## Minor Improvements - Added CHANGELOG.md to mkdocs.yml navigation - Fixed UV installation
+
+instructions to use official installer - Removed duplicate files
+
+All documentation now uses correct base URLs, method names, and UV commands.
+Documentation builds successfully with no errors.
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+
+- Enhance copilot instructions with testing patterns and update tasks to UV
+  ([`aa71406`](https://github.com/dougborg/stocktrim-openapi-client/commit/aa71406896ec09f2dff73dfed144e0e3ef111bb1))
+
+- Add comprehensive testing patterns section with 5 common fixtures and examples -
+  Document critical idempotent find_or_create() helper pattern - Expand helper
+  architecture details with code examples
+
+  - Add MCP server documentation references - Update .vscode/tasks.json to use UV
+    instead of Poetry
+  - Remove outdated Poetry warning (tasks now corrected) - Enhance error handling and
+    transport layer documentation
+
+### Features
+
+- Implement Phase 2B workflow tools for product and forecast management
+  ([#28](https://github.com/dougborg/stocktrim-openapi-client/pull/28),
+  [`c393bfb`](https://github.com/dougborg/stocktrim-openapi-client/commit/c393bfb27f85420c40c9dd4d7596fc4b23f2949b))
+
+* Initial plan
+
+* feat: implement four Phase 2B workflow tools for product and forecast management
+
+Co-authored-by: dougborg <1261222+dougborg@users.noreply.github.com>
+
+- test: add comprehensive tests for Phase 2B workflow tools
+
+- chore: update test and linting configuration for MCP server
+
+- fix: remove unused imports and format code with ruff
+
+- fix: address ruff linting errors in Phase 2B workflow tools
+
+Fixed 3 ruff linting errors: - RUF005: Use unpacking syntax for list concatenation in
+supplier_onboarding.py - B017: Use ValueError instead of blind Exception in
+test_forecast_management.py (2 occurrences)
+
+Generated with [Claude Code](https://claude.com/claude-code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+
+- fix: correct API model field names for Phase 2B workflow tools
+
+Fixed type errors by using correct field names from generated API models: - Changed
+supplier_id to id in SupplierResponseDto usage - Removed is_active field from
+SupplierRequestDto (not in API) - Added null checks before accessing error field in
+tests
+
+- fix: correct API model field names in Phase 1 foundation tools
+
+Fixed type errors in Phase 1 foundation tools by using correct field names: -
+locations.py: Changed code/name/is_active to location_code/location_name - products.py:
+Changed code/description/cost_price/selling_price to
+product_id/product_code_readable/name/cost/price
+
+These errors existed on main but weren't caught by CI previously.
+
+- fix: correct import paths and model names in Phase 1 tools
+
+Fixed type errors in Phase 1 tools: - inventory.py: Changed client_types import from
+.generated to direct import - suppliers.py: Changed SupplierDto to SupplierRequestDto
+with correct field names
+
+- fix: remove unsupported category field from OrderPlanFilterCriteriaDto
+
+Removed category parameter from filter criteria as it's not supported by the API model.
+Only location_codes and supplier_codes are valid filter fields.
+
+This error existed from Phase 2A but wasn't caught by CI previously.
+
+- fix: exclude MCP server from ty type checking to avoid external dependency issues
+
+Reverted the addition of MCP server paths to ty configuration. The MCP server imports
+fastmcp which isn't resolved by ty, causing false positive unresolved-import errors that
+block CI.
+
+The MCP server code is still checked by ruff and pytest, just not by ty.
+
+- fix: exclude MCP server tests from main project test suite
+
+Removed MCP server from pytest testpaths and coverage configuration. The MCP server is a
+separate package and should be tested independently.
+
+This fixes ModuleNotFoundError when running tests, as the MCP server package isn't
+installed in the main project's test environment.
+
+______________________________________________________________________
+
+Co-authored-by: copilot-swe-agent[bot] <198982749+Copilot@users.noreply.github.com>
+
+Co-authored-by: Doug Borg <dougborg@apple.com>
+
+Co-authored-by: Claude <noreply@anthropic.com>
+
+- Implement urgent order management workflow tools for MCP Server Phase 2
+  ([#26](https://github.com/dougborg/stocktrim-openapi-client/pull/26),
+  [`ded40bb`](https://github.com/dougborg/stocktrim-openapi-client/commit/ded40bb7cc03e2d5f652f0ff10bec4549747c82b))
+
+* Initial plan
+
+* feat: implement urgent order management workflow tools
+
+- Create workflows directory structure - Add review_urgent_order_requirements tool - Add
+  generate_purchase_orders_from_urgent_items tool - Register workflow tools in main
+  tools module - All tests pass, linting passes
+
+Co-authored-by: dougborg <1261222+dougborg@users.noreply.github.com>
+
+- refactor: optimize supplier lookup and clarify days_threshold usage
+
+* Fix N+1 query pattern by batch fetching products for supplier mapping - Add clarifying
+  comments about days_threshold in generate_purchase_orders - Update docstring to
+  explain V2 API behavior - All tests pass, linting passes
+
+- docs: improve documentation for API limitations and performance
+
+* Add early return for empty urgent items list - Clarify batch fetch limitations in
+  comments - Update GeneratePurchaseOrdersRequest docstring with clear explanation -
+  Document that days_threshold is for API consistency - All tests pass, linting passes
+
+______________________________________________________________________
+
+Co-authored-by: copilot-swe-agent[bot] <198982749+Copilot@users.noreply.github.com>
+
+- Phase 1 Foundation Expansion for MCP Server 2.0
+  ([#22](https://github.com/dougborg/stocktrim-openapi-client/pull/22),
+  [`17cafee`](https://github.com/dougborg/stocktrim-openapi-client/commit/17cafee2e9e13a4683580e36f604bbb1a1365a70))
+
+* feat: add Phase 1A foundation helper classes to client library
+
+Add four new helper classes to support advanced inventory management workflows:
+
+- OrderPlan: Query forecasts and order plan data with filtering capabilities \*
+  get_urgent_items() - Find items needing urgent reordering * get_by_supplier() - Filter
+  by supplier * get_by_category()
+
+  - Filter by category
+
+- PurchaseOrdersV2: V2 Purchase Orders API with auto-generation feature \*
+  generate_from_order_plan()
+
+  - Auto-generate POs from forecast recommendations * get_all_paginated() - List with
+    pagination support * find_by_supplier() - Filter by supplier
+
+- Forecasting: Trigger and monitor forecast calculations * run_calculations() - Trigger
+  forecast recalculation * wait_for_completion() - Wait for calculation to finish with
+  polling
+
+- BillOfMaterials: Manage product component relationships * Full CRUD operations (get,
+  create, delete) * get_for_product() - Get all components for a product \*
+  get_uses_of_component() - Find where a component is used
+
+All helpers follow the existing lazy-loading pattern and include comprehensive tests.
+This work is part of Phase 1 (Foundation Expansion) for MCP Server 2.0.
+
+Related: #17, #18
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+
+- feat: add Phase 1B foundation MCP tools
+
+Reorganize and expand MCP server tools with new foundation layer:
+
+**Tool Organization:** - Created tools/foundation/ directory for low-level API
+operations - Moved existing tools (products, customers, inventory) to foundation/ -
+Updated tool registration to support modular architecture
+
+**Enhanced Tools:** - products: Added create_product() and delete_product() operations -
+inventory: Retained set_product_inventory() (no GET endpoint in API)
+
+**New Foundation Tools:** - suppliers: get, list, create, delete operations - locations:
+list and create operations - purchase_orders: get, list, delete operations (V1 API)
+
+**Tool Count:** 15 foundation tools total - Products: 4 tools (get, search, create,
+delete) - Customers: 3 tools (get, list, ensure_exists) - Inventory: 1 tool (set) -
+Suppliers: 4 tools (get, list, create, delete) - Locations: 2 tools (list, create) -
+Purchase Orders: 3 tools (get, list, delete)
+
+All tools follow FastMCP patterns with proper error handling, logging, and Pydantic
+models. This work is part of Phase 1 (Foundation Expansion) for MCP Server 2.0.
+
+- fix: address Copilot PR review comments
+
+* Move time import to module level in forecasting.py - Add performance warning to
+  find_by_supplier() docstring about client-side filtering
+
+- fix: address remaining Copilot review comments
+
+* Fix locations.create() to pass single LocationRequestDto instead of list - Fix
+  products.create() to pass single ProductsRequestDto instead of list - Enhance
+  performance warning in find_by_supplier() about lack of server-side filtering - Add
+  missing test dependencies to pyproject.toml
+
+______________________________________________________________________
+
+Co-authored-by: Doug Borg <dougborg@apple.com>
+
+Co-authored-by: Claude <noreply@anthropic.com>
+
 ## v0.2.5 (2025-10-29)
 
 ### Bug Fixes
