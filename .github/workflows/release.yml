@@ -77,8 +77,9 @@ jobs:
           mkdir -p client-dist
           cp dist/*.whl dist/*.tar.gz client-dist/
 
-      - name: Update MCP server dependency and build
+      - name: Update MCP server version
         if: steps.release.outputs.released == 'true'
+        id: update_mcp
         run: |
           # Update MCP server to depend on the new client version
           CLIENT_VERSION="${{ steps.release.outputs.version }}"
@@ -92,6 +93,7 @@ jobs:
           import tomllib  # Python 3.11+ built-in
           import tomli_w
           import sys
+          import os
 
           client_version = sys.argv[1]
 
@@ -120,24 +122,27 @@ jobs:
           with open('stocktrim_mcp_server/pyproject.toml', 'wb') as f:
               tomli_w.dump(data, f)
 
-          # Use modern GitHub Actions output syntax
-          import os
+          # Write to GitHub Actions output
           with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
               f.write(f'mcp_version={new_version}\n')
           EOF
 
           # Run the update script
-          MCP_VERSION=$(uv run python update_mcp_version.py "$CLIENT_VERSION" | grep -oP 'Updated MCP server to version \K[0-9.]+')
-          echo "MCP server version: $MCP_VERSION"
+          uv run python update_mcp_version.py "$CLIENT_VERSION"
 
-          # Commit the MCP version bump
+      - name: Commit and push MCP version bump
+        if: steps.release.outputs.released == 'true'
+        run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add stocktrim_mcp_server/pyproject.toml
-          git commit -m "chore(mcp): bump version to $MCP_VERSION with client $CLIENT_VERSION"
+          # Only commit if there are changes to avoid errors on re-runs
+          git diff --cached --quiet || git commit -m "chore(mcp): bump version to ${{ steps.update_mcp.outputs.mcp_version }} with client ${{ steps.release.outputs.version }}"
           git push
 
-          # Clean and build MCP server
+      - name: Build MCP server package
+        if: steps.release.outputs.released == 'true'
+        run: |
           rm -rf dist/
           uv build --package stocktrim-mcp-server
           mkdir -p mcp-dist
