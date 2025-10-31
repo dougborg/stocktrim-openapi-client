@@ -2,6 +2,65 @@
 
 <!-- version list -->
 
+## v0.4.0 (2025-10-31)
+
+### Bug Fixes
+
+- **release**: Commit MCP version bumps and use modern GitHub Actions output
+  ([`175a50d`](https://github.com/dougborg/stocktrim-openapi-client/commit/175a50d93bd374d445daf596d2e74b93f7e25293))
+
+Fixes two issues in the MCP server release process:
+
+1. MCP version bumps are now committed to git before building, preventing duplicate
+   version errors on PyPI. Previously the version was only updated locally during the
+   build, so every release tried to publish the same version.
+
+1. Replaced deprecated ::set-output command with modern $GITHUB_OUTPUT environment file
+   syntax.
+
+Changes: - Git commit added after MCP version bump (with proper bot credentials) - Push
+MCP version commit before building - Updated Python script to use GITHUB_OUTPUT file
+instead of ::set-output
+
+This ensures each MCP server release gets a unique, incremented version number that's
+tracked in git.
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+
+### Features
+
+- Add defensive guard for GITHUB_OUTPUT environment variable
+  ([`32a3b05`](https://github.com/dougborg/stocktrim-openapi-client/commit/32a3b05021de7f51072a9d49d5f8c02caab7b9b1))
+
+Add null check for GITHUB_OUTPUT before writing to it, making the script more robust for
+local testing scenarios.
+
+While GITHUB_OUTPUT is always set in GitHub Actions workflows, this defensive check
+follows best practices and prevents potential issues in non-standard environments.
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+
+### Refactoring
+
+- Split MCP version update into separate steps and add error handling
+  ([`319cc34`](https://github.com/dougborg/stocktrim-openapi-client/commit/319cc343fddc3037ce5ccab3e135b28975c41be2))
+
+Addresses Copilot review feedback:
+
+1. Split version update into separate steps: - "Update MCP server version" - runs Python
+   script and sets output - "Commit and push MCP version bump" - commits the changes -
+   "Build MCP server package" - builds the package This allows proper use of GitHub
+   Actions outputs instead of parsing stdout with grep (which is not portable due to -P
+   flag).
+
+1. Add error handling for git commit: - Use `git diff --cached --quiet ||` to only
+   commit when changes exist - Prevents workflow failures on re-runs or when version
+   hasn't changed
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+
 ## v0.3.0 (2025-10-31)
 
 ### Bug Fixes
