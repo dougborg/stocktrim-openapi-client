@@ -49,6 +49,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          token: ${{ secrets.SEMANTIC_RELEASE_TOKEN }}
 
       - name: Install UV
         uses: astral-sh/setup-uv@v4
@@ -66,7 +67,7 @@ jobs:
         id: release
         uses: python-semantic-release/python-semantic-release@v9.15.2
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          github_token: ${{ secrets.SEMANTIC_RELEASE_TOKEN }}
           root_options: -vv
 
       - name: Build client package
