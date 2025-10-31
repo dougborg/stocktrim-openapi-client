@@ -208,15 +208,16 @@ class ErrorLoggingTransport(AsyncHTTPTransport):
 
 class AuthHeaderTransport(AsyncHTTPTransport):
     """
-    Transport layer that adds StockTrim-specific authentication headers.
+    Transport layer that adds the StockTrim api-auth-signature header.
 
     StockTrim uses custom headers (api-auth-id, api-auth-signature) instead of
-    Bearer token authentication.
+    Bearer token authentication. The api-auth-id header is set by the parent
+    AuthenticatedClient using its native auth_header_name customization, while
+    this transport adds the api-auth-signature header.
     """
 
     def __init__(
         self,
-        api_auth_id: str,
         api_auth_signature: str,
         wrapped_transport: AsyncHTTPTransport | None = None,
         **kwargs: Any,
@@ -225,7 +226,6 @@ class AuthHeaderTransport(AsyncHTTPTransport):
         Initialize the auth header transport.
 
         Args:
-            api_auth_id: StockTrim API authentication ID
             api_auth_signature: StockTrim API authentication signature
             wrapped_transport: The transport to wrap. If None, creates a new AsyncHTTPTransport.
             **kwargs: Additional arguments passed to AsyncHTTPTransport if wrapped_transport is None.
@@ -234,18 +234,15 @@ class AuthHeaderTransport(AsyncHTTPTransport):
         if wrapped_transport is None:
             wrapped_transport = AsyncHTTPTransport(**kwargs)
         self._wrapped_transport = wrapped_transport
-        self.api_auth_id = api_auth_id
         self.api_auth_signature = api_auth_signature
 
     async def handle_async_request(self, request: httpx.Request) -> httpx.Response:
-        """Add StockTrim authentication headers to the request."""
-        request.headers["api-auth-id"] = self.api_auth_id
+        """Add StockTrim api-auth-signature header to the request."""
         request.headers["api-auth-signature"] = self.api_auth_signature
         return await self._wrapped_transport.handle_async_request(request)
 
 
 def create_resilient_transport(
-    api_auth_id: str,
     api_auth_signature: str,
     max_retries: int = 5,
     logger: logging.Logger | None = None,
@@ -256,12 +253,15 @@ def create_resilient_transport(
 
     This function chains multiple transport layers:
     1. AsyncHTTPTransport (base HTTP transport)
-    2. AuthHeaderTransport (adds StockTrim custom auth headers)
+    2. AuthHeaderTransport (adds StockTrim api-auth-signature header)
     3. ErrorLoggingTransport (logs detailed 4xx errors)
     4. RetryTransport (handles retries for 5xx errors on idempotent methods only)
 
+    Note: The api-auth-id header is set by the parent AuthenticatedClient using
+    its native auth_header_name customization. This transport only adds the
+    api-auth-signature header.
+
     Args:
-        api_auth_id: StockTrim API authentication ID
         api_auth_signature: StockTrim API authentication signature
         max_retries: Maximum number of retry attempts for failed requests. Defaults to 5.
         logger: Logger instance for capturing operations. If None, creates a default logger.
@@ -285,7 +285,6 @@ def create_resilient_transport(
     Example:
         ```python
         transport = create_resilient_transport(
-            api_auth_id="your-id",
             api_auth_signature="your-signature",
             max_retries=3,
         )
@@ -302,9 +301,9 @@ def create_resilient_transport(
     # 1. Base AsyncHTTPTransport
     base_transport = AsyncHTTPTransport(**kwargs)
 
-    # 2. Wrap with StockTrim custom auth headers
+    # 2. Wrap with StockTrim api-auth-signature header
+    # Note: api-auth-id is handled by AuthenticatedClient's native mechanism
     auth_transport = AuthHeaderTransport(
-        api_auth_id=api_auth_id,
         api_auth_signature=api_auth_signature,
         wrapped_transport=base_transport,
     )
@@ -464,8 +463,9 @@ class StockTrimClient(AuthenticatedClient):
                 event_hooks[event] = hook_list
 
         # Create resilient transport with all the layers
+        # Note: This transport only adds the api-auth-signature header.
+        # The api-auth-id header is added by AuthenticatedClient's native mechanism.
         transport = create_resilient_transport(
-            api_auth_id=api_auth_id,
             api_auth_signature=api_auth_signature,
             max_retries=max_retries,
             logger=self.logger,
@@ -473,12 +473,15 @@ class StockTrimClient(AuthenticatedClient):
         )
 
         # Initialize parent with resilient transport
-        # Note: We pass empty token and prefix to disable the default Authorization header
-        # since StockTrim uses custom api-auth-id and api-auth-signature headers instead
+        # Use AuthenticatedClient's native customization to add the api-auth-id header:
+        # - token: the API auth ID value
+        # - auth_header_name: "api-auth-id" (StockTrim's custom header name)
+        # - prefix: "" (no prefix like "Bearer")
         super().__init__(
             base_url=base_url,
-            token="",  # StockTrim uses custom headers, not bearer token
-            prefix="",  # Disable "Bearer " prefix to avoid malformed Authorization header
+            token=api_auth_id,  # Use the auth ID as the token value
+            auth_header_name="api-auth-id",  # StockTrim's custom header name
+            prefix="",  # No prefix (disables "Bearer ")
             timeout=httpx.Timeout(timeout),
             httpx_args={
                 "transport": transport,
