@@ -165,7 +165,7 @@ async def _create_supplier_with_products_impl(
                 )
 
                 # Add new mapping to existing suppliers
-                updated_suppliers = list(existing_suppliers) + [new_supplier_mapping]
+                updated_suppliers = [*list(existing_suppliers), new_supplier_mapping]
 
                 # Update product with new supplier mapping
                 update_data = ProductsRequestDto(

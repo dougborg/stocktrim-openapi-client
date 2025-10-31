@@ -154,14 +154,14 @@ async def test_update_forecast_settings_product_not_found(mock_context):
 async def test_update_forecast_settings_validation():
     """Test request model validation."""
     # Negative values should fail validation
-    with pytest.raises(Exception):  # Pydantic ValidationError
+    with pytest.raises(ValueError):  # Pydantic ValidationError
         UpdateForecastSettingsRequest(
             product_code="WIDGET-001",
             lead_time_days=-5,
         )
 
     # Service level > 100 should fail
-    with pytest.raises(Exception):  # Pydantic ValidationError
+    with pytest.raises(ValueError):  # Pydantic ValidationError
         UpdateForecastSettingsRequest(
             product_code="WIDGET-001",
             service_level=150.0,
