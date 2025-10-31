@@ -76,7 +76,7 @@ allowed_tags = [
 ]
 minor_tags = ["feat"]
 patch_tags = ["fix", "perf"]
-# Note: Commits are filtered at the workflow level (not here) to only run semantic-release
-# when there are (mcp) scoped commits. Semantic-release itself doesn't support scope filtering.
-# default_bump_level = 0 means commits without feat/fix/perf tags won't trigger releases.
+# Note: The workflow runs semantic-release when there are (mcp) scoped commits OR when the client is released.
+# Semantic-release itself processes all commits in the range, but default_bump_level = 0 means
+# commits without feat/fix/perf tags won't trigger version bumps.
 default_bump_level = 0

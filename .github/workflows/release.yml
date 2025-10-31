@@ -69,7 +69,9 @@ jobs:
         id: check
         run: |
           # Check if there are any commits with (client) scope or no scope since last client release
-          if git log $(git describe --tags --abbrev=0 --match="client-v*" 2>/dev/null || echo "HEAD~10")..HEAD --pretty=format:"%s" | grep -qE '^(feat|fix|perf)(\(client\))?:'; then
+          # Pattern explicitly matches: feat/fix/perf with no scope OR (client) scope
+          # Excludes (mcp) and other scopes to prevent incorrect triggers
+          if git log $(git describe --tags --abbrev=0 --match="client-v*" 2>/dev/null || echo "HEAD~10")..HEAD --pretty=format:"%s" | grep -qE '^(feat|fix|perf)(:|\\(client\\):)'; then
             echo "has_changes=true" >> $GITHUB_OUTPUT
           else
             echo "has_changes=false" >> $GITHUB_OUTPUT
@@ -135,6 +137,9 @@ jobs:
         run: |
           # Check if there are any commits with (mcp) scope since last mcp release
           # This workflow-level check determines if semantic-release should even run
+          # NOTE: This regex is intentionally strict—only MCP-scoped commits (e.g., feat(mcp):, fix(mcp):, perf(mcp):)
+          # will trigger an MCP release. This is consistent with the documented release strategy:
+          # MCP releases are triggered by MCP-only changes, or when the client is released (checked separately below).
           if git log $(git describe --tags --abbrev=0 --match="mcp-v*" 2>/dev/null || echo "HEAD~10")..HEAD --pretty=format:"%s" | grep -qE '^(feat|fix|perf)\(mcp\):'; then
             has_mcp_changes=true
           else
@@ -191,6 +196,8 @@ jobs:
           uv run python update_client_dep.py "${{ needs.release-client.outputs.version }}"
 
           # Commit the dependency update
+          # Note: This chore(mcp) commit won't itself trigger a version bump (default_bump_level=0 for chore commits)
+          # The subsequent semantic-release step will pick up this change and include it in the release
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add stocktrim_mcp_server/pyproject.toml
