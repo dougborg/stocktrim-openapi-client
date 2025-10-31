@@ -162,7 +162,8 @@ addopts = [
   "--strict-config",
   "--timeout=30",     # 30 second timeout for tests
 ]
-testpaths = ["tests", "stocktrim_mcp_server/tests"]
+testpaths = ["tests"]
+# Note: MCP server tests are excluded - they should be run separately in the MCP server's own test suite
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
 markers = [
@@ -174,8 +175,9 @@ markers = [
 ]
 
 [tool.coverage.run]
-source = ["stocktrim_public_api_client", "stocktrim_mcp_server"]
+source = ["stocktrim_public_api_client"]
 omit = ["*/tests/*", "*/test_*", "*/conftest.py"]
+# Note: MCP server coverage is handled separately
 
 [tool.coverage.report]
 exclude_lines = [
