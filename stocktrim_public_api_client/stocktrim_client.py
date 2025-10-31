@@ -473,9 +473,12 @@ class StockTrimClient(AuthenticatedClient):
         )
 
         # Initialize parent with resilient transport
+        # Note: We pass empty token and prefix to disable the default Authorization header
+        # since StockTrim uses custom api-auth-id and api-auth-signature headers instead
         super().__init__(
             base_url=base_url,
             token="",  # StockTrim uses custom headers, not bearer token
+            prefix="",  # Disable "Bearer " prefix to avoid malformed Authorization header
             timeout=httpx.Timeout(timeout),
             httpx_args={
                 "transport": transport,
