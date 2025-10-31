@@ -241,16 +241,14 @@ async def _create_supplier_impl(
         server_context = context.request_context.lifespan_context
         client = server_context.client
 
-        # Import SupplierDto from generated models
-        from stocktrim_public_api_client.generated.models import SupplierDto
+        # Import SupplierRequestDto from generated models
+        from stocktrim_public_api_client.generated.models import SupplierRequestDto
 
         # Create supplier DTO
-        supplier_dto = SupplierDto(
-            code=request.code,
-            name=request.name,
-            email=request.email,
-            phone=request.phone,
-            is_active=request.is_active,
+        supplier_dto = SupplierRequestDto(
+            supplier_code=request.code,
+            supplier_name=request.name,
+            email_address=request.email,
         )
 
         # Create supplier using create_one method

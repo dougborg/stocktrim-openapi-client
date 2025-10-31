@@ -61,7 +61,7 @@ async def _set_product_inventory_impl(
         client = server_context.client
 
         # Use the set_for_product convenience method
-        from stocktrim_public_api_client.generated.client_types import UNSET
+        from stocktrim_public_api_client.client_types import UNSET
 
         await client.inventory.set_for_product(
             product_id=request.product_id,
