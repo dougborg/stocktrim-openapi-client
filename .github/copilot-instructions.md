@@ -260,8 +260,9 @@ Based on the OpenAPI spec, main endpoints include:
 
 ## Conventional Commits (REQUIRED)
 
-This project uses semantic-release for automated versioning. Follow these commit message
-conventions:
+This project uses semantic-release for automated versioning with **separate releases**
+for client and MCP server packages. Commit message scopes determine which packages are
+released.
 
 ### Commit Types
 
@@ -275,19 +276,82 @@ conventions:
 - **`chore:`** - Build/tooling changes (patch bump)
 - **`ci:`** - CI/CD changes (patch bump)
 
-### Examples
+### Commit Scopes for Multi-Package Releases
+
+**IMPORTANT**: This monorepo has two packages that release independently based on commit
+scope:
+
+#### No Scope or `(client)` Scope → Releases CLIENT + MCP
+
+Changes to the OpenAPI client trigger both package releases:
 
 ```bash
-# ✅ Good commit messages
+# These release BOTH packages:
 git commit -m "feat: add retry logic for network failures"
 git commit -m "fix: handle missing authentication headers"
-git commit -m "docs: update API usage examples"
-git commit -m "refactor: simplify transport error handling"
+git commit -m "feat(client): add new Products helper method"
+git commit -m "fix(client): correct transport error handling"
+```
+
+**Why both?** When the client changes, the MCP server automatically picks up the new
+client version and releases to keep them in sync.
+
+#### `(mcp)` Scope → Releases MCP ONLY
+
+Changes only to the MCP server:
+
+```bash
+# These release ONLY the MCP server:
+git commit -m "feat(mcp): add purchase order generation tool"
+git commit -m "fix(mcp): correct forecast data parsing"
+git commit -m "docs(mcp): update tool documentation"
+```
+
+### Automatic Release Behavior
+
+1. **Client changes** (`feat:`, `fix:`, `feat(client):`, etc.)
+
+   - ✅ Releases `stocktrim-openapi-client` with new version
+   - ✅ Automatically releases `stocktrim-mcp-server` with updated client dependency
+   - Creates tags: `client-v*` and `mcp-v*`
+
+1. **MCP-only changes** (`feat(mcp):`, `fix(mcp):`, etc.)
+
+   - ✅ Releases `stocktrim-mcp-server` only
+   - ❌ Does NOT release client
+   - Creates tag: `mcp-v*`
+
+1. **Documentation/CI changes** (`docs:`, `ci:`, etc.)
+
+   - Depends on content - if in client code → client release
+   - If in MCP server code → use `(mcp)` scope
+
+### Commit Message Examples
+
+```bash
+# ✅ Client changes (releases both packages)
+git commit -m "feat: add forecast API support"
+git commit -m "fix: handle 401 authentication errors correctly"
+git commit -m "refactor(client): simplify transport layer"
+
+# ✅ MCP server changes (releases MCP only)
+git commit -m "feat(mcp): add urgent order review workflow"
+git commit -m "fix(mcp): correct product search pagination"
+git commit -m "docs(mcp): update Claude Desktop setup guide"
+
+# ✅ Multiple changes (releases both)
+git commit -m "feat(client): add new Forecasts helper
+
+Add Forecasts helper class with methods for accessing
+order plans and forecast data.
+
+Also update MCP server to expose these via tools."
 
 # ❌ Bad commit messages
-git commit -m "update code"           # Too vague, no type
-git commit -m "feat add retries"      # Missing colon
-git commit -m "new: add retries"      # Invalid type
+git commit -m "update code"              # Too vague, no type
+git commit -m "feat add retries"         # Missing colon
+git commit -m "new: add retries"         # Invalid type
+git commit -m "feat(server): add tool"   # Wrong scope (use 'mcp')
 ```
 
 ### Breaking Changes
@@ -295,8 +359,22 @@ git commit -m "new: add retries"      # Invalid type
 For breaking changes, add `!` after the type or include `BREAKING CHANGE:` in body:
 
 ```bash
-git commit -m "feat!: change authentication header format"
+# Breaking change in client (major version bump)
+git commit -m "feat(client)!: change StockTrimClient authentication API"
+
+# Breaking change in MCP server (major version bump)
+git commit -m "feat(mcp)!: redesign tool input schemas"
 ```
+
+### When to Use Each Scope
+
+| Change Location                | Scope              | Example                   | Releases       |
+| ------------------------------ | ------------------ | ------------------------- | -------------- |
+| `stocktrim_public_api_client/` | none or `(client)` | `feat: add helper`        | Client + MCP   |
+| `stocktrim_mcp_server/`        | `(mcp)`            | `feat(mcp): add tool`     | MCP only       |
+| `.github/workflows/`           | `(ci)`             | `ci: update actions`      | None (usually) |
+| Root docs                      | none or `(docs)`   | `docs: update README`     | Client + MCP   |
+| MCP docs                       | `(mcp)`            | `docs(mcp): update guide` | MCP only       |
 
 ## Testing Guidelines
 
