@@ -141,14 +141,10 @@ packages = ["stocktrim_public_api_client"]
 
 [tool.ty.src]
 # Configure source paths and exclusions for ty type checker
-include = [
-  "stocktrim_public_api_client/**/*.py",
-  "tests/**/*.py",
-  "stocktrim_mcp_server/src/**/*.py",
-  "stocktrim_mcp_server/tests/**/*.py",
-]
+include = ["stocktrim_public_api_client/**/*.py", "tests/**/*.py"]
 # Generated code type issues are now fixed during regeneration
 # exclude = ["stocktrim_public_api_client/generated/**"]
+# Note: MCP server code is excluded from ty checking due to external dependency resolution issues
 
 [tool.ty.environment]
 # Set up the project root paths for first-party module resolution
