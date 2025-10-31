@@ -134,17 +134,19 @@ jobs:
         id: check
         run: |
           # Check if there are any commits with (mcp) scope since last mcp release
+          # This workflow-level check determines if semantic-release should even run
           if git log $(git describe --tags --abbrev=0 --match="mcp-v*" 2>/dev/null || echo "HEAD~10")..HEAD --pretty=format:"%s" | grep -qE '^(feat|fix|perf)\(mcp\):'; then
-            echo "has_mcp_changes=true" >> $GITHUB_OUTPUT
+            has_mcp_changes=true
           else
-            echo "has_mcp_changes=false" >> $GITHUB_OUTPUT
+            has_mcp_changes=false
           fi
+          echo "has_mcp_changes=${has_mcp_changes}" >> $GITHUB_OUTPUT
 
           # Check if client was released (MCP needs to pick up new client version)
           if [ "${{ needs.release-client.outputs.released }}" == "true" ]; then
             echo "client_released=true" >> $GITHUB_OUTPUT
             echo "should_release=true" >> $GITHUB_OUTPUT
-          elif [ "$(echo ${{ steps.check.outputs.has_mcp_changes }})" == "true" ]; then
+          elif [ "${has_mcp_changes}" == "true" ]; then
             echo "client_released=false" >> $GITHUB_OUTPUT
             echo "should_release=true" >> $GITHUB_OUTPUT
           else
