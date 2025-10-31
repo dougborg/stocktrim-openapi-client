@@ -597,11 +597,17 @@ class StockTrimClient(AuthenticatedClient):
     async def _log_response_metrics(self, response: httpx.Response) -> None:
         """Log response metrics for observability."""
         request = response.request
-        elapsed_ms = response.elapsed.total_seconds() * 1000
-        self.logger.debug(
-            f"{request.method} {request.url} -> {response.status_code} "
-            f"({elapsed_ms:.0f}ms)"
-        )
+        try:
+            elapsed_ms = response.elapsed.total_seconds() * 1000
+            self.logger.debug(
+                f"{request.method} {request.url} -> {response.status_code} "
+                f"({elapsed_ms:.0f}ms)"
+            )
+        except RuntimeError:
+            # elapsed is only available after response is read/closed
+            self.logger.debug(
+                f"{request.method} {request.url} -> {response.status_code}"
+            )
 
     def __repr__(self) -> str:
         """String representation of the client."""
