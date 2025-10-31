@@ -120,11 +120,22 @@ jobs:
           with open('stocktrim_mcp_server/pyproject.toml', 'wb') as f:
               tomli_w.dump(data, f)
 
-          print(f'::set-output name=mcp_version::{new_version}')
+          # Use modern GitHub Actions output syntax
+          import os
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+              f.write(f'mcp_version={new_version}\n')
           EOF
 
           # Run the update script
-          uv run python update_mcp_version.py "$CLIENT_VERSION"
+          MCP_VERSION=$(uv run python update_mcp_version.py "$CLIENT_VERSION" | grep -oP 'Updated MCP server to version \K[0-9.]+')
+          echo "MCP server version: $MCP_VERSION"
+
+          # Commit the MCP version bump
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add stocktrim_mcp_server/pyproject.toml
+          git commit -m "chore(mcp): bump version to $MCP_VERSION with client $CLIENT_VERSION"
+          git push
 
           # Clean and build MCP server
           rm -rf dist/
