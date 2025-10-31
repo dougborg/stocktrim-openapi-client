@@ -123,8 +123,10 @@ jobs:
               tomli_w.dump(data, f)
 
           # Write to GitHub Actions output
-          with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
-              f.write(f'mcp_version={new_version}\n')
+          github_output = os.environ.get('GITHUB_OUTPUT')
+          if github_output:
+              with open(github_output, 'a') as f:
+                  f.write(f'mcp_version={new_version}\n')
           EOF
 
           # Run the update script
