@@ -171,6 +171,7 @@ async def test_create_supplier_with_products_partial_failure(
     assert len(response.mapping_details) == 2
     assert response.mapping_details[0].success is True
     assert response.mapping_details[1].success is False
+    assert response.mapping_details[1].error is not None
     assert "not found" in response.mapping_details[1].error.lower()
 
 
@@ -300,4 +301,5 @@ async def test_create_supplier_with_products_mapping_api_error(
     assert response.mappings_attempted == 1
     assert response.mappings_successful == 0
     assert response.mapping_details[0].success is False
+    assert response.mapping_details[0].error is not None
     assert "API Error" in response.mapping_details[0].error

@@ -58,8 +58,7 @@ def sample_product():
 def sample_supplier():
     """Create a sample supplier for testing."""
     return SupplierResponseDto(
-        supplier_id="sup-456",
+        id=456,
         supplier_code="SUP-001",
         supplier_name="Test Supplier",
-        is_active=True,
     )

@@ -100,9 +100,8 @@ async def _create_supplier_with_products_impl(
 
         # Step 1: Create the supplier first
         supplier_data = SupplierRequestDto(
-            code=request.supplier_code,
-            name=request.supplier_name,
-            is_active=request.is_active,
+            supplier_code=request.supplier_code,
+            supplier_name=request.supplier_name,
         )
 
         created_supplier = await client.suppliers.create_one(supplier_data)
@@ -136,15 +135,15 @@ async def _create_supplier_with_products_impl(
                     continue
 
                 # Build the product supplier mapping
-                # Get supplier_id from the created supplier
+                # Get supplier ID from the created supplier
                 supplier_id = (
-                    created_supplier.supplier_id
-                    if created_supplier.supplier_id not in (None, UNSET)
+                    created_supplier.id
+                    if created_supplier.id not in (None, UNSET)
                     else None
                 )
 
                 if not supplier_id:
-                    raise ValueError("Created supplier has no supplier_id")
+                    raise ValueError("Created supplier has no ID")
 
                 # Get existing suppliers list or create new one
                 existing_suppliers = (
@@ -211,8 +210,8 @@ async def _create_supplier_with_products_impl(
         response = CreateSupplierWithProductsResponse(
             supplier_code=request.supplier_code,
             supplier_name=request.supplier_name,
-            supplier_id=created_supplier.supplier_id
-            if created_supplier.supplier_id not in (None, UNSET)
+            supplier_id=str(created_supplier.id)
+            if created_supplier.id not in (None, UNSET)
             else None,
             mappings_attempted=len(request.product_mappings),
             mappings_successful=successful_mappings,
