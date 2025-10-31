@@ -157,9 +157,8 @@ async def _create_location_impl(
 
         # Create location DTO
         location_dto = LocationRequestDto(
-            code=request.code,
-            name=request.name,
-            is_active=request.is_active,
+            location_code=request.code,
+            location_name=request.name,
         )
 
         # Create location (API accepts single object, not list)

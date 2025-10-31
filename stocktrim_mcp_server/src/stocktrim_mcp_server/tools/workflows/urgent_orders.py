@@ -107,7 +107,6 @@ async def _review_urgent_order_requirements_impl(
         filter_criteria = OrderPlanFilterCriteriaDto(
             location_codes=request.location_codes or UNSET,
             supplier_codes=request.supplier_codes or UNSET,
-            category=request.category or UNSET,
         )
 
         # Query order plan
@@ -387,7 +386,6 @@ async def _generate_purchase_orders_from_urgent_items_impl(
         filter_criteria = OrderPlanFilterCriteriaDto(
             location_codes=request.location_codes or UNSET,
             supplier_codes=request.supplier_codes or UNSET,
-            category=request.category or UNSET,
         )
 
         # Generate POs using V2 API
