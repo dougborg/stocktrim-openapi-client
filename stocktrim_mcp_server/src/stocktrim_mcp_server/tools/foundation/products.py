@@ -251,13 +251,13 @@ async def _create_product_impl(
         from stocktrim_public_api_client.generated.models import ProductsRequestDto
 
         # Create product DTO
+        # Note: product_id is the internal ID - we use the code as product_code_readable
         product_dto = ProductsRequestDto(
-            code=request.code,
-            description=request.description,
-            unit_of_measurement=request.unit_of_measurement,
-            is_active=request.is_active,
-            cost_price=request.cost_price,
-            selling_price=request.selling_price,
+            product_id=request.code,  # Use code as the product ID for creation
+            product_code_readable=request.code,
+            name=request.description,
+            cost=request.cost_price,
+            price=request.selling_price,
         )
 
         # Create product (API accepts single object, not list)
