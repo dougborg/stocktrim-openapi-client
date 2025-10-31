@@ -2,6 +2,27 @@
 
 <!-- version list -->
 
+## v0.4.1 (2025-10-31)
+
+### Bug Fixes
+
+- Handle response.elapsed RuntimeError in logging hook
+  ([`8138298`](https://github.com/dougborg/stocktrim-openapi-client/commit/8138298e6d2b4ea1e5f4eab1d1a6c0eb522e8637))
+
+The \_log_response_metrics hook was accessing response.elapsed before the response body
+was read, causing a RuntimeError. This broke MCP server tool calls.
+
+Error: RuntimeError: '.elapsed' may only be accessed after the response
+
+has been read or closed.
+
+Fix: - Wrap response.elapsed access in try/except - Fall back to logging without elapsed
+time if not yet available - Prevents tool calls from failing due to metrics logging
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+
 ## v0.4.0 (2025-10-31)
 
 ### Bug Fixes
