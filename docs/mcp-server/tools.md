@@ -78,23 +78,97 @@ Set inventory levels for products.
 
 ## Order Tools
 
-### `stocktrim_list_sales_orders`
-List all sales orders.
+### Sales Order Tools
 
-### `stocktrim_create_sales_order`
-Create a new sales order.
+#### `create_sales_order`
+Create a new sales order for a specific product.
 
 **Parameters:**
-- `order` (object): Sales order data
+- `product_id` (string, required): Product ID for the order
+- `order_date` (datetime, required): Order date in ISO format
+- `quantity` (float, required): Quantity ordered (must be > 0)
+- `external_reference_id` (string, optional): External reference ID
+- `unit_price` (float, optional): Unit price
+- `location_code` (string, optional): Location code
+- `location_name` (string, optional): Location name
+- `customer_code` (string, optional): Customer code
+- `customer_name` (string, optional): Customer name
 
-### `stocktrim_list_purchase_orders`
+**Returns:** Created sales order with ID and details
+
+**Example:**
+```json
+{
+  "product_id": "prod-123",
+  "order_date": "2024-01-15T10:00:00Z",
+  "quantity": 10.0,
+  "customer_code": "CUST-001",
+  "unit_price": 29.99
+}
+```
+
+#### `get_sales_orders`
+Get sales orders, optionally filtered by product.
+
+**Parameters:**
+- `product_id` (string, optional): Filter by product ID
+
+**Returns:** List of sales orders with total count
+
+**Example:**
+```json
+{
+  "product_id": "prod-123"
+}
+```
+
+#### `list_sales_orders`
+List all sales orders with optional product filter (alias for `get_sales_orders`).
+
+**Parameters:**
+- `product_id` (string, optional): Filter by product ID
+
+**Returns:** List of sales orders with total count
+
+#### `delete_sales_orders`
+Delete sales orders for a specific product.
+
+**Parameters:**
+- `product_id` (string, required): Product ID to delete orders for
+
+**Returns:** Success status and count of deleted orders
+
+**Note:** For safety, `product_id` is required. Cannot delete all orders without a filter.
+
+**Example:**
+```json
+{
+  "product_id": "prod-123"
+}
+```
+
+### Purchase Order Tools
+
+#### `get_purchase_order`
+Get a purchase order by reference number.
+
+**Parameters:**
+- `reference_number` (string, required): Purchase order reference number
+
+**Returns:** Purchase order details
+
+#### `list_purchase_orders`
 List all purchase orders.
 
-### `stocktrim_create_purchase_order`
-Create a new purchase order.
+**Returns:** List of purchase orders with total count
+
+#### `delete_purchase_order`
+Delete a purchase order by reference number.
 
 **Parameters:**
-- `order` (object): Purchase order data
+- `reference_number` (string, required): Reference number to delete
+
+**Returns:** Success status and message
 
 ## Location Tools
 

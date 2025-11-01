@@ -11,6 +11,7 @@ management, customer data, and inventory control.
 
 - **Product Management**: Search, retrieve, and manage product information
 - **Customer Operations**: Access and list customer data
+- **Order Management**: Create and manage sales orders and purchase orders
 - **Inventory Control**: Set and update inventory levels
 - **Type-Safe**: Full TypeScript-like type hints for all operations
 - **Production-Ready**: Built-in error handling, logging, and resilience
