@@ -454,6 +454,89 @@ requiring additional type casting to satisfy static analysis tools.
 
 ______________________________________________________________________
 
+### Nullable Date Fields Not Marked in Spec
+
+**Issue Discovered**: 2025-10-31 **Status**: ✅ **FIXED** - The client regeneration
+script now automatically adds `nullable: true` to fields that return `null`
+
+**Previous Issue**: Several date/datetime fields in the API returned `null` values, but
+the OpenAPI spec downloaded from StockTrim didn't always mark them as nullable. This
+caused the generated Python client to fail with
+`TypeError: object of type 'NoneType' has no len()` when trying to parse these fields.
+
+**Solution**: The `regenerate_client.py` script now includes a post-processing step
+(STEP 2.5) that automatically adds `nullable: true` to known nullable fields before
+generating the client code. This ensures the generated code properly handles `null`
+values from the API.
+
+**Affected Models and Fields** (based on analysis of real API responses):
+
+The StockTrim API returns `null` for many date/time and scalar fields. The downloaded
+OpenAPI spec has most of these marked as nullable, but the regeneration script ensures
+all known nullable fields are properly marked:
+
+**PurchaseOrderResponseDto**:
+
+- `message`: string (nullable)
+- `orderDate`: date-time (nullable) ⚠️ CRITICAL
+- `createdDate`: date-time (nullable)
+- `fullyReceivedDate`: date-time (nullable)
+- `externalId`: string (nullable)
+- `referenceNumber`: string (nullable)
+- `clientReferenceNumber`: string (nullable)
+- `location`: object (nullable)
+
+**PurchaseOrderSupplier** (nested in PurchaseOrderResponseDto):
+
+- `supplierCode`: string (nullable)
+- `supplierName`: string (nullable)
+
+**PurchaseOrderLineItem**:
+
+- `receivedDate`: date-time (nullable) ⚠️ CRITICAL
+- `unitPrice`: number (nullable)
+
+**Previous Impact (before fix)**:
+
+- The Python client would crash when trying to parse purchase orders because
+  `isoparse()` was called on `None` values
+- Error: `TypeError: object of type 'NoneType' has no len()`
+
+**Evidence from Real API Response** (2025-10-31):
+
+```json
+{
+  "id": 31391357,
+  "message": null,
+  "orderDate": null,
+  "createdDate": "2025-10-30T22:21:33.307",
+  "fullyReceivedDate": null,
+  "supplier": {
+    "supplierCode": null,
+    "supplierName": "Example Supplier"
+  },
+  "externalId": null,
+  "referenceNumber": null,
+  "clientReferenceNumber": "PO-00809",
+  "location": null,
+  "status": "Draft",
+  "purchaseOrderLineItems": [
+    {
+      "productId": "33303389",
+      "quantity": 3.0,
+      "receivedDate": null,
+      "unitPrice": 34.25
+    }
+  ]
+}
+```
+
+**Note**: The `purchaseOrderLineItems` field is **NOT nullable** - it's always an array
+in API responses (sometimes empty `[]`, never `null`). The spec correctly defines this
+as a non-nullable array.
+
+______________________________________________________________________
+
 ## Closing Notes
 
 Thank you for providing a public API! These suggestions come from a place of wanting to

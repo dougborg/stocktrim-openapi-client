@@ -23,7 +23,7 @@ T = TypeVar("T", bound="PurchaseOrderResponseDto")
 class PurchaseOrderResponseDto:
     """
     Attributes:
-        order_date (datetime.datetime):
+        order_date (datetime.datetime | None):
         supplier (PurchaseOrderSupplier):
         purchase_order_line_items (list[PurchaseOrderLineItem]):
         id (int | Unset):
@@ -37,7 +37,7 @@ class PurchaseOrderResponseDto:
         status (PurchaseOrderStatusDto | Unset):
     """
 
-    order_date: datetime.datetime
+    order_date: datetime.datetime | None
     supplier: PurchaseOrderSupplier
     purchase_order_line_items: list[PurchaseOrderLineItem]
     id: int | Unset = UNSET
@@ -51,7 +51,11 @@ class PurchaseOrderResponseDto:
     status: PurchaseOrderStatusDto | Unset = UNSET
 
     def to_dict(self) -> dict[str, Any]:
-        order_date = self.order_date.isoformat()
+        order_date: None | str
+        if isinstance(self.order_date, datetime.datetime):
+            order_date = self.order_date.isoformat()
+        else:
+            order_date = self.order_date
 
         supplier = self.supplier.to_dict()
 
@@ -149,7 +153,21 @@ class PurchaseOrderResponseDto:
         from ..models.purchase_order_supplier import PurchaseOrderSupplier
 
         d = dict(src_dict)
-        order_date = isoparse(d.pop("orderDate"))
+
+        def _parse_order_date(data: object) -> datetime.datetime | None:
+            if data is None:
+                return data
+            try:
+                if not isinstance(data, str):
+                    raise TypeError()
+                order_date_type_0 = isoparse(data)
+
+                return order_date_type_0
+            except:  # noqa: E722
+                pass
+            return cast(datetime.datetime | None, data)
+
+        order_date = _parse_order_date(d.pop("orderDate"))
 
         supplier = PurchaseOrderSupplier.from_dict(d.pop("supplier"))
 

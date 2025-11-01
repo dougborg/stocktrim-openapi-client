@@ -1850,6 +1850,7 @@ components:
         orderDate:
           type: string
           format: date-time
+          nullable: true
         createdDate:
           type: string
           format: date-time
@@ -1871,6 +1872,7 @@ components:
           nullable: true
         location:
           $ref: '#/components/schemas/PurchaseOrderLocation'
+          nullable: true
         status:
           $ref: '#/components/schemas/PurchaseOrderStatusDto'
         purchaseOrderLineItems:
