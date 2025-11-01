@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from datetime import datetime
 
 from fastmcp import Context, FastMCP
 from pydantic import BaseModel, Field
@@ -246,9 +247,9 @@ class CreatePurchaseOrderRequest(BaseModel):
     line_items: list[LineItemRequest] = Field(
         ..., description="Line items for the purchase order", min_length=1
     )
-    order_date: str | None = Field(
+    order_date: datetime | None = Field(
         default=None,
-        description="Order date in ISO format (YYYY-MM-DD). Defaults to current date.",
+        description="Order date (ISO format). Defaults to current date if not provided.",
     )
     location_code: str | None = Field(default=None, description="Location code")
     location_name: str | None = Field(default=None, description="Location name")
@@ -273,7 +274,6 @@ class CreatePurchaseOrderResponse(BaseModel):
     status: str | None
     total_cost: float | None
     line_items_count: int
-    message: str
 
 
 async def _create_purchase_order_impl(
@@ -289,14 +289,8 @@ async def _create_purchase_order_impl(
         CreatePurchaseOrderResponse with created PO details
 
     Raises:
-        ValueError: If required fields are missing or invalid
         Exception: If API call fails
     """
-    if not request.supplier_code or not request.supplier_code.strip():
-        raise ValueError("Supplier code cannot be empty")
-
-    # Note: line_items min_length validation handled by Pydantic
-
     logger.info(f"Creating purchase order for supplier: {request.supplier_code}")
 
     try:
@@ -305,8 +299,6 @@ async def _create_purchase_order_impl(
         client = server_context.client
 
         # Import required models
-        from datetime import datetime
-
         from stocktrim_public_api_client.generated.models import (
             PurchaseOrderLineItem,
             PurchaseOrderLocation,
@@ -315,11 +307,8 @@ async def _create_purchase_order_impl(
             PurchaseOrderSupplier,
         )
 
-        # Parse order date (default to now if not provided)
-        if request.order_date:
-            order_date = datetime.fromisoformat(request.order_date)
-        else:
-            order_date = datetime.now()
+        # Default to now if not provided
+        order_date = request.order_date or datetime.now()
 
         # Build supplier object
         supplier = PurchaseOrderSupplier(
@@ -402,7 +391,6 @@ async def _create_purchase_order_impl(
                 if created_po.purchase_order_line_items
                 else 0
             ),
-            message=f"Purchase order {created_po.reference_number} created successfully",
         )
 
         logger.info(f"Purchase order created: {created_po.reference_number}")

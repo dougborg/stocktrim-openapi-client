@@ -60,15 +60,8 @@ async def _create_sales_order_impl(
         SalesOrderInfo with created order details
 
     Raises:
-        ValueError: If validation fails
         Exception: If API call fails
     """
-    if not request.product_id or not request.product_id.strip():
-        raise ValueError("Product ID cannot be empty")
-
-    if request.quantity <= 0:
-        raise ValueError("Quantity must be greater than 0")
-
     logger.info(
         f"Creating sales order for product {request.product_id}, "
         f"quantity {request.quantity}"
@@ -102,27 +95,17 @@ async def _create_sales_order_impl(
 
         # Build response model
         order_info = SalesOrderInfo(
-            id=result.id if hasattr(result, "id") else None,
+            id=result.id,
             product_id=result.product_id,
             order_date=result.order_date,
             quantity=result.quantity,
-            external_reference_id=result.external_reference_id
-            if hasattr(result, "external_reference_id")
-            else None,
-            unit_price=result.unit_price if hasattr(result, "unit_price") else None,
-            location_code=result.location_code
-            if hasattr(result, "location_code")
-            else None,
-            location_name=result.location_name
-            if hasattr(result, "location_name")
-            else None,
-            customer_code=result.customer_code
-            if hasattr(result, "customer_code")
-            else None,
-            customer_name=result.customer_name
-            if hasattr(result, "customer_name")
-            else None,
-            location_id=result.location_id if hasattr(result, "location_id") else None,
+            external_reference_id=result.external_reference_id,
+            unit_price=result.unit_price,
+            location_code=result.location_code,
+            location_name=result.location_name,
+            customer_code=result.customer_code,
+            customer_name=result.customer_name,
+            location_id=result.location_id,
         )
 
         logger.info(
@@ -217,40 +200,23 @@ async def _get_sales_orders_impl(
         else:
             orders = await client.sales_orders.get_all()
 
-        # Handle API inconsistency - could return single object or list
-        if isinstance(orders, list):
-            order_list = orders
-        else:
-            order_list = [orders] if orders else []
-
+        # Helper methods already return list[SalesOrderResponseDto]
         # Build response
         order_infos = [
             SalesOrderInfo(
-                id=order.id if hasattr(order, "id") else None,
+                id=order.id,
                 product_id=order.product_id,
                 order_date=order.order_date,
                 quantity=order.quantity,
-                external_reference_id=order.external_reference_id
-                if hasattr(order, "external_reference_id")
-                else None,
-                unit_price=order.unit_price if hasattr(order, "unit_price") else None,
-                location_code=order.location_code
-                if hasattr(order, "location_code")
-                else None,
-                location_name=order.location_name
-                if hasattr(order, "location_name")
-                else None,
-                customer_code=order.customer_code
-                if hasattr(order, "customer_code")
-                else None,
-                customer_name=order.customer_name
-                if hasattr(order, "customer_name")
-                else None,
-                location_id=order.location_id
-                if hasattr(order, "location_id")
-                else None,
+                external_reference_id=order.external_reference_id,
+                unit_price=order.unit_price,
+                location_code=order.location_code,
+                location_name=order.location_name,
+                customer_code=order.customer_code,
+                customer_name=order.customer_name,
+                location_id=order.location_id,
             )
-            for order in order_list
+            for order in orders
         ]
 
         response = GetSalesOrdersResponse(
@@ -355,7 +321,6 @@ class DeleteSalesOrdersResponse(BaseModel):
 
     success: bool
     message: str
-    deleted_count: int | None = None
 
 
 async def _delete_sales_orders_impl(
@@ -387,15 +352,6 @@ async def _delete_sales_orders_impl(
         server_context = context.request_context.lifespan_context
         client = server_context.client
 
-        # Get count before deletion for reporting
-        orders_before = await client.sales_orders.get_for_product(request.product_id)
-        if isinstance(orders_before, list):
-            count = len(orders_before)
-        elif orders_before:
-            count = 1
-        else:
-            count = 0
-
         # Delete sales orders for product
         await client.sales_orders.delete_for_product(request.product_id)
 
@@ -403,7 +359,6 @@ async def _delete_sales_orders_impl(
         return DeleteSalesOrdersResponse(
             success=True,
             message=f"Sales orders for product {request.product_id} deleted successfully",
-            deleted_count=count,
         )
 
     except Exception as e:

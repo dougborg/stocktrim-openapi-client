@@ -7,6 +7,8 @@ import logging
 from fastmcp import Context, FastMCP
 from pydantic import BaseModel, Field
 
+from stocktrim_public_api_client.client_types import UNSET
+
 logger = logging.getLogger(__name__)
 
 # ============================================================================
@@ -29,9 +31,11 @@ class SetInventoryRequest(BaseModel):
 class InventoryResult(BaseModel):
     """Result of inventory operation."""
 
-    success: bool
-    message: str
     product_id: str
+    stock_on_hand: float | None
+    stock_on_order: float | None
+    location_code: str | None
+    location_name: str | None
 
 
 async def _set_product_inventory_impl(
@@ -61,8 +65,6 @@ async def _set_product_inventory_impl(
         client = server_context.client
 
         # Use the set_for_product convenience method
-        from stocktrim_public_api_client.client_types import UNSET
-
         await client.inventory.set_for_product(
             product_id=request.product_id,
             stock_on_hand=(
@@ -80,9 +82,11 @@ async def _set_product_inventory_impl(
         )
 
         inventory_result = InventoryResult(
-            success=True,
-            message=f"Inventory updated for product {request.product_id}",
             product_id=request.product_id,
+            stock_on_hand=request.stock_on_hand,
+            stock_on_order=request.stock_on_order,
+            location_code=request.location_code,
+            location_name=request.location_name,
         )
 
         logger.info(f"Inventory set successfully for product: {request.product_id}")
@@ -90,11 +94,7 @@ async def _set_product_inventory_impl(
 
     except Exception as e:
         logger.error(f"Failed to set inventory for product {request.product_id}: {e}")
-        return InventoryResult(
-            success=False,
-            message=f"Failed to set inventory: {e!s}",
-            product_id=request.product_id,
-        )
+        raise
 
 
 async def set_product_inventory(
@@ -110,7 +110,7 @@ async def set_product_inventory(
         context: Server context with StockTrimClient
 
     Returns:
-        InventoryResult with operation status
+        InventoryResult with updated inventory details
 
     Example:
         Request: {
@@ -120,9 +120,11 @@ async def set_product_inventory(
             "location_code": "WAREHOUSE-A"
         }
         Returns: {
-            "success": true,
-            "message": "Inventory updated for product 123",
-            "product_id": "123"
+            "product_id": "123",
+            "stock_on_hand": 50.0,
+            "stock_on_order": 100.0,
+            "location_code": "WAREHOUSE-A",
+            "location_name": null
         }
     """
     return await _set_product_inventory_impl(request, context)

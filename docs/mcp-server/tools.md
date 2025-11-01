@@ -212,8 +212,8 @@ Create a new purchase order.
   - `product_code` (string): Product code
   - `quantity` (number): Quantity to order (must be > 0)
   - `unit_price` (number, optional): Unit price
-- `order_date` (string, optional): Order date in ISO format (YYYY-MM-DD). Defaults to
-  current date.
+- `order_date` (datetime, optional): Order date in ISO format. Defaults to current date
+  if not provided.
 - `location_code` (string, optional): Location code
 - `location_name` (string, optional): Location name
 - `reference_number` (string, optional): Custom reference number
