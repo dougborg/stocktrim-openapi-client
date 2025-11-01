@@ -315,3 +315,21 @@ async def test_delete_sales_orders_single_object_count(
     # Verify
     assert response.success is True
     assert response.deleted_count == 1
+
+
+@pytest.mark.asyncio
+async def test_delete_sales_orders_empty_result_count(extended_mock_context):
+    """Test deleting sales orders when get returns None/empty."""
+    # Setup
+    mock_client = extended_mock_context.request_context.lifespan_context.client
+    # API returns None
+    mock_client.sales_orders.get_for_product.return_value = None
+    mock_client.sales_orders.delete_for_product.return_value = None
+
+    # Execute
+    request = DeleteSalesOrdersRequest(product_id="prod-123")
+    response = await delete_sales_orders(request, extended_mock_context)
+
+    # Verify
+    assert response.success is True
+    assert response.deleted_count == 0

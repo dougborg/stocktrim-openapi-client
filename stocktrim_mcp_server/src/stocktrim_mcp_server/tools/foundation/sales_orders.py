@@ -379,8 +379,7 @@ async def _delete_sales_orders_impl(
     if not request.product_id:
         # Safety measure: require a filter to avoid deleting all orders
         raise ValueError(
-            "product_id is required for deletion. "
-            "To delete all sales orders, use delete_all_sales_orders tool."
+            "product_id is required for deletion to prevent accidental bulk deletion."
         )
 
     logger.info(f"Deleting sales orders for product: {request.product_id}")
@@ -392,7 +391,12 @@ async def _delete_sales_orders_impl(
 
         # Get count before deletion for reporting
         orders_before = await client.sales_orders.get_for_product(request.product_id)
-        count = len(orders_before) if isinstance(orders_before, list) else 1
+        if isinstance(orders_before, list):
+            count = len(orders_before)
+        elif orders_before:
+            count = 1
+        else:
+            count = 0
 
         # Delete sales orders for product
         await client.sales_orders.delete_for_product(request.product_id)
