@@ -450,23 +450,34 @@ class ErrorLoggingTransport(AsyncHTTPTransport):
                     )
                 else:
                     # TypeError but no null fields - show response excerpt
+                    response_str = str(response_data)
+                    excerpt = response_str[: self.RESPONSE_BODY_MAX_LENGTH]
+                    ellipsis = (
+                        "..."
+                        if len(response_str) > self.RESPONSE_BODY_MAX_LENGTH
+                        else ""
+                    )
                     self.logger.error(
-                        "No null fields found. Response excerpt: "
-                        f"{str(response_data)[: self.RESPONSE_BODY_MAX_LENGTH]}..."
+                        f"No null fields found. Response excerpt: {excerpt}{ellipsis}"
                     )
             else:
                 # For other errors, show response excerpt
-                self.logger.error(
-                    f"Response excerpt: {str(response_data)[: self.RESPONSE_BODY_MAX_LENGTH]}..."
+                response_str = str(response_data)
+                excerpt = response_str[: self.RESPONSE_BODY_MAX_LENGTH]
+                ellipsis = (
+                    "..." if len(response_str) > self.RESPONSE_BODY_MAX_LENGTH else ""
                 )
+                self.logger.error(f"Response excerpt: {excerpt}{ellipsis}")
 
         except (json.JSONDecodeError, TypeError, ValueError) as e:
             self.logger.error(
                 f"Could not parse response as JSON: {type(e).__name__}: {e}"
             )
-            self.logger.error(
-                f"Response text: {response.text[: self.RESPONSE_BODY_MAX_LENGTH]}..."
+            text_excerpt = response.text[: self.RESPONSE_BODY_MAX_LENGTH]
+            ellipsis = (
+                "..." if len(response.text) > self.RESPONSE_BODY_MAX_LENGTH else ""
             )
+            self.logger.error(f"Response text: {text_excerpt}{ellipsis}")
 
 
 class AuthHeaderTransport(AsyncHTTPTransport):
