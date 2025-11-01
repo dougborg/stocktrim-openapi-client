@@ -429,6 +429,13 @@ ERROR Found 3 null field(s) in response:
 ERROR   - orderDate
 ERROR   - fullyReceivedDate
 ERROR   - supplier.supplierName
+ERROR
+ERROR Possible fixes:
+ERROR   1. Add fields to NULLABLE_FIELDS in scripts/regenerate_client.py and regenerate
+ERROR   2. Update OpenAPI spec to mark these fields as 'nullable: true'
+ERROR   3. Handle null values defensively in helper methods
+ERROR
+ERROR See: docs/contributing/api-feedback.md#nullable-date-fields-not-marked-in-spec
 ```
 
 **How to use it in helper methods**:

@@ -350,7 +350,7 @@ class TestErrorLoggingTransport:
     def test_log_parsing_error_with_null_fields(
         self, logging_transport, mock_request, mock_logger
     ):
-        """Test that log_parsing_error identifies null fields for TypeErrors."""
+        """Test that log_parsing_error identifies null fields and provides fix suggestions."""
         response_data = {
             "id": 123,
             "orderDate": None,
@@ -362,8 +362,7 @@ class TestErrorLoggingTransport:
         error = TypeError("object of type 'NoneType' has no len()")
         logging_transport.log_parsing_error(error, response, mock_request)
 
-        # Verify error was logged
-        assert mock_logger.error.call_count >= 4  # Type, message, count, field list
+        # Get all error messages
         error_messages = [call[0][0] for call in mock_logger.error.call_args_list]
 
         # Verify TypeError was identified
@@ -374,6 +373,15 @@ class TestErrorLoggingTransport:
         assert any("orderDate" in msg for msg in error_messages)
         assert any("fullyReceivedDate" in msg for msg in error_messages)
         assert any("supplier.supplierName" in msg for msg in error_messages)
+
+        # Verify fix suggestions are provided
+        assert any("Possible fixes:" in msg for msg in error_messages)
+        assert any("NULLABLE_FIELDS" in msg for msg in error_messages)
+        assert any("regenerate_client.py" in msg for msg in error_messages)
+        assert any("nullable: true" in msg for msg in error_messages)
+
+        # Verify documentation link is provided
+        assert any("api-feedback.md" in msg for msg in error_messages)
 
     def test_log_parsing_error_value_error(
         self, logging_transport, mock_request, mock_logger

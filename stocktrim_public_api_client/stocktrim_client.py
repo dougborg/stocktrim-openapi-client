@@ -363,8 +363,8 @@ class ErrorLoggingTransport(AsyncHTTPTransport):
         Log detailed information when an error occurs during response parsing.
 
         This method intelligently inspects the error and response to provide
-        actionable debugging information:
-        - For TypeErrors: Shows null fields and type mismatches
+        actionable debugging information with fix suggestions:
+        - For TypeErrors: Shows null fields and provides 3 fix options with doc links
         - For ValueErrors: Shows the error and response excerpt
         - For any parsing error: Logs the raw response for inspection
 
@@ -373,13 +373,20 @@ class ErrorLoggingTransport(AsyncHTTPTransport):
             response: The HTTP response that was being parsed
             request: The original HTTP request
 
-        Example output for TypeError:
-            ERROR: TypeError during parsing for GET /api/PurchaseOrders
+        Example output for TypeError with null fields:
+            ERROR: TypeError during parsing for GET /api/V2/PurchaseOrders
             ERROR: TypeError: object of type 'NoneType' has no len()
-            ERROR: Found 3 null fields in response:
+            ERROR: Found 3 null field(s) in response:
             ERROR:   - orderDate
             ERROR:   - fullyReceivedDate
             ERROR:   - supplier.supplierName
+            ERROR:
+            ERROR: Possible fixes:
+            ERROR:   1. Add fields to NULLABLE_FIELDS in scripts/regenerate_client.py and regenerate
+            ERROR:   2. Update OpenAPI spec to mark these fields as 'nullable: true'
+            ERROR:   3. Handle null values defensively in helper methods
+            ERROR:
+            ERROR: See: docs/contributing/api-feedback.md#nullable-date-fields-not-marked-in-spec
 
         Example output for ValueError:
             ERROR: ValueError during parsing for POST /api/Products
@@ -413,6 +420,23 @@ class ErrorLoggingTransport(AsyncHTTPTransport):
                         self.logger.error(
                             f"  ... and {len(null_fields) - 20} more null fields"
                         )
+
+                    # Provide actionable fix suggestions
+                    self.logger.error("")  # Blank line for readability
+                    self.logger.error("Possible fixes:")
+                    self.logger.error(
+                        "  1. Add fields to NULLABLE_FIELDS in scripts/regenerate_client.py and regenerate"
+                    )
+                    self.logger.error(
+                        "  2. Update OpenAPI spec to mark these fields as 'nullable: true'"
+                    )
+                    self.logger.error(
+                        "  3. Handle null values defensively in helper methods"
+                    )
+                    self.logger.error("")  # Blank line for readability
+                    self.logger.error(
+                        "See: docs/contributing/api-feedback.md#nullable-date-fields-not-marked-in-spec"
+                    )
                 else:
                     # TypeError but no null fields - show response excerpt
                     self.logger.error(
