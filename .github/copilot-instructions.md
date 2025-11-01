@@ -376,6 +376,57 @@ git commit -m "feat(mcp)!: redesign tool input schemas"
 | Root docs                      | none or `(docs)`   | `docs: update README`     | Client + MCP   |
 | MCP docs                       | `(mcp)`            | `docs(mcp): update guide` | MCP only       |
 
+## Resolving GitHub Review Comments via API
+
+When Copilot or reviewers leave comments on PRs, threads may need to be resolved before
+merging (depending on branch protection settings).
+
+### Process for Resolving Review Threads
+
+1. **Query review threads to find unresolved ones**:
+
+```bash
+gh api graphql -f query='
+query {
+  repository(owner: "dougborg", name: "stocktrim-openapi-client") {
+    pullRequest(number: PR_NUMBER) {
+      reviewThreads(first: 20) {
+        nodes {
+          id
+          isResolved
+          isOutdated
+          comments(first: 1) {
+            nodes {
+              body
+            }
+          }
+        }
+      }
+    }
+  }
+}'
+```
+
+2. **Resolve each unresolved thread using GraphQL mutation**:
+
+```bash
+for thread_id in "PRRT_xxx" "PRRT_yyy"; do
+  gh api graphql -f query="mutation {
+    resolveReviewThread(input: {threadId: \"$thread_id\"}) {
+      thread { id isResolved }
+    }
+  }"
+done
+```
+
+**Important notes**:
+
+- Use `PRRT_*` thread IDs (not `PRRC_*` comment IDs)
+- The GraphQL API is required; the REST API doesn't support resolving review threads
+- Only unresolved threads (`isResolved: false`) need to be resolved
+- Outdated threads (`isOutdated: true`) can still be resolved if needed
+- You need `repo` permissions (or write access) to resolve threads
+
 ## Testing Guidelines
 
 ### Test Structure
