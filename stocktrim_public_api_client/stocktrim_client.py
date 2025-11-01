@@ -230,11 +230,6 @@ class ErrorLoggingTransport(AsyncHTTPTransport):
         url = str(request.url)
         status_code = response.status_code
 
-        # Read response content if it's streaming
-        if hasattr(response, "aread"):
-            with contextlib.suppress(TypeError, AttributeError):
-                await response.aread()
-
         # Try to parse and pretty-print JSON
         try:
             body_data = response.json()
@@ -245,11 +240,18 @@ class ErrorLoggingTransport(AsyncHTTPTransport):
             )
         except (json.JSONDecodeError, TypeError, ValueError):
             # Not JSON or can't parse - log raw text
-            response_text = getattr(response, "text", "")
-            self.logger.log(
-                TRACE,
-                f"Full response body for {method} {url} ({status_code}) [raw]:\n{response_text}",
-            )
+            try:
+                response_text = response.text
+                self.logger.log(
+                    TRACE,
+                    f"Full response body for {method} {url} ({status_code}) [raw]:\n{response_text}",
+                )
+            except Exception:
+                # If we can't get text, log what we can
+                self.logger.log(
+                    TRACE,
+                    f"Full response body for {method} {url} ({status_code}): [unable to read response content]",
+                )
 
 
 class AuthHeaderTransport(AsyncHTTPTransport):
