@@ -184,6 +184,7 @@ def add_nullable_to_date_fields(spec_path: Path) -> bool:
 
         schemas = spec.get("components", {}).get("schemas", {})
         fields_modified = 0
+        fields_removed_from_required = 0
 
         for schema_name, field_names in NULLABLE_FIELDS.items():
             if schema_name not in schemas:
@@ -192,6 +193,7 @@ def add_nullable_to_date_fields(spec_path: Path) -> bool:
 
             schema = schemas[schema_name]
             properties = schema.get("properties", {})
+            required = schema.get("required", [])
 
             for field_name in field_names:
                 if field_name not in properties:
@@ -213,11 +215,22 @@ def add_nullable_to_date_fields(spec_path: Path) -> bool:
                         f"  ✓ Made {schema_name}.{field_name} ({type_info}) nullable"
                     )
 
+                # Remove from required array if present (nullable fields cannot be required)
+                if field_name in required:
+                    required.remove(field_name)
+                    fields_removed_from_required += 1
+                    logger.info(
+                        f"  ✓ Removed {schema_name}.{field_name} from required array"
+                    )
+
         # Save the modified spec
         with open(spec_path, "w") as f:
             yaml.dump(spec, f, default_flow_style=False, sort_keys=False)
 
-        logger.info(f"✅ Made {fields_modified} fields nullable")
+        logger.info(
+            f"✅ Made {fields_modified} fields nullable, "
+            f"removed {fields_removed_from_required} from required arrays"
+        )
         return True
 
     except Exception as e:
