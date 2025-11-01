@@ -889,6 +889,15 @@ class StockTrimClient(AuthenticatedClient):
                 f"{request.method} {request.url} -> {response.status_code}"
             )
 
+    async def __aenter__(self) -> "StockTrimClient":
+        """Enter async context manager, returning self for proper type checking."""
+        await super().__aenter__()
+        return self
+
+    async def __aexit__(self, *args: Any) -> None:
+        """Exit async context manager."""
+        await super().__aexit__(*args)
+
     def __repr__(self) -> str:
         """String representation of the client."""
         return (
