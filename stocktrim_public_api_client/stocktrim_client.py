@@ -10,6 +10,7 @@ import contextlib
 import json
 import logging
 import os
+import time
 from collections.abc import Awaitable, Callable
 from typing import TYPE_CHECKING, Any, cast
 
@@ -40,6 +41,35 @@ if TYPE_CHECKING:
     from .helpers.purchase_orders_v2 import PurchaseOrdersV2
     from .helpers.sales_orders import SalesOrders
     from .helpers.suppliers import Suppliers
+
+
+def _find_null_fields(data: Any, path: str = "") -> list[str]:
+    """
+    Recursively find all null fields in a JSON response.
+
+    Args:
+        data: The JSON data to inspect (dict, list, or primitive)
+        path: The current path in dot notation (e.g., "order.supplier.name")
+
+    Returns:
+        List of paths to null fields (e.g., ["orderDate", "supplier.supplierName"])
+    """
+    null_fields: list[str] = []
+
+    if data is None and path:
+        # Found a null field (but not the root - that's handled separately)
+        return [path]
+
+    if isinstance(data, dict):
+        for key, value in data.items():
+            field_path = f"{path}.{key}" if path else key
+            null_fields.extend(_find_null_fields(value, field_path))
+    elif isinstance(data, list):
+        for i, item in enumerate(data):
+            field_path = f"{path}[{i}]" if path else f"[{i}]"
+            null_fields.extend(_find_null_fields(item, field_path))
+
+    return null_fields
 
 
 class IdempotentOnlyRetry(Retry):
@@ -97,11 +127,18 @@ class IdempotentOnlyRetry(Retry):
 
 class ErrorLoggingTransport(AsyncHTTPTransport):
     """
-    Transport layer that adds detailed error logging for 4xx client errors.
+    Transport layer that adds comprehensive logging for all HTTP requests and responses.
 
-    This transport wraps another AsyncHTTPTransport and intercepts responses
-    to log detailed error information using generated error models when available.
+    This transport wraps another AsyncHTTPTransport and intercepts responses to log:
+    - DEBUG: Request details (sanitized headers), response bodies for 2xx responses
+    - INFO: Successful 2xx responses with timing
+    - WARNING: Null responses that may cause TypeErrors
+    - ERROR: 4xx client errors and 5xx server errors with response details
     """
+
+    #: Maximum characters to show from response bodies in DEBUG logs
+    RESPONSE_BODY_MAX_LENGTH = 200
+    MAX_NULL_FIELDS_TO_LOG = 20
 
     def __init__(
         self,
@@ -124,17 +161,100 @@ class ErrorLoggingTransport(AsyncHTTPTransport):
         self.logger = logger or logging.getLogger(__name__)
 
     async def handle_async_request(self, request: httpx.Request) -> httpx.Response:
-        """Handle request and log detailed error information for 4xx responses."""
-        response = await self._wrapped_transport.handle_async_request(request)
+        """Handle request and log based on response status code."""
+        # Log request details at DEBUG level
+        await self._log_request(request)
 
-        # Log detailed information for 400-level client errors
-        if 400 <= response.status_code < 500:
-            await self._log_client_error(response, request)
+        # Track timing
+        start_time = time.time()
+        response = await self._wrapped_transport.handle_async_request(request)
+        duration_ms = (time.time() - start_time) * 1000
+
+        # Log based on status code
+        if 200 <= response.status_code < 300:
+            await self._log_success_response(response, request, duration_ms)
+        elif 400 <= response.status_code < 500:
+            await self._log_client_error(response, request, duration_ms)
+        elif 500 <= response.status_code < 600:
+            await self._log_server_error(response, request, duration_ms)
+        else:
+            # Unexpected status codes (1xx, 3xx redirects shouldn't reach here)
+            self.logger.warning(
+                f"{request.method} {request.url} -> {response.status_code} "
+                f"({duration_ms:.0f}ms)"
+            )
 
         return response
 
+    async def _log_request(self, request: httpx.Request) -> None:
+        """Log request details at DEBUG level with sanitized headers."""
+        if not self.logger.isEnabledFor(logging.DEBUG):
+            return
+
+        # Sanitize headers (remove auth headers)
+        safe_headers = {
+            k: v
+            for k, v in request.headers.items()
+            if k.lower() not in {"authorization", "api-auth-id", "api-auth-signature"}
+        }
+
+        self.logger.debug(
+            f"Request: {request.method} {request.url}",
+            extra={
+                "method": request.method,
+                "url": str(request.url),
+                "headers": safe_headers,
+            },
+        )
+
+    async def _log_success_response(
+        self, response: httpx.Response, request: httpx.Request, duration_ms: float
+    ) -> None:
+        """Log successful response at INFO level with DEBUG details."""
+        method = request.method
+        url = str(request.url)
+        status_code = response.status_code
+
+        # INFO level: just status and timing
+        self.logger.info(f"{method} {url} -> {status_code} ({duration_ms:.0f}ms)")
+
+        # DEBUG level: include response body excerpt
+        if self.logger.isEnabledFor(logging.DEBUG):
+            # Read response content if it's streaming
+            if hasattr(response, "aread"):
+                with contextlib.suppress(TypeError, AttributeError):
+                    await response.aread()
+
+            try:
+                response_body = response.json()
+                body_type = type(response_body).__name__
+
+                if response_body is None:
+                    self.logger.debug("Response body: null (JSON null)")
+                elif isinstance(response_body, list):
+                    self.logger.debug(
+                        f"Response body: list[{len(response_body)}] items"
+                    )
+                elif isinstance(response_body, dict):
+                    body_str = str(response_body)
+                    body_excerpt = body_str[: self.RESPONSE_BODY_MAX_LENGTH]
+                    ellipsis = (
+                        "..." if len(body_str) > self.RESPONSE_BODY_MAX_LENGTH else ""
+                    )
+                    self.logger.debug(f"Response body: {body_excerpt}{ellipsis}")
+                else:
+                    self.logger.debug(
+                        f"Response body type: {body_type}, value: {str(response_body)[: self.RESPONSE_BODY_MAX_LENGTH]}"
+                    )
+            except (json.JSONDecodeError, TypeError, ValueError):
+                body_excerpt = response.text[: self.RESPONSE_BODY_MAX_LENGTH]
+                ellipsis = (
+                    "..." if len(response.text) > self.RESPONSE_BODY_MAX_LENGTH else ""
+                )
+                self.logger.debug(f"Response body (non-JSON): {body_excerpt}{ellipsis}")
+
     async def _log_client_error(
-        self, response: httpx.Response, request: httpx.Request
+        self, response: httpx.Response, request: httpx.Request, duration_ms: float
     ) -> None:
         """
         Log detailed information for 400-level client errors.
@@ -153,9 +273,12 @@ class ErrorLoggingTransport(AsyncHTTPTransport):
         try:
             error_data = response.json()
         except (json.JSONDecodeError, TypeError, ValueError):
+            response_text = getattr(response, "text", "")
+            text_excerpt = response_text[:500]
+            ellipsis = "..." if len(response_text) > 500 else ""
             self.logger.error(
-                f"Client error {status_code} for {method} {url} - "
-                f"Response: {getattr(response, 'text', '')[:500]}..."
+                f"Client error {status_code} for {method} {url} ({duration_ms:.0f}ms) - "
+                f"Response: {text_excerpt}{ellipsis}"
             )
             return
 
@@ -163,7 +286,9 @@ class ErrorLoggingTransport(AsyncHTTPTransport):
         if ProblemDetails is not None:
             try:
                 problem = ProblemDetails.from_dict(error_data)
-                self._log_problem_details(problem, method, url, status_code)
+                self._log_problem_details(
+                    problem, method, url, status_code, duration_ms
+                )
                 return
             except (TypeError, ValueError, AttributeError) as e:
                 self.logger.debug(
@@ -172,14 +297,50 @@ class ErrorLoggingTransport(AsyncHTTPTransport):
 
         # Fallback: log raw error data
         self.logger.error(
-            f"Client error {status_code} for {method} {url} - Error: {error_data}"
+            f"Client error {status_code} for {method} {url} ({duration_ms:.0f}ms) - "
+            f"Error: {error_data}"
         )
 
+    async def _log_server_error(
+        self, response: httpx.Response, request: httpx.Request, duration_ms: float
+    ) -> None:
+        """Log detailed information for 500-level server errors."""
+        method = request.method
+        url = str(request.url)
+        status_code = response.status_code
+
+        # Read response content if it's streaming
+        if hasattr(response, "aread"):
+            with contextlib.suppress(TypeError, AttributeError):
+                await response.aread()
+
+        try:
+            error_data = response.json()
+            self.logger.error(
+                f"Server error {status_code} for {method} {url} ({duration_ms:.0f}ms) - "
+                f"Response: {error_data}"
+            )
+        except (json.JSONDecodeError, TypeError, ValueError):
+            response_text = getattr(response, "text", "")
+            text_excerpt = response_text[:500]
+            ellipsis = "..." if len(response_text) > 500 else ""
+            self.logger.error(
+                f"Server error {status_code} for {method} {url} ({duration_ms:.0f}ms) - "
+                f"Response: {text_excerpt}{ellipsis}"
+            )
+
     def _log_problem_details(
-        self, problem: Any, method: str, url: str, status_code: int
+        self,
+        problem: Any,
+        method: str,
+        url: str,
+        status_code: int,
+        duration_ms: float,
     ) -> None:
         """Log errors using the ProblemDetails model."""
-        log_message = f"Client error {status_code} for {method} {url}"
+        log_message = (
+            f"Client error {status_code} for {method} {url} ({duration_ms:.0f}ms)"
+        )
 
         # Check for Unset values before logging
         title = problem.title if not isinstance(problem.title, Unset) else None
@@ -204,6 +365,119 @@ class ErrorLoggingTransport(AsyncHTTPTransport):
             log_message += f"\n  Additional info: {formatted}"
 
         self.logger.error(log_message)
+
+    def log_parsing_error(
+        self,
+        error: TypeError | ValueError | AttributeError | Exception,
+        response: httpx.Response,
+        request: httpx.Request,
+    ) -> None:
+        """
+        Log detailed information when an error occurs during response parsing.
+
+        This method intelligently inspects the error and response to provide
+        actionable debugging information with fix suggestions:
+        - For TypeErrors: Shows null fields and provides 3 fix options with doc links
+        - For ValueErrors: Shows the error and response excerpt
+        - For any parsing error: Logs the raw response for inspection
+
+        Args:
+            error: The exception that occurred during parsing
+            response: The HTTP response that was being parsed
+            request: The original HTTP request
+
+        Example output for TypeError with null fields:
+            ERROR: TypeError during parsing for GET /api/V2/PurchaseOrders
+            ERROR: TypeError: object of type 'NoneType' has no len()
+            ERROR: Found 3 null field(s) in response:
+            ERROR:   - orderDate
+            ERROR:   - fullyReceivedDate
+            ERROR:   - supplier.supplierName
+            ERROR:
+            ERROR: Possible fixes:
+            ERROR:   1. Add fields to NULLABLE_FIELDS in scripts/regenerate_client.py and regenerate
+            ERROR:   2. Update OpenAPI spec to mark these fields as 'nullable: true'
+            ERROR:   3. Handle null values defensively in helper methods
+            ERROR:
+            ERROR: See: docs/contributing/api-feedback.md#nullable-date-fields-not-marked-in-spec
+
+        Example output for ValueError:
+            ERROR: ValueError during parsing for POST /api/Products
+            ERROR: ValueError: invalid literal for int() with base 10: 'abc'
+            ERROR: Response excerpt: {"id": "abc", "name": "Product 1"}
+        """
+        method = request.method
+        url = str(request.url)
+        error_type = type(error).__name__
+
+        self.logger.error(f"{error_type} during parsing for {method} {url}")
+        self.logger.error(f"{error_type}: {error}")
+
+        # Try to parse response and provide context
+        try:
+            response_data = response.json()
+
+            # For TypeErrors, check for null fields (common cause)
+            if isinstance(error, TypeError):
+                null_fields = _find_null_fields(response_data)
+
+                if null_fields:
+                    self.logger.error(
+                        f"Found {len(null_fields)} null field(s) in response:"
+                    )
+                    for field_path in null_fields[: self.MAX_NULL_FIELDS_TO_LOG]:
+                        self.logger.error(f"  - {field_path}")
+                    if len(null_fields) > self.MAX_NULL_FIELDS_TO_LOG:
+                        self.logger.error(
+                            f"  ... and {len(null_fields) - self.MAX_NULL_FIELDS_TO_LOG} more null fields"
+                        )
+
+                    # Provide actionable fix suggestions
+                    self.logger.error("")  # Blank line for readability
+                    self.logger.error("Possible fixes:")
+                    self.logger.error(
+                        "  1. Add fields to NULLABLE_FIELDS in scripts/regenerate_client.py and regenerate"
+                    )
+                    self.logger.error(
+                        "  2. Update OpenAPI spec to mark these fields as 'nullable: true'"
+                    )
+                    self.logger.error(
+                        "  3. Handle null values defensively in helper methods"
+                    )
+                    self.logger.error("")  # Blank line for readability
+                    self.logger.error(
+                        "See: docs/contributing/api-feedback.md#nullable-arrays-vs-optional-fields"
+                    )
+                else:
+                    # TypeError but no null fields - show response excerpt
+                    response_str = str(response_data)
+                    excerpt = response_str[: self.RESPONSE_BODY_MAX_LENGTH]
+                    ellipsis = (
+                        "..."
+                        if len(response_str) > self.RESPONSE_BODY_MAX_LENGTH
+                        else ""
+                    )
+                    self.logger.error(
+                        f"No null fields found. Response excerpt: {excerpt}{ellipsis}"
+                    )
+            else:
+                # For other errors, show response excerpt
+                response_str = str(response_data)
+                excerpt = response_str[: self.RESPONSE_BODY_MAX_LENGTH]
+                ellipsis = (
+                    "..." if len(response_str) > self.RESPONSE_BODY_MAX_LENGTH else ""
+                )
+                self.logger.error(f"Response excerpt: {excerpt}{ellipsis}")
+
+        except (json.JSONDecodeError, TypeError, ValueError) as e:
+            self.logger.error(
+                f"Could not parse response as JSON: {type(e).__name__}: {e}"
+            )
+            text_excerpt = response.text[: self.RESPONSE_BODY_MAX_LENGTH]
+            ellipsis = (
+                "..." if len(response.text) > self.RESPONSE_BODY_MAX_LENGTH else ""
+            )
+            self.logger.error(f"Response text: {text_excerpt}{ellipsis}")
 
 
 class AuthHeaderTransport(AsyncHTTPTransport):
@@ -247,7 +521,7 @@ def create_resilient_transport(
     max_retries: int = 5,
     logger: logging.Logger | None = None,
     **kwargs: Any,
-) -> RetryTransport:
+) -> tuple[RetryTransport, ErrorLoggingTransport]:
     """
     Factory function that creates a chained transport with auth, error logging, and retry capabilities.
 
@@ -274,7 +548,9 @@ def create_resilient_transport(
             - trust_env (bool): Trust environment variables for proxy configuration
 
     Returns:
-        A RetryTransport instance wrapping all the layered transports.
+        A tuple of (RetryTransport, ErrorLoggingTransport) where:
+        - RetryTransport: The outermost transport layer for making requests
+        - ErrorLoggingTransport: Reference to the logging layer for error handling
 
     Note:
         StockTrim API simplifications compared to other APIs:
@@ -337,7 +613,7 @@ def create_resilient_transport(
         retry=retry,
     )
 
-    return retry_transport
+    return retry_transport, error_logging_transport
 
 
 class StockTrimClient(AuthenticatedClient):
@@ -465,12 +741,16 @@ class StockTrimClient(AuthenticatedClient):
         # Create resilient transport with all the layers
         # Note: This transport only adds the api-auth-signature header.
         # The api-auth-id header is added by AuthenticatedClient's native mechanism.
-        transport = create_resilient_transport(
+        transport, error_logging_transport = create_resilient_transport(
             api_auth_signature=api_auth_signature,
             max_retries=max_retries,
             logger=self.logger,
             **httpx_kwargs,  # Pass through http2, limits, verify, etc.
         )
+
+        # Store reference to error logging transport for helper methods
+        # Public API for helper methods to use enhanced error logging
+        self.error_logging_transport = error_logging_transport
 
         # Initialize parent with resilient transport
         # Use AuthenticatedClient's native customization to add the api-auth-id header:
