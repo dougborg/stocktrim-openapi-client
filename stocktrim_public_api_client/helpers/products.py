@@ -144,3 +144,36 @@ class Products(Base):
         """
         product = await self.find_by_code(code)
         return product is not None
+
+    async def get_all_paginated(self) -> list[ProductsResponseDto]:
+        """Get ALL products by paginating through all pages.
+
+        This method automatically handles pagination to fetch the complete
+        product catalog from StockTrim.
+
+        Returns:
+            List of all ProductsResponseDto objects across all pages.
+
+        Example:
+            >>> all_products = await client.products.get_all_paginated()
+            >>> print(f"Total products: {len(all_products)}")
+        """
+        all_products = []
+        page_no = "0"
+
+        while True:
+            products_page = await self.get_all(page_no=page_no)
+            if not products_page:
+                break
+
+            all_products.extend(products_page)
+
+            # StockTrim API uses string page numbers and doesn't document pagination
+            # We'll assume if we get fewer results, we're done
+            # Typical page size appears to be 50
+            if len(products_page) < 50:
+                break
+
+            page_no = str(int(page_no) + 1)
+
+        return all_products

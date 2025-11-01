@@ -555,6 +555,109 @@ as a non-nullable array.
 
 ______________________________________________________________________
 
+### POST Endpoints Support Upsert (Create OR Update)
+
+**Issue Discovered**: 2025-11-01 **Status**: ✅ **DOCUMENTED** - POST endpoints use
+upsert pattern
+
+**Discovery**: Several POST endpoints in the StockTrim API support **upsert** behavior:
+
+- POST **with** a reference identifier → Updates existing record (returns 200 OK)
+- POST **without** a reference identifier → Creates new record (returns 201 Created)
+
+**Affected Endpoints**:
+
+- `POST /api/PurchaseOrders` - Uses `client_reference_number` as upsert key
+- `POST /api/Products` - Uses `code` as upsert key
+
+**Example** (Purchase Orders):
+
+```http
+POST /api/PurchaseOrders
+{
+  "client_reference_number": "PO-00810",  // Existing PO
+  "supplier": {...},
+  "purchase_order_line_items": [...]
+}
+→ Returns 200 OK (updated existing PO-00810)
+
+POST /api/PurchaseOrders
+{
+  // No client_reference_number provided
+  "supplier": {...},
+  "purchase_order_line_items": [...]
+}
+→ Returns 201 Created (new PO created)
+```
+
+**OpenAPI Spec Issue**: The downloaded spec only documents 201 (Created) response,
+missing the 200 (OK) response for updates. This causes generated clients to fail when
+the API returns 200.
+
+**Solution**: Our client regeneration script (`scripts/regenerate_client.py`) now
+automatically adds 200 responses to upsert endpoints in STEP 2.6.
+
+**Benefits of Upsert Pattern**:
+
+- Simplifies client code (single endpoint for create/update)
+- Idempotent operations
+- Reduces need for separate PUT/PATCH endpoints
+
+**Note**: This is non-standard REST behavior (POST typically only creates), but it's a
+common pattern for APIs that prioritize simplicity over strict REST compliance.
+
+______________________________________________________________________
+
+### Order Date Field: Required for Updates, Optional in Responses
+
+**Issue Discovered**: 2025-11-01 **Status**: ⚠️ **API LIMITATION** - Order date cannot
+be cleared once set
+
+**Discovery**: The `orderDate` field in Purchase Orders has asymmetric behavior:
+
+- **GET responses**: `orderDate` can be `null` (we've observed this in production)
+- **POST requests**: `orderDate` is **required** and cannot be set to `null`
+
+**Impact**: Once a purchase order has an order date, it **cannot be cleared** via the
+API. You can only:
+
+1. Update it to a new date
+1. Preserve the existing date (by omitting the field with `UNSET`)
+
+**API Validation Error** when attempting to clear:
+
+```http
+POST /api/PurchaseOrders
+{
+  "client_reference_number": "PO-00810",
+  "orderDate": null,  // ❌ Rejected!
+  "supplier": {...},
+  "purchase_order_line_items": [...]
+}
+→ 400 Bad Request: "The OrderDate field is required."
+```
+
+**Client Implementation**: Despite this limitation, we made `orderDate` nullable in
+`PurchaseOrderRequestDto` to match the response schema and allow proper handling of null
+values when reading POs. The field is optional (defaults to `UNSET`), allowing updates
+that preserve the existing date.
+
+**Workaround**: To modify a PO without changing its order date:
+
+```python
+update_request = PurchaseOrderRequestDto(
+    supplier=original_po.supplier,
+    purchase_order_line_items=updated_items,
+    client_reference_number=original_po.client_reference_number,
+    order_date=UNSET,  # Omit field - preserves existing date
+)
+```
+
+**Recommendation for StockTrim**: Consider allowing `orderDate: null` in POST requests
+to enable clearing dates, matching the behavior already supported in GET responses.
+
+______________________________________________________________________
+
 ## Closing Notes
 
 Thank you for providing a public API! These suggestions come from a place of wanting to
