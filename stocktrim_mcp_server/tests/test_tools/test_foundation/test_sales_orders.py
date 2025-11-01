@@ -203,7 +203,9 @@ async def test_get_sales_orders_empty_list(extended_mock_context):
 
 
 @pytest.mark.asyncio
-async def test_get_sales_orders_single_object(extended_mock_context, sample_sales_order):
+async def test_get_sales_orders_single_object(
+    extended_mock_context, sample_sales_order
+):
     """Test getting sales orders when API returns single object instead of list."""
     # Setup
     mock_client = extended_mock_context.request_context.lifespan_context.client
@@ -264,7 +266,9 @@ async def test_list_sales_orders_by_product(extended_mock_context, sample_sales_
 
 
 @pytest.mark.asyncio
-async def test_delete_sales_orders_by_product(extended_mock_context, sample_sales_order):
+async def test_delete_sales_orders_by_product(
+    extended_mock_context, sample_sales_order
+):
     """Test deleting sales orders for a specific product."""
     # Setup
     mock_client = extended_mock_context.request_context.lifespan_context.client
@@ -291,9 +295,7 @@ async def test_delete_sales_orders_no_filter_raises_error(extended_mock_context)
     """Test deleting sales orders without filter raises error for safety."""
     # Execute and verify
     request = DeleteSalesOrdersRequest()
-    with pytest.raises(
-        ValueError, match="product_id is required for deletion"
-    ):
+    with pytest.raises(ValueError, match="product_id is required for deletion"):
         await delete_sales_orders(request, extended_mock_context)
 
 

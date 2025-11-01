@@ -176,9 +176,7 @@ async def create_sales_order(
 class GetSalesOrdersRequest(BaseModel):
     """Request model for getting sales orders."""
 
-    product_id: str | None = Field(
-        None, description="Filter by product ID (optional)"
-    )
+    product_id: str | None = Field(None, description="Filter by product ID (optional)")
 
 
 class GetSalesOrdersResponse(BaseModel):
@@ -204,7 +202,7 @@ async def _get_sales_orders_impl(
         Exception: If API call fails
     """
     logger.info(
-        f"Getting sales orders"
+        "Getting sales orders"
         + (f" for product {request.product_id}" if request.product_id else "")
     )
 
@@ -248,7 +246,9 @@ async def _get_sales_orders_impl(
                 customer_name=order.customer_name
                 if hasattr(order, "customer_name")
                 else None,
-                location_id=order.location_id if hasattr(order, "location_id") else None,
+                location_id=order.location_id
+                if hasattr(order, "location_id")
+                else None,
             )
             for order in order_list
         ]
@@ -299,9 +299,7 @@ async def get_sales_orders(
 class ListSalesOrdersRequest(BaseModel):
     """Request model for listing sales orders (alias for get_sales_orders)."""
 
-    product_id: str | None = Field(
-        None, description="Filter by product ID (optional)"
-    )
+    product_id: str | None = Field(None, description="Filter by product ID (optional)")
 
 
 class ListSalesOrdersResponse(BaseModel):
