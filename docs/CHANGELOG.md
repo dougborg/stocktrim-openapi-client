@@ -2,6 +2,57 @@
 
 <!-- version list -->
 
+## v0.4.2 (2025-11-01)
+
+### Bug Fixes
+
+- Add nullable to date/time fields in OpenAPI spec post-processing
+  ([`55721de`](https://github.com/dougborg/stocktrim-openapi-client/commit/55721de60bfee53b52593155533b4bcb630bd39d))
+
+Adds a new post-processing step to the regeneration script that ensures date/time and
+scalar fields which can be null are properly marked as nullable in the OpenAPI spec
+before code generation.
+
+Changes: - Added add_nullable_to_date_fields() function to scripts/regenerate_client.py
+\- Integrated as STEP 2.5 in the regeneration workflow (after auth fixes, before
+validation) - Updated docs/contributing/api-feedback.md to reflect fix status -
+Regenerated client with nullable fields properly handled
+
+The StockTrim API returns null for many date/time fields (orderDate, fullyReceivedDate,
+receivedDate, etc.) which previously caused TypeErrors when isoparse() tried to parse
+None values. The generated code now includes proper null checks before parsing.
+
+Tested: All 61 tests pass
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+
+- Remove nullable fields from required arrays in OpenAPI spec
+  ([`c5cd337`](https://github.com/dougborg/stocktrim-openapi-client/commit/c5cd337d47b9a76db6bf03c81b6ea3bfa65d80dd))
+
+Addresses Copilot reviewer feedback on PR #38. The `orderDate` field was marked as both
+required and nullable, which is a contradiction. Fields that can be null cannot be
+required per OpenAPI specification semantics.
+
+Updated `add_nullable_to_date_fields()` to: - Mark fields as nullable: true (existing
+behavior) - Remove nullable fields from required arrays (new behavior)
+
+Based on real API evidence, orderDate returns null and should not be required.
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+
+### Refactoring
+
+- Separate client and MCP releases with proper chaining
+  ([#35](https://github.com/dougborg/stocktrim-openapi-client/pull/35),
+  [`2ebe64f`](https://github.com/dougborg/stocktrim-openapi-client/commit/2ebe64f56bae1be9e0590077d66014ac816f4adc))
+
+Refactored release workflow to separate client and MCP releases with proper chaining.
+All Copilot review feedback has been addressed and threads resolved.
+
 ## v0.4.1 (2025-10-31)
 
 ### Bug Fixes
