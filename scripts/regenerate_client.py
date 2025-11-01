@@ -148,6 +148,96 @@ def fix_auth_in_spec(spec_path: Path) -> bool:
         return False
 
 
+def add_nullable_to_date_fields(spec_path: Path) -> bool:
+    """Add nullable: true to date/time and scalar fields that can be null.
+
+    The StockTrim API returns null for many date/time and scalar fields,
+    but the OpenAPI spec doesn't mark them as nullable. This causes the
+    generated Python client to crash when isoparse() tries to parse None values.
+
+    Based on real API evidence documented in docs/contributing/api-feedback.md.
+    """
+    logger.info("Adding nullable: true to date/time and scalar fields")
+
+    try:
+        with open(spec_path) as f:
+            spec = yaml.safe_load(f)
+
+        # Define which fields should be nullable based on real API behavior
+        # See docs/contributing/api-feedback.md for evidence
+        NULLABLE_FIELDS = {
+            "PurchaseOrderResponseDto": [
+                "message",  # string
+                "orderDate",  # date-time ⚠️ CRITICAL - crashes when null
+                "fullyReceivedDate",  # date-time ⚠️ CRITICAL - crashes when null
+                "externalId",  # string
+                "referenceNumber",  # string
+                "location",  # object
+            ],
+            "PurchaseOrderSupplier": [
+                "supplierCode",  # string
+            ],
+            "PurchaseOrderLineItem": [
+                "receivedDate",  # date-time ⚠️ CRITICAL - crashes when null
+            ],
+        }
+
+        schemas = spec.get("components", {}).get("schemas", {})
+        fields_modified = 0
+        fields_removed_from_required = 0
+
+        for schema_name, field_names in NULLABLE_FIELDS.items():
+            if schema_name not in schemas:
+                logger.warning(f"Schema {schema_name} not found in spec")
+                continue
+
+            schema = schemas[schema_name]
+            properties = schema.get("properties", {})
+            required = schema.get("required", [])
+
+            for field_name in field_names:
+                if field_name not in properties:
+                    logger.warning(f"Field {field_name} not found in {schema_name}")
+                    continue
+
+                field = properties[field_name]
+
+                # Add nullable: true if not already present
+                if not field.get("nullable", False):
+                    field["nullable"] = True
+                    fields_modified += 1
+                    field_type = field.get("type", "object")
+                    field_format = field.get("format", "")
+                    type_info = (
+                        f"{field_type} ({field_format})" if field_format else field_type
+                    )
+                    logger.info(
+                        f"  ✓ Made {schema_name}.{field_name} ({type_info}) nullable"
+                    )
+
+                # Remove from required array if present (nullable fields cannot be required)
+                if field_name in required:
+                    required.remove(field_name)
+                    fields_removed_from_required += 1
+                    logger.info(
+                        f"  ✓ Removed {schema_name}.{field_name} from required array"
+                    )
+
+        # Save the modified spec
+        with open(spec_path, "w") as f:
+            yaml.dump(spec, f, default_flow_style=False, sort_keys=False)
+
+        logger.info(
+            f"✅ Made {fields_modified} fields nullable, "
+            f"removed {fields_removed_from_required} from required arrays"
+        )
+        return True
+
+    except Exception as e:
+        logger.error(f"❌ Failed to add nullable to date fields: {e}")
+        return False
+
+
 def validate_openapi_spec_python(spec_path: Path) -> bool:
     """Validate the OpenAPI specification using openapi-spec-validator."""
     logger.info("Validating OpenAPI specification with openapi-spec-validator")
@@ -643,6 +733,15 @@ def main() -> None:
         sys.exit(1)
     logger.info("")
 
+    # Step 2.5: Add nullable to date/time fields
+    logger.info("=" * 60)
+    logger.info("STEP 2.5: Add Nullable to Date/Time Fields")
+    logger.info("=" * 60)
+    if not add_nullable_to_date_fields(SPEC_FILE):
+        logger.error("❌ Failed to add nullable to date/time fields")
+        sys.exit(1)
+    logger.info("")
+
     # Step 3: Validate specification
     logger.info("=" * 60)
     logger.info("STEP 3: Validate OpenAPI Specification")
@@ -715,6 +814,7 @@ def main() -> None:
     logger.info("✅ Fixed all imports to use client_types")
     logger.info("✅ Modernized Union types to use | syntax")
     logger.info("✅ Fixed RST docstring formatting")
+    logger.info("✅ Made date/time fields nullable (handles null API responses)")
     logger.info("✅ Ran ruff auto-fixes")
 
     if tests_passed:
