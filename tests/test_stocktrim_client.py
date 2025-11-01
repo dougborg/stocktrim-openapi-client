@@ -179,17 +179,24 @@ class TestErrorLoggingTransport:
     async def test_log_success_response_null_warning(
         self, logging_transport, mock_request, mock_logger
     ):
-        """Test that null responses trigger a WARNING about potential TypeErrors."""
+        """Test that null responses trigger a log message about potential TypeErrors."""
         response = self.create_mock_response(200, json_data=None, request=mock_request)
         mock_logger.isEnabledFor.return_value = True
 
         await logging_transport._log_success_response(response, mock_request, 75.0)
 
-        # Verify WARNING was logged about null response
-        mock_logger.warning.assert_called_once()
-        warning_message = mock_logger.warning.call_args[0][0]
-        assert "null" in warning_message.lower()
-        assert "TypeError" in warning_message
+        # Verify null response message was logged (default level is DEBUG)
+        mock_logger.log.assert_called()
+        # Find the log call about null (should be at DEBUG level by default)
+        log_calls = [
+            call
+            for call in mock_logger.log.call_args_list
+            if len(call[0]) > 1 and "null" in str(call[0][1]).lower()
+        ]
+        assert len(log_calls) > 0
+        log_level, log_message = log_calls[0][0]
+        assert log_level == logging.DEBUG  # Default level
+        assert "TypeError" in log_message
 
     @pytest.mark.asyncio
     async def test_log_success_response_dict_excerpt(

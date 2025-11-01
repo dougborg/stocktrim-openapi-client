@@ -114,6 +114,7 @@ class ErrorLoggingTransport(AsyncHTTPTransport):
         self,
         wrapped_transport: AsyncHTTPTransport | None = None,
         logger: logging.Logger | None = None,
+        null_response_log_level: int = logging.DEBUG,
         **kwargs: Any,
     ):
         """
@@ -122,6 +123,8 @@ class ErrorLoggingTransport(AsyncHTTPTransport):
         Args:
             wrapped_transport: The transport to wrap. If None, creates a new AsyncHTTPTransport.
             logger: Logger instance for capturing error details. If None, creates a default logger.
+            null_response_log_level: Log level for null response messages (default: DEBUG).
+                Set to logging.WARNING for more visibility, or use a custom TRACE level (5) for minimal logging.
             **kwargs: Additional arguments passed to AsyncHTTPTransport if wrapped_transport is None.
         """
         super().__init__()
@@ -129,6 +132,7 @@ class ErrorLoggingTransport(AsyncHTTPTransport):
             wrapped_transport = AsyncHTTPTransport(**kwargs)
         self._wrapped_transport = wrapped_transport
         self.logger = logger or logging.getLogger(__name__)
+        self.null_response_log_level = null_response_log_level
 
     async def handle_async_request(self, request: httpx.Request) -> httpx.Response:
         """Handle request and log based on response status code."""
@@ -201,10 +205,11 @@ class ErrorLoggingTransport(AsyncHTTPTransport):
 
                 if response_body is None:
                     self.logger.debug("Response body: null (parsed as None)")
-                    # Warn about null responses that may cause TypeErrors
-                    self.logger.warning(
+                    # Log null responses at configurable level (may cause TypeErrors)
+                    self.logger.log(
+                        self.null_response_log_level,
                         f"{method} {url} returned null - this may cause TypeError "
-                        f"in generated code expecting a list or object"
+                        f"in generated code expecting a list or object",
                     )
                 elif isinstance(response_body, list):
                     self.logger.debug(
