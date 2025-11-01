@@ -16,6 +16,7 @@ from .inventory import register_tools as register_inventory_tools
 from .locations import register_tools as register_location_tools
 from .products import register_tools as register_product_tools
 from .purchase_orders import register_tools as register_purchase_order_tools
+from .sales_orders import register_tools as register_sales_order_tools
 from .suppliers import register_tools as register_supplier_tools
 
 
@@ -31,6 +32,7 @@ def register_all_foundation_tools(mcp: FastMCP) -> None:
     register_supplier_tools(mcp)
     register_location_tools(mcp)
     register_purchase_order_tools(mcp)
+    register_sales_order_tools(mcp)
 
 
 __all__ = [
