@@ -1836,7 +1836,6 @@ components:
       additionalProperties: false
     PurchaseOrderResponseDto:
       required:
-      - orderDate
       - purchaseOrderLineItems
       - supplier
       type: object
