@@ -47,3 +47,36 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/stocktrim_mcp_server"]
+
+[tool.semantic_release]
+version_toml = ["pyproject.toml:project.version"]
+dist_path = "dist/"
+upload_to_pypi = false
+upload_to_repository = false
+remove_dist = false
+commit_author = "github-actions[bot] <github-actions[bot]@users.noreply.github.com>"
+commit_message = "chore(release): mcp v{version}"
+build_command = "pip install mdformat mdformat-gfm mdformat-tables mdformat-toc && mdformat CHANGELOG.md --wrap 88"
+major_on_zero = false
+allow_zero_version = true
+tag_format = "mcp-v{version}"
+
+[tool.semantic_release.commit_parser_options]
+allowed_tags = [
+  "build",
+  "chore",
+  "ci",
+  "docs",
+  "feat",
+  "fix",
+  "perf",
+  "style",
+  "refactor",
+  "test",
+]
+minor_tags = ["feat"]
+patch_tags = ["fix", "perf"]
+# Note: The workflow runs semantic-release when there are (mcp) scoped commits OR when the client is released.
+# Semantic-release itself processes all commits in the range, but default_bump_level = 0 means
+# commits without feat/fix/perf tags won't trigger version bumps.
+default_bump_level = 0

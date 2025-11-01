@@ -34,10 +34,12 @@ jobs:
       - name: Run full CI pipeline
         run: uv run poe ci
 
-  release:
+  release-client:
     needs: test
     runs-on: ubuntu-latest
-    concurrency: release
+    concurrency:
+      group: release-client
+      cancel-in-progress: false
     permissions:
       id-token: write
       contents: write
@@ -63,7 +65,20 @@ jobs:
       - name: Install dependencies
         run: uv sync --all-extras
 
-      - name: Python Semantic Release
+      - name: Check for client changes
+        id: check
+        run: |
+          # Check if there are any commits with (client) scope or no scope since last client release
+          # Pattern explicitly matches: feat/fix/perf with no scope OR (client) scope
+          # Excludes (mcp) and other scopes to prevent incorrect triggers
+          if git log $(git describe --tags --abbrev=0 --match="client-v*" 2>/dev/null || echo "HEAD~10")..HEAD --pretty=format:"%s" | grep -qE '^(feat|fix|perf)(:|\\(client\\):)'; then
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Python Semantic Release (Client)
+        if: steps.check.outputs.has_changes == 'true'
         id: release
         uses: python-semantic-release/python-semantic-release@v9.15.2
         with:
@@ -77,70 +92,126 @@ jobs:
           mkdir -p client-dist
           cp dist/*.whl dist/*.tar.gz client-dist/
 
-      - name: Update MCP server version
+      - name: Upload client artifacts
         if: steps.release.outputs.released == 'true'
-        id: update_mcp
-        run: |
-          # Update MCP server to depend on the new client version
-          CLIENT_VERSION="${{ steps.release.outputs.version }}"
-          echo "Updating MCP server to depend on client version $CLIENT_VERSION"
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-client
+          path: client-dist/
 
-          # Install tomli-w for TOML writing (tomllib is built-in for reading in Python 3.11+)
+  release-mcp:
+    needs: [test, release-client]
+    # Run if: (1) there are MCP changes OR (2) client was released (MCP needs new client version)
+    if: always() && needs.test.result == 'success'
+    runs-on: ubuntu-latest
+    concurrency:
+      group: release-mcp
+      cancel-in-progress: false
+    permissions:
+      id-token: write
+      contents: write
+    outputs:
+      released: ${{ steps.release.outputs.released }}
+      version: ${{ steps.release.outputs.version }}
+      tag: ${{ steps.release.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.SEMANTIC_RELEASE_TOKEN }}
+
+      - name: Install UV
+        uses: astral-sh/setup-uv@v4
+        # Temporarily disable cache due to service issues
+        # with:
+        #   enable-cache: true
+
+      - name: Set up Python
+        run: uv python install 3.13
+
+      - name: Install dependencies
+        run: uv sync --all-extras
+
+      - name: Check for MCP changes or client release
+        id: check
+        run: |
+          # Check if there are any commits with (mcp) scope since last mcp release
+          # This workflow-level check determines if semantic-release should even run
+          # NOTE: This regex is intentionally strict—only MCP-scoped commits (e.g., feat(mcp):, fix(mcp):, perf(mcp):)
+          # will trigger an MCP release. This is consistent with the documented release strategy:
+          # MCP releases are triggered by MCP-only changes, or when the client is released (checked separately below).
+          if git log $(git describe --tags --abbrev=0 --match="mcp-v*" 2>/dev/null || echo "HEAD~10")..HEAD --pretty=format:"%s" | grep -qE '^(feat|fix|perf)\(mcp\):'; then
+            has_mcp_changes=true
+          else
+            has_mcp_changes=false
+          fi
+          echo "has_mcp_changes=${has_mcp_changes}" >> $GITHUB_OUTPUT
+
+          # Check if client was released (MCP needs to pick up new client version)
+          if [ "${{ needs.release-client.outputs.released }}" == "true" ]; then
+            echo "client_released=true" >> $GITHUB_OUTPUT
+            echo "should_release=true" >> $GITHUB_OUTPUT
+          elif [ "${has_mcp_changes}" == "true" ]; then
+            echo "client_released=false" >> $GITHUB_OUTPUT
+            echo "should_release=true" >> $GITHUB_OUTPUT
+          else
+            echo "client_released=false" >> $GITHUB_OUTPUT
+            echo "should_release=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Update MCP client dependency
+        if: steps.check.outputs.client_released == 'true'
+        run: |
+          # Install tomli-w for TOML writing
           uv pip install tomli-w
 
-          # Create update script
-          cat > update_mcp_version.py << 'EOF'
-          import tomllib  # Python 3.11+ built-in
+          # Update stocktrim-openapi-client dependency to use new version
+          cat > update_client_dep.py << 'EOF'
+          import tomllib
           import tomli_w
           import sys
-          import os
 
           client_version = sys.argv[1]
 
-          # Read current pyproject.toml
           with open('stocktrim_mcp_server/pyproject.toml', 'rb') as f:
               data = tomllib.load(f)
 
           # Update client dependency to specific version
-          data['project']['dependencies'][0] = f'stocktrim-openapi-client=={client_version}'
+          for i, dep in enumerate(data['project']['dependencies']):
+              if dep.startswith('stocktrim-openapi-client'):
+                  data['project']['dependencies'][i] = f'stocktrim-openapi-client=={client_version}'
+                  break
 
           # Remove workspace source override for PyPI release
           if 'tool' in data and 'uv' in data['tool'] and 'sources' in data['tool']['uv']:
               if 'stocktrim-openapi-client' in data['tool']['uv']['sources']:
                   del data['tool']['uv']['sources']['stocktrim-openapi-client']
-                  print('Removed workspace source override for PyPI release')
 
-          # Bump MCP server patch version
-          current_version = data['project']['version']
-          major, minor, patch = map(int, current_version.split('.'))
-          new_version = f'{major}.{minor}.{patch + 1}'
-          data['project']['version'] = new_version
-
-          print(f'Updated MCP server to version {new_version} with client dependency stocktrim-openapi-client=={client_version}')
-
-          # Write back
           with open('stocktrim_mcp_server/pyproject.toml', 'wb') as f:
               tomli_w.dump(data, f)
 
-          # Write to GitHub Actions output
-          github_output = os.environ.get('GITHUB_OUTPUT')
-          if github_output:
-              with open(github_output, 'a') as f:
-                  f.write(f'mcp_version={new_version}\n')
+          print(f'Updated MCP client dependency to {client_version}')
           EOF
 
-          # Run the update script
-          uv run python update_mcp_version.py "$CLIENT_VERSION"
+          uv run python update_client_dep.py "${{ needs.release-client.outputs.version }}"
 
-      - name: Commit and push MCP version bump
-        if: steps.release.outputs.released == 'true'
-        run: |
+          # Commit the dependency update
+          # Note: This chore(mcp) commit won't itself trigger a version bump (default_bump_level=0 for chore commits)
+          # The subsequent semantic-release step will pick up this change and include it in the release
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add stocktrim_mcp_server/pyproject.toml
-          # Only commit if there are changes to avoid errors on re-runs
-          git diff --cached --quiet || git commit -m "chore(mcp): bump version to ${{ steps.update_mcp.outputs.mcp_version }} with client ${{ steps.release.outputs.version }}"
+          git diff --cached --quiet || git commit -m "chore(mcp): update client dependency to v${{ needs.release-client.outputs.version }}"
           git push
+
+      - name: Python Semantic Release (MCP)
+        if: steps.check.outputs.should_release == 'true'
+        id: release
+        uses: python-semantic-release/python-semantic-release@v9.15.2
+        with:
+          github_token: ${{ secrets.SEMANTIC_RELEASE_TOKEN }}
+          root_options: -vv
+          directory: stocktrim_mcp_server
 
       - name: Build MCP server package
         if: steps.release.outputs.released == 'true'
@@ -149,13 +220,6 @@ jobs:
           uv build --package stocktrim-mcp-server
           mkdir -p mcp-dist
           cp dist/*.whl dist/*.tar.gz mcp-dist/
-
-      - name: Upload client artifacts
-        if: steps.release.outputs.released == 'true'
-        uses: actions/upload-artifact@v4
-        with:
-          name: dist-client
-          path: client-dist/
 
       - name: Upload MCP server artifacts
         if: steps.release.outputs.released == 'true'
@@ -166,8 +230,8 @@ jobs:
 
   publish-client:
     name: Publish Client to PyPI
-    needs: release
-    if: needs.release.outputs.released == 'true'
+    needs: release-client
+    if: needs.release-client.outputs.released == 'true'
     runs-on: ubuntu-latest
     environment:
       name: pypi-client
@@ -188,8 +252,8 @@ jobs:
 
   publish-mcp:
     name: Publish MCP Server to PyPI
-    needs: release
-    if: needs.release.outputs.released == 'true'
+    needs: release-mcp
+    if: needs.release-mcp.outputs.released == 'true'
     runs-on: ubuntu-latest
     environment:
       name: pypi-mcp
