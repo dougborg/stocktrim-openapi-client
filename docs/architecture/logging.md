@@ -433,7 +433,7 @@ ERROR   1. Add fields to NULLABLE_FIELDS in scripts/regenerate_client.py and reg
 ERROR   2. Update OpenAPI spec to mark these fields as 'nullable: true'
 ERROR   3. Handle null values defensively in helper methods
 ERROR
-ERROR See: docs/contributing/api-feedback.md#nullable-date-fields-not-marked-in-spec
+ERROR See: docs/contributing/api-feedback.md#nullable-arrays-vs-optional-fields
 ```
 
 **How to use it in helper methods**:

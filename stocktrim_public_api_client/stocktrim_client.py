@@ -446,7 +446,7 @@ class ErrorLoggingTransport(AsyncHTTPTransport):
                     )
                     self.logger.error("")  # Blank line for readability
                     self.logger.error(
-                        "See: docs/contributing/api-feedback.md#nullable-date-fields-not-marked-in-spec"
+                        "See: docs/contributing/api-feedback.md#nullable-arrays-vs-optional-fields"
                     )
                 else:
                     # TypeError but no null fields - show response excerpt
