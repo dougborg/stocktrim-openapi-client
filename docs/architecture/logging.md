@@ -30,7 +30,7 @@ The client uses standard Python logging levels with specific semantics:
 
 - All HTTP requests (method, URL, headers - excluding auth)
 - All HTTP responses (status code, headers, response body excerpt)
-- Response body content for successful (2xx) responses (first 500 chars by default)
+- Response body content for successful (2xx) responses (first 200 chars by default)
 - Request/response timing information
 - Retry attempts and backoff delays
 - JSON parsing operations and results
@@ -416,7 +416,7 @@ ERROR Response: {"type":"about:blank","title":"Not Found","status":404,"detail":
    - WARNING: Unexpected but handled situations
    - ERROR: Failures that need attention
 1. **Include context**: method, URL, status code, timing
-1. **Truncate response bodies** to prevent log spam (default: 500 chars)
+1. **Truncate response bodies** to prevent log spam (default: 200 chars)
 1. **Make logs searchable**: use consistent formats and include request IDs when
    available
 

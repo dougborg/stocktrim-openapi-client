@@ -107,6 +107,9 @@ class ErrorLoggingTransport(AsyncHTTPTransport):
     - ERROR: 4xx client errors and 5xx server errors with response details
     """
 
+    #: Maximum characters to show from response bodies in DEBUG logs
+    RESPONSE_BODY_MAX_LENGTH = 200
+
     def __init__(
         self,
         wrapped_transport: AsyncHTTPTransport | None = None,
@@ -208,14 +211,16 @@ class ErrorLoggingTransport(AsyncHTTPTransport):
                         f"Response body: list[{len(response_body)}] items"
                     )
                 elif isinstance(response_body, dict):
-                    body_excerpt = str(response_body)[:200]
+                    body_excerpt = str(response_body)[: self.RESPONSE_BODY_MAX_LENGTH]
                     self.logger.debug(f"Response body: {body_excerpt}...")
                 else:
                     self.logger.debug(
-                        f"Response body type: {body_type}, value: {str(response_body)[:200]}"
+                        f"Response body type: {body_type}, value: {str(response_body)[: self.RESPONSE_BODY_MAX_LENGTH]}"
                     )
             except (json.JSONDecodeError, TypeError, ValueError):
-                self.logger.debug(f"Response body (non-JSON): {response.text[:200]}...")
+                self.logger.debug(
+                    f"Response body (non-JSON): {response.text[: self.RESPONSE_BODY_MAX_LENGTH]}..."
+                )
 
     async def _log_client_error(
         self, response: httpx.Response, request: httpx.Request, duration_ms: float

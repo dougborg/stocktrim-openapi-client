@@ -107,7 +107,7 @@ class TestErrorLoggingTransport:
         """Create a mock HTTP response."""
         response = MagicMock(spec=httpx.Response)
         response.status_code = status_code
-        response.request = request or self.mock_request()
+        response.request = request or MagicMock(spec=httpx.Request)
 
         if json_data is not None:
             response.json = MagicMock(return_value=json_data)
