@@ -204,16 +204,31 @@ def add_nullable_to_date_fields(spec_path: Path) -> bool:
 
                 # Add nullable: true if not already present
                 if not field.get("nullable", False):
-                    field["nullable"] = True
-                    fields_modified += 1
-                    field_type = field.get("type", "object")
-                    field_format = field.get("format", "")
-                    type_info = (
-                        f"{field_type} ({field_format})" if field_format else field_type
-                    )
-                    logger.info(
-                        f"  ✓ Made {schema_name}.{field_name} ({type_info}) nullable"
-                    )
+                    # Check if field uses $ref (object reference)
+                    # OpenAPI 3.0 ignores nullable: true next to $ref, so use allOf with nullable
+                    if "$ref" in field:
+                        ref_value = field["$ref"]
+                        field.clear()  # Remove $ref and other properties
+                        field["allOf"] = [{"$ref": ref_value}]
+                        field["nullable"] = True
+                        fields_modified += 1
+                        logger.info(
+                            f"  ✓ Made {schema_name}.{field_name} (object ref) nullable using allOf pattern"
+                        )
+                    else:
+                        # For scalar/date fields, nullable: true works fine
+                        field["nullable"] = True
+                        fields_modified += 1
+                        field_type = field.get("type", "object")
+                        field_format = field.get("format", "")
+                        type_info = (
+                            f"{field_type} ({field_format})"
+                            if field_format
+                            else field_type
+                        )
+                        logger.info(
+                            f"  ✓ Made {schema_name}.{field_name} ({type_info}) nullable"
+                        )
 
                 # Remove from required array if present (nullable fields cannot be required)
                 if field_name in required:

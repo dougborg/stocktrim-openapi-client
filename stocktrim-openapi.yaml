@@ -1870,7 +1870,8 @@ components:
           type: string
           nullable: true
         location:
-          $ref: '#/components/schemas/PurchaseOrderLocation'
+          allOf:
+          - $ref: '#/components/schemas/PurchaseOrderLocation'
           nullable: true
         status:
           $ref: '#/components/schemas/PurchaseOrderStatusDto'

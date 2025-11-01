@@ -536,6 +536,10 @@ uv run poe validate-openapi
 
 1. Downloads latest OpenAPI spec from StockTrim API
 1. Fixes authentication (converts header params to securitySchemes)
+1. **Marks nullable fields** (STEP 2.5):
+   - Scalar/date fields: adds `nullable: true`
+   - Object references: uses `allOf` with `nullable: true` (OpenAPI 3.0 workaround for
+     `$ref`)
 1. Validates spec using openapi-spec-validator and Redocly
 1. Generates client with openapi-python-client
 1. **Post-processing**:

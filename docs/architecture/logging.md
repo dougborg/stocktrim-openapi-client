@@ -430,8 +430,9 @@ ERROR   - supplier.supplierName
 ERROR
 ERROR Possible fixes:
 ERROR   1. Add fields to NULLABLE_FIELDS in scripts/regenerate_client.py and regenerate
-ERROR   2. Update OpenAPI spec to mark these fields as 'nullable: true'
-ERROR   3. Handle null values defensively in helper methods
+ERROR      - For scalar/date fields: script adds 'nullable: true'
+ERROR      - For object references: script uses 'allOf' with 'nullable: true' (OpenAPI 3.0 limitation)
+ERROR   2. Handle null values defensively in helper methods
 ERROR
 ERROR See: docs/contributing/api-feedback.md#nullable-arrays-vs-optional-fields
 ```

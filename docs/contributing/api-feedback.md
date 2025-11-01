@@ -465,9 +465,27 @@ caused the generated Python client to fail with
 `TypeError: object of type 'NoneType' has no len()` when trying to parse these fields.
 
 **Solution**: The `regenerate_client.py` script now includes a post-processing step
-(STEP 2.5) that automatically adds `nullable: true` to known nullable fields before
-generating the client code. This ensures the generated code properly handles `null`
-values from the API.
+(STEP 2.5) that automatically marks known nullable fields before generating the client
+code. This ensures the generated code properly handles `null` values from the API.
+
+**Implementation Details**:
+
+- **Scalar/Date Fields**: Uses `nullable: true` (e.g., `orderDate`, `message`)
+- **Object References**: Uses `allOf` with `nullable: true` due to OpenAPI 3.0
+  limitation
+
+OpenAPI 3.0 spec ignores `nullable: true` when it appears alongside `$ref`. For object
+references (like `location`), the script uses this pattern:
+
+```yaml
+location:
+  allOf:
+    - $ref: '#/components/schemas/PurchaseOrderLocation'
+  nullable: true
+```
+
+This correctly tells the code generator that the field can be either `null` or a
+`PurchaseOrderLocation` object.
 
 **Affected Models and Fields** (based on analysis of real API responses):
 

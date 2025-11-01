@@ -2110,7 +2110,7 @@ wheels = [
 
 [[package]]
 name = "stocktrim-mcp-server"
-version = "0.1.0"
+version = "0.2.0"
 source = { editable = "stocktrim_mcp_server" }
 dependencies = [
     { name = "fastmcp" },
@@ -2127,7 +2127,7 @@ requires-dist = [
 
 [[package]]
 name = "stocktrim-openapi-client"
-version = "0.5.0"
+version = "0.5.1"
 source = { editable = "." }
 dependencies = [
     { name = "attrs" },

@@ -33,7 +33,7 @@ class PurchaseOrderResponseDto:
         external_id (None | str | Unset):
         reference_number (None | str | Unset):
         client_reference_number (None | str | Unset):
-        location (PurchaseOrderLocation | Unset):
+        location (None | PurchaseOrderLocation | Unset):
         status (PurchaseOrderStatusDto | Unset):
     """
 
@@ -47,10 +47,12 @@ class PurchaseOrderResponseDto:
     external_id: None | str | Unset = UNSET
     reference_number: None | str | Unset = UNSET
     client_reference_number: None | str | Unset = UNSET
-    location: PurchaseOrderLocation | Unset = UNSET
+    location: None | PurchaseOrderLocation | Unset = UNSET
     status: PurchaseOrderStatusDto | Unset = UNSET
 
     def to_dict(self) -> dict[str, Any]:
+        from ..models.purchase_order_location import PurchaseOrderLocation
+
         supplier = self.supplier.to_dict()
 
         purchase_order_line_items = []
@@ -110,9 +112,13 @@ class PurchaseOrderResponseDto:
         else:
             client_reference_number = self.client_reference_number
 
-        location: dict[str, Any] | Unset = UNSET
-        if not isinstance(self.location, Unset):
+        location: dict[str, Any] | None | Unset
+        if isinstance(self.location, Unset):
+            location = UNSET
+        elif isinstance(self.location, PurchaseOrderLocation):
             location = self.location.to_dict()
+        else:
+            location = self.location
 
         status: str | Unset = UNSET
         if not isinstance(self.status, Unset):
@@ -262,12 +268,22 @@ class PurchaseOrderResponseDto:
             d.pop("clientReferenceNumber", UNSET)
         )
 
-        _location = d.pop("location", UNSET)
-        location: PurchaseOrderLocation | Unset
-        if isinstance(_location, Unset):
-            location = UNSET
-        else:
-            location = PurchaseOrderLocation.from_dict(_location)
+        def _parse_location(data: object) -> None | PurchaseOrderLocation | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            try:
+                if not isinstance(data, dict):
+                    raise TypeError()
+                location_type_1 = PurchaseOrderLocation.from_dict(data)
+
+                return location_type_1
+            except:  # noqa: E722
+                pass
+            return cast(None | PurchaseOrderLocation | Unset, data)
+
+        location = _parse_location(d.pop("location", UNSET))
 
         _status = d.pop("status", UNSET)
         status: PurchaseOrderStatusDto | Unset
