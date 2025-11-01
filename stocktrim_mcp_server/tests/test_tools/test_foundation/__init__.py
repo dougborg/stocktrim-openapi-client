@@ -1,1 +1,1 @@
-"""Foundation tool tests."""
+"""Tests for foundation tools."""
