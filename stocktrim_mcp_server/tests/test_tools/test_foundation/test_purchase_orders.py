@@ -301,6 +301,29 @@ async def test_create_purchase_order_with_custom_date(
     mock_client.purchase_orders.create.assert_called_once()
 
 
+@pytest.mark.asyncio
+async def test_create_purchase_order_with_different_statuses(
+    mock_po_context, sample_purchase_order
+):
+    """Test creating a purchase order with different valid statuses."""
+    # Setup
+    mock_client = mock_po_context.request_context.lifespan_context.client
+    mock_client.purchase_orders.create.return_value = sample_purchase_order
+
+    # Test each valid status
+    for status in ["Draft", "Approved", "Sent", "Received"]:
+        request = CreatePurchaseOrderRequest(
+            supplier_code="SUP-001",
+            line_items=[LineItemRequest(product_code="WIDGET-001", quantity=10.0)],
+            status=status,
+        )
+        response = await create_purchase_order(request, mock_po_context)
+        assert response.reference_number == "PO-2024-001"
+
+    # Verify create was called for each status
+    assert mock_client.purchase_orders.create.call_count == 4
+
+
 # ============================================================================
 # Test delete_purchase_order
 # ============================================================================

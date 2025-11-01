@@ -346,12 +346,17 @@ async def _create_purchase_order_impl(
         ]
 
         # Parse status
+        # Note: PurchaseOrderStatusDto enum values are user-friendly strings:
+        # "Draft", "Approved", "Sent", "Received"
         status = None
         if request.status:
             try:
                 status = PurchaseOrderStatusDto(request.status)
             except ValueError:
-                # If invalid status, use Draft
+                # If invalid status provided, default to Draft
+                logger.warning(
+                    f"Invalid status '{request.status}' provided, defaulting to Draft"
+                )
                 status = PurchaseOrderStatusDto.DRAFT
 
         # Build purchase order DTO
