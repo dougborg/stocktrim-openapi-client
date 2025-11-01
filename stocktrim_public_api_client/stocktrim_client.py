@@ -43,6 +43,35 @@ if TYPE_CHECKING:
     from .helpers.suppliers import Suppliers
 
 
+def _find_null_fields(data: Any, path: str = "") -> list[str]:
+    """
+    Recursively find all null fields in a JSON response.
+
+    Args:
+        data: The JSON data to inspect (dict, list, or primitive)
+        path: The current path in dot notation (e.g., "order.supplier.name")
+
+    Returns:
+        List of paths to null fields (e.g., ["orderDate", "supplier.supplierName"])
+    """
+    null_fields: list[str] = []
+
+    if data is None and path:
+        # Found a null field (but not the root - that's handled separately)
+        return [path]
+
+    if isinstance(data, dict):
+        for key, value in data.items():
+            field_path = f"{path}.{key}" if path else key
+            null_fields.extend(_find_null_fields(value, field_path))
+    elif isinstance(data, list):
+        for i, item in enumerate(data):
+            field_path = f"{path}[{i}]" if path else f"[{i}]"
+            null_fields.extend(_find_null_fields(item, field_path))
+
+    return null_fields
+
+
 class IdempotentOnlyRetry(Retry):
     """
     Custom Retry class that only retries idempotent methods (GET, HEAD, OPTIONS, TRACE)
@@ -114,7 +143,6 @@ class ErrorLoggingTransport(AsyncHTTPTransport):
         self,
         wrapped_transport: AsyncHTTPTransport | None = None,
         logger: logging.Logger | None = None,
-        null_response_log_level: int = logging.DEBUG,
         **kwargs: Any,
     ):
         """
@@ -123,8 +151,6 @@ class ErrorLoggingTransport(AsyncHTTPTransport):
         Args:
             wrapped_transport: The transport to wrap. If None, creates a new AsyncHTTPTransport.
             logger: Logger instance for capturing error details. If None, creates a default logger.
-            null_response_log_level: Log level for null response messages (default: DEBUG).
-                Set to logging.WARNING for more visibility, or use a custom TRACE level (5) for minimal logging.
             **kwargs: Additional arguments passed to AsyncHTTPTransport if wrapped_transport is None.
         """
         super().__init__()
@@ -132,7 +158,6 @@ class ErrorLoggingTransport(AsyncHTTPTransport):
             wrapped_transport = AsyncHTTPTransport(**kwargs)
         self._wrapped_transport = wrapped_transport
         self.logger = logger or logging.getLogger(__name__)
-        self.null_response_log_level = null_response_log_level
 
     async def handle_async_request(self, request: httpx.Request) -> httpx.Response:
         """Handle request and log based on response status code."""
@@ -205,12 +230,6 @@ class ErrorLoggingTransport(AsyncHTTPTransport):
 
                 if response_body is None:
                     self.logger.debug("Response body: null (parsed as None)")
-                    # Log null responses at configurable level (may cause TypeErrors)
-                    self.logger.log(
-                        self.null_response_log_level,
-                        f"{method} {url} returned null - this may cause TypeError "
-                        f"in generated code expecting a list or object",
-                    )
                 elif isinstance(response_body, list):
                     self.logger.debug(
                         f"Response body: list[{len(response_body)}] items"
@@ -334,6 +353,86 @@ class ErrorLoggingTransport(AsyncHTTPTransport):
 
         self.logger.error(log_message)
 
+    def log_parsing_error(
+        self,
+        error: TypeError | ValueError | AttributeError | Exception,
+        response: httpx.Response,
+        request: httpx.Request,
+    ) -> None:
+        """
+        Log detailed information when an error occurs during response parsing.
+
+        This method intelligently inspects the error and response to provide
+        actionable debugging information:
+        - For TypeErrors: Shows null fields and type mismatches
+        - For ValueErrors: Shows the error and response excerpt
+        - For any parsing error: Logs the raw response for inspection
+
+        Args:
+            error: The exception that occurred during parsing
+            response: The HTTP response that was being parsed
+            request: The original HTTP request
+
+        Example output for TypeError:
+            ERROR: TypeError during parsing for GET /api/PurchaseOrders
+            ERROR: TypeError: object of type 'NoneType' has no len()
+            ERROR: Found 3 null fields in response:
+            ERROR:   - orderDate
+            ERROR:   - fullyReceivedDate
+            ERROR:   - supplier.supplierName
+
+        Example output for ValueError:
+            ERROR: ValueError during parsing for POST /api/Products
+            ERROR: ValueError: invalid literal for int() with base 10: 'abc'
+            ERROR: Response excerpt: {"id": "abc", "name": "Product 1"}
+        """
+        method = request.method
+        url = str(request.url)
+        error_type = type(error).__name__
+
+        self.logger.error(f"{error_type} during parsing for {method} {url}")
+        self.logger.error(f"{error_type}: {error}")
+
+        # Try to parse response and provide context
+        try:
+            response_data = response.json()
+
+            # For TypeErrors, check for null fields (common cause)
+            if isinstance(error, TypeError):
+                null_fields = _find_null_fields(response_data)
+
+                if null_fields:
+                    self.logger.error(
+                        f"Found {len(null_fields)} null field(s) in response:"
+                    )
+                    for field_path in null_fields[
+                        :20
+                    ]:  # Limit to first 20 to avoid spam
+                        self.logger.error(f"  - {field_path}")
+                    if len(null_fields) > 20:
+                        self.logger.error(
+                            f"  ... and {len(null_fields) - 20} more null fields"
+                        )
+                else:
+                    # TypeError but no null fields - show response excerpt
+                    self.logger.error(
+                        "No null fields found. Response excerpt: "
+                        f"{str(response_data)[: self.RESPONSE_BODY_MAX_LENGTH]}..."
+                    )
+            else:
+                # For other errors, show response excerpt
+                self.logger.error(
+                    f"Response excerpt: {str(response_data)[: self.RESPONSE_BODY_MAX_LENGTH]}..."
+                )
+
+        except (json.JSONDecodeError, TypeError, ValueError) as e:
+            self.logger.error(
+                f"Could not parse response as JSON: {type(e).__name__}: {e}"
+            )
+            self.logger.error(
+                f"Response text: {response.text[: self.RESPONSE_BODY_MAX_LENGTH]}..."
+            )
+
 
 class AuthHeaderTransport(AsyncHTTPTransport):
     """
@@ -376,7 +475,7 @@ def create_resilient_transport(
     max_retries: int = 5,
     logger: logging.Logger | None = None,
     **kwargs: Any,
-) -> RetryTransport:
+) -> tuple[RetryTransport, ErrorLoggingTransport]:
     """
     Factory function that creates a chained transport with auth, error logging, and retry capabilities.
 
@@ -403,7 +502,9 @@ def create_resilient_transport(
             - trust_env (bool): Trust environment variables for proxy configuration
 
     Returns:
-        A RetryTransport instance wrapping all the layered transports.
+        A tuple of (RetryTransport, ErrorLoggingTransport) where:
+        - RetryTransport: The outermost transport layer for making requests
+        - ErrorLoggingTransport: Reference to the logging layer for error handling
 
     Note:
         StockTrim API simplifications compared to other APIs:
@@ -466,7 +567,7 @@ def create_resilient_transport(
         retry=retry,
     )
 
-    return retry_transport
+    return retry_transport, error_logging_transport
 
 
 class StockTrimClient(AuthenticatedClient):
@@ -594,12 +695,15 @@ class StockTrimClient(AuthenticatedClient):
         # Create resilient transport with all the layers
         # Note: This transport only adds the api-auth-signature header.
         # The api-auth-id header is added by AuthenticatedClient's native mechanism.
-        transport = create_resilient_transport(
+        transport, error_logging_transport = create_resilient_transport(
             api_auth_signature=api_auth_signature,
             max_retries=max_retries,
             logger=self.logger,
             **httpx_kwargs,  # Pass through http2, limits, verify, etc.
         )
+
+        # Store reference to error logging transport for helper methods
+        self._error_logging_transport = error_logging_transport
 
         # Initialize parent with resilient transport
         # Use AuthenticatedClient's native customization to add the api-auth-id header:

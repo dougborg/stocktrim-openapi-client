@@ -398,6 +398,59 @@ ERROR Client error 404 for GET /api/Products/999999
 ERROR Response: {"type":"about:blank","title":"Not Found","status":404,"detail":"Product not found"}
 ```
 
+### Enhanced Parsing Error Logging
+
+**Feature**: Intelligent error logging when TypeErrors, ValueErrors, or other parsing
+errors occur
+
+**How it works**:
+
+- When a parsing error occurs, the client automatically inspects the response
+- For TypeErrors: Identifies and lists all null fields that may have caused the issue
+- For other errors: Shows response excerpts for debugging
+- **Zero overhead**: Only runs when errors actually occur
+
+**Example - Automatic TypeError debugging**:
+
+```python
+from stocktrim_public_api_client import StockTrimClient
+
+async with StockTrimClient() as client:
+    # If this raises a TypeError due to null fields, enhanced logging activates
+    orders = await client.purchase_orders_v2.get_all()
+```
+
+**Example ERROR output** (automatically generated):
+
+```
+ERROR TypeError during parsing for GET /api/V2/PurchaseOrders
+ERROR TypeError: object of type 'NoneType' has no len()
+ERROR Found 3 null field(s) in response:
+ERROR   - orderDate
+ERROR   - fullyReceivedDate
+ERROR   - supplier.supplierName
+```
+
+**How to use it in helper methods**:
+
+Helper methods can catch parsing errors and use the transport's logging:
+
+```python
+try:
+    order = PurchaseOrderResponseDto.from_dict(response.json())
+except (TypeError, ValueError, AttributeError) as e:
+    # Log detailed error information with null field detection
+    self.client._error_logging_transport.log_parsing_error(e, response, request)
+    raise  # Re-raise the original error
+```
+
+This provides developers with immediate, actionable debugging information:
+
+- Which specific fields are null
+- The full error message and type
+- Response excerpts for context
+- No need to manually enable DEBUG logging or inspect responses
+
 ## Best Practices
 
 ### For Library Users
@@ -438,7 +491,11 @@ ERROR Response: {"type":"about:blank","title":"Not Found","status":404,"detail":
 - ✅ INFO logging for successful 2xx responses with timing
 - ✅ DEBUG logging for successful 2xx responses with body excerpts
 - ✅ DEBUG logging for request details with sanitized headers
-- ✅ WARNING logging for null responses that may cause TypeErrors
+- ✅ **Enhanced ERROR logging for parsing errors** (TypeErrors, ValueErrors, etc.)
+  - Automatically identifies null fields that may have caused TypeErrors
+  - Shows response excerpts for other parsing errors
+  - Only activates when errors actually occur (zero performance overhead in normal
+    operation)
 - ✅ Automatic retry logging at WARNING level (from httpx_retries)
 - ✅ Request timing information included in all log messages
 - ✅ Privacy-first: Auth headers excluded from DEBUG logs

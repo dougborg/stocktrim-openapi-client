@@ -176,27 +176,26 @@ class TestErrorLoggingTransport:
         assert any("list[3] items" in call for call in debug_calls)
 
     @pytest.mark.asyncio
-    async def test_log_success_response_null_warning(
+    async def test_log_success_response_null_body(
         self, logging_transport, mock_request, mock_logger
     ):
-        """Test that null responses trigger a log message about potential TypeErrors."""
+        """Test that null responses are logged at DEBUG level without extra warnings."""
         response = self.create_mock_response(200, json_data=None, request=mock_request)
         mock_logger.isEnabledFor.return_value = True
 
         await logging_transport._log_success_response(response, mock_request, 75.0)
 
-        # Verify null response message was logged (default level is DEBUG)
-        mock_logger.log.assert_called()
-        # Find the log call about null (should be at DEBUG level by default)
-        log_calls = [
-            call
-            for call in mock_logger.log.call_args_list
-            if len(call[0]) > 1 and "null" in str(call[0][1]).lower()
-        ]
-        assert len(log_calls) > 0
-        log_level, log_message = log_calls[0][0]
-        assert log_level == logging.DEBUG  # Default level
-        assert "TypeError" in log_message
+        # Verify INFO log was called for the successful response
+        mock_logger.info.assert_called_once()
+
+        # Verify DEBUG log shows null body
+        debug_calls = [call[0][0] for call in mock_logger.debug.call_args_list]
+        assert any("null" in call.lower() for call in debug_calls)
+
+        # Verify no WARNING or ERROR level logs for null responses
+        # (TypeErrors will be logged separately via log_parsing_error when they occur)
+        mock_logger.warning.assert_not_called()
+        mock_logger.error.assert_not_called()
 
     @pytest.mark.asyncio
     async def test_log_success_response_dict_excerpt(
@@ -347,3 +346,70 @@ class TestErrorLoggingTransport:
         mock_logger.info.assert_called()
         # But DEBUG details should not be logged
         assert mock_logger.debug.call_count == 0
+
+    def test_log_parsing_error_with_null_fields(
+        self, logging_transport, mock_request, mock_logger
+    ):
+        """Test that log_parsing_error identifies null fields for TypeErrors."""
+        response_data = {
+            "id": 123,
+            "orderDate": None,
+            "fullyReceivedDate": None,
+            "supplier": {"supplierName": None, "supplierCode": "SUP001"},
+        }
+        response = self.create_mock_response(200, json_data=response_data)
+
+        error = TypeError("object of type 'NoneType' has no len()")
+        logging_transport.log_parsing_error(error, response, mock_request)
+
+        # Verify error was logged
+        assert mock_logger.error.call_count >= 4  # Type, message, count, field list
+        error_messages = [call[0][0] for call in mock_logger.error.call_args_list]
+
+        # Verify TypeError was identified
+        assert any("TypeError" in msg for msg in error_messages)
+
+        # Verify null fields were found
+        assert any("3 null field(s)" in msg for msg in error_messages)
+        assert any("orderDate" in msg for msg in error_messages)
+        assert any("fullyReceivedDate" in msg for msg in error_messages)
+        assert any("supplier.supplierName" in msg for msg in error_messages)
+
+    def test_log_parsing_error_value_error(
+        self, logging_transport, mock_request, mock_logger
+    ):
+        """Test that log_parsing_error shows response excerpt for ValueErrors."""
+        response_data = {"id": "abc", "name": "Product 1"}
+        response = self.create_mock_response(200, json_data=response_data)
+
+        error = ValueError("invalid literal for int() with base 10: 'abc'")
+        logging_transport.log_parsing_error(error, response, mock_request)
+
+        # Verify error was logged
+        assert mock_logger.error.call_count >= 2
+        error_messages = [call[0][0] for call in mock_logger.error.call_args_list]
+
+        # Verify ValueError was identified
+        assert any("ValueError" in msg for msg in error_messages)
+
+        # Verify response excerpt was shown
+        assert any("Response excerpt:" in msg for msg in error_messages)
+
+    def test_log_parsing_error_non_json_response(
+        self, logging_transport, mock_request, mock_logger
+    ):
+        """Test that log_parsing_error handles non-JSON responses."""
+        response = self.create_mock_response(200, text="Not JSON content")
+
+        error = TypeError("expected dict, got str")
+        logging_transport.log_parsing_error(error, response, mock_request)
+
+        # Verify error was logged with response text
+        assert mock_logger.error.call_count >= 3
+        error_messages = [call[0][0] for call in mock_logger.error.call_args_list]
+
+        # Verify error type was logged
+        assert any("TypeError" in msg for msg in error_messages)
+
+        # Verify response text was shown
+        assert any("Response text:" in msg for msg in error_messages)
