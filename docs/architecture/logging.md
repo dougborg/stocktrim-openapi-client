@@ -45,9 +45,8 @@ The client uses standard Python logging levels with specific semantics:
 **Example**:
 
 ```
-2025-10-31 19:38:57 [DEBUG] [stocktrim_client] GET /api/V2/PurchaseOrders?status=Draft -> 200 OK
-2025-10-31 19:38:57 [DEBUG] [stocktrim_client] Response body (200 chars): null
-2025-10-31 19:38:57 [DEBUG] [stocktrim_client] Response parsed as: None (NoneType)
+2025-10-31 19:38:57 [DEBUG] [stocktrim_client] GET /api/V2/PurchaseOrders?status=Draft -> 200 (150ms)
+2025-10-31 19:38:57 [DEBUG] [stocktrim_client] Response body: null (JSON null)
 ```
 
 ### INFO
@@ -71,7 +70,7 @@ The client uses standard Python logging levels with specific semantics:
 
 ```
 2025-10-31 19:38:56 [INFO] [stocktrim_client] StockTrim client initialized (base_url=https://api.stocktrim.com)
-2025-10-31 19:38:57 [INFO] [stocktrim_client] GET /api/V2/PurchaseOrders -> 200 OK (342ms)
+2025-10-31 19:38:57 [INFO] [stocktrim_client] GET /api/V2/PurchaseOrders -> 200 (342ms)
 ```
 
 ### WARNING
@@ -145,7 +144,7 @@ The client uses standard Python logging levels with specific semantics:
 The `ErrorLoggingTransport` class wraps the HTTP transport layer to intercept all
 requests and responses.
 
-**Current Implementation** (4xx errors only):
+**Previous Implementation** (4xx errors only):
 
 ```python
 class ErrorLoggingTransport(AsyncHTTPTransport):
@@ -158,7 +157,7 @@ class ErrorLoggingTransport(AsyncHTTPTransport):
         return response
 ```
 
-**Desired Implementation** (all responses at appropriate levels):
+**New Implementation** (all responses at appropriate levels):
 
 ```python
 class ErrorLoggingTransport(AsyncHTTPTransport):
@@ -357,9 +356,8 @@ async with StockTrimClient() as client:
 **Expected DEBUG output**:
 
 ```
-DEBUG GET /api/V2/PurchaseOrders?status=Draft -> 200 OK
-DEBUG Response body: null (parsed as None)
-WARNING API returned null for list endpoint, converting to empty list
+DEBUG GET /api/V2/PurchaseOrders?status=Draft -> 200 (150ms)
+DEBUG Response body: null (JSON null)
 ```
 
 **Root Cause**: The API returned `null` instead of an empty array `[]`, and the
@@ -447,7 +445,7 @@ try:
     order = PurchaseOrderResponseDto.from_dict(response.json())
 except (TypeError, ValueError, AttributeError) as e:
     # Log detailed error information with null field detection
-    self.client._error_logging_transport.log_parsing_error(e, response, request)
+    self.client.error_logging_transport.log_parsing_error(e, response, request)
     raise  # Re-raise the original error
 ```
 

@@ -138,6 +138,7 @@ class ErrorLoggingTransport(AsyncHTTPTransport):
 
     #: Maximum characters to show from response bodies in DEBUG logs
     RESPONSE_BODY_MAX_LENGTH = 200
+    MAX_NULL_FIELDS_TO_LOG = 20
 
     def __init__(
         self,
@@ -229,22 +230,28 @@ class ErrorLoggingTransport(AsyncHTTPTransport):
                 body_type = type(response_body).__name__
 
                 if response_body is None:
-                    self.logger.debug("Response body: null (parsed as None)")
+                    self.logger.debug("Response body: null (JSON null)")
                 elif isinstance(response_body, list):
                     self.logger.debug(
                         f"Response body: list[{len(response_body)}] items"
                     )
                 elif isinstance(response_body, dict):
-                    body_excerpt = str(response_body)[: self.RESPONSE_BODY_MAX_LENGTH]
-                    self.logger.debug(f"Response body: {body_excerpt}...")
+                    body_str = str(response_body)
+                    body_excerpt = body_str[: self.RESPONSE_BODY_MAX_LENGTH]
+                    ellipsis = (
+                        "..." if len(body_str) > self.RESPONSE_BODY_MAX_LENGTH else ""
+                    )
+                    self.logger.debug(f"Response body: {body_excerpt}{ellipsis}")
                 else:
                     self.logger.debug(
                         f"Response body type: {body_type}, value: {str(response_body)[: self.RESPONSE_BODY_MAX_LENGTH]}"
                     )
             except (json.JSONDecodeError, TypeError, ValueError):
-                self.logger.debug(
-                    f"Response body (non-JSON): {response.text[: self.RESPONSE_BODY_MAX_LENGTH]}..."
+                body_excerpt = response.text[: self.RESPONSE_BODY_MAX_LENGTH]
+                ellipsis = (
+                    "..." if len(response.text) > self.RESPONSE_BODY_MAX_LENGTH else ""
                 )
+                self.logger.debug(f"Response body (non-JSON): {body_excerpt}{ellipsis}")
 
     async def _log_client_error(
         self, response: httpx.Response, request: httpx.Request, duration_ms: float
@@ -266,9 +273,12 @@ class ErrorLoggingTransport(AsyncHTTPTransport):
         try:
             error_data = response.json()
         except (json.JSONDecodeError, TypeError, ValueError):
+            response_text = getattr(response, "text", "")
+            text_excerpt = response_text[:500]
+            ellipsis = "..." if len(response_text) > 500 else ""
             self.logger.error(
                 f"Client error {status_code} for {method} {url} ({duration_ms:.0f}ms) - "
-                f"Response: {getattr(response, 'text', '')[:500]}..."
+                f"Response: {text_excerpt}{ellipsis}"
             )
             return
 
@@ -311,9 +321,12 @@ class ErrorLoggingTransport(AsyncHTTPTransport):
                 f"Response: {error_data}"
             )
         except (json.JSONDecodeError, TypeError, ValueError):
+            response_text = getattr(response, "text", "")
+            text_excerpt = response_text[:500]
+            ellipsis = "..." if len(response_text) > 500 else ""
             self.logger.error(
                 f"Server error {status_code} for {method} {url} ({duration_ms:.0f}ms) - "
-                f"Response: {getattr(response, 'text', '')[:500]}..."
+                f"Response: {text_excerpt}{ellipsis}"
             )
 
     def _log_problem_details(
@@ -412,13 +425,11 @@ class ErrorLoggingTransport(AsyncHTTPTransport):
                     self.logger.error(
                         f"Found {len(null_fields)} null field(s) in response:"
                     )
-                    for field_path in null_fields[
-                        :20
-                    ]:  # Limit to first 20 to avoid spam
+                    for field_path in null_fields[: self.MAX_NULL_FIELDS_TO_LOG]:
                         self.logger.error(f"  - {field_path}")
-                    if len(null_fields) > 20:
+                    if len(null_fields) > self.MAX_NULL_FIELDS_TO_LOG:
                         self.logger.error(
-                            f"  ... and {len(null_fields) - 20} more null fields"
+                            f"  ... and {len(null_fields) - self.MAX_NULL_FIELDS_TO_LOG} more null fields"
                         )
 
                     # Provide actionable fix suggestions
@@ -727,7 +738,8 @@ class StockTrimClient(AuthenticatedClient):
         )
 
         # Store reference to error logging transport for helper methods
-        self._error_logging_transport = error_logging_transport
+        # Public API for helper methods to use enhanced error logging
+        self.error_logging_transport = error_logging_transport
 
         # Initialize parent with resilient transport
         # Use AuthenticatedClient's native customization to add the api-auth-id header:
