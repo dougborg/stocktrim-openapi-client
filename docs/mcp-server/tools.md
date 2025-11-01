@@ -78,6 +78,64 @@ Set inventory levels for products.
 
 ## Order Tools
 
+### `stocktrim_get_purchase_order`
+Get a specific purchase order by reference number.
+
+**Parameters:**
+- `reference_number` (string): Purchase order reference number
+
+**Returns:**
+Purchase order details including supplier, line items, status, and calculated total cost.
+
+### `stocktrim_list_purchase_orders`
+List all purchase orders.
+
+**Returns:**
+List of purchase orders with summary information.
+
+### `stocktrim_create_purchase_order`
+Create a new purchase order.
+
+**Parameters:**
+- `supplier_code` (string, required): Supplier code
+- `supplier_name` (string, optional): Supplier name
+- `line_items` (array, required): Line items for the purchase order
+  - `product_code` (string): Product code
+  - `quantity` (number): Quantity to order (must be > 0)
+  - `unit_price` (number, optional): Unit price
+- `order_date` (string, optional): Order date in ISO format (YYYY-MM-DD). Defaults to current date.
+- `location_code` (string, optional): Location code
+- `location_name` (string, optional): Location name
+- `reference_number` (string, optional): Custom reference number
+- `client_reference_number` (string, optional): Client reference number
+- `status` (string, optional): Purchase order status (Draft, Approved, Sent, Received). Defaults to "Draft".
+
+**Returns:**
+Created purchase order with reference number, supplier details, status, calculated total cost, and line item count.
+
+**Example:**
+```json
+{
+  "supplier_code": "SUP-001",
+  "supplier_name": "Acme Supplies",
+  "line_items": [
+    {"product_code": "WIDGET-001", "quantity": 100, "unit_price": 15.50}
+  ],
+  "status": "Draft"
+}
+```
+
+### `stocktrim_delete_purchase_order`
+Delete a purchase order by reference number.
+
+**Parameters:**
+- `reference_number` (string): Purchase order reference number to delete
+
+**Returns:**
+Success/failure status and message.
+
+**Note:** The StockTrim API does not support updating purchase orders. To modify a purchase order, you must delete and recreate it.
+
 ### `stocktrim_list_sales_orders`
 List all sales orders.
 
@@ -86,15 +144,6 @@ Create a new sales order.
 
 **Parameters:**
 - `order` (object): Sales order data
-
-### `stocktrim_list_purchase_orders`
-List all purchase orders.
-
-### `stocktrim_create_purchase_order`
-Create a new purchase order.
-
-**Parameters:**
-- `order` (object): Purchase order data
 
 ## Location Tools
 
