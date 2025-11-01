@@ -10,6 +10,7 @@ import contextlib
 import json
 import logging
 import os
+import time
 from collections.abc import Awaitable, Callable
 from typing import TYPE_CHECKING, Any, cast
 
@@ -97,10 +98,13 @@ class IdempotentOnlyRetry(Retry):
 
 class ErrorLoggingTransport(AsyncHTTPTransport):
     """
-    Transport layer that adds detailed error logging for 4xx client errors.
+    Transport layer that adds comprehensive logging for all HTTP requests and responses.
 
-    This transport wraps another AsyncHTTPTransport and intercepts responses
-    to log detailed error information using generated error models when available.
+    This transport wraps another AsyncHTTPTransport and intercepts responses to log:
+    - DEBUG: Request details (sanitized headers), response bodies for 2xx responses
+    - INFO: Successful 2xx responses with timing
+    - WARNING: Null responses that may cause TypeErrors
+    - ERROR: 4xx client errors and 5xx server errors with response details
     """
 
     def __init__(
@@ -124,17 +128,97 @@ class ErrorLoggingTransport(AsyncHTTPTransport):
         self.logger = logger or logging.getLogger(__name__)
 
     async def handle_async_request(self, request: httpx.Request) -> httpx.Response:
-        """Handle request and log detailed error information for 4xx responses."""
-        response = await self._wrapped_transport.handle_async_request(request)
+        """Handle request and log based on response status code."""
+        # Log request details at DEBUG level
+        await self._log_request(request)
 
-        # Log detailed information for 400-level client errors
-        if 400 <= response.status_code < 500:
-            await self._log_client_error(response, request)
+        # Track timing
+        start_time = time.time()
+        response = await self._wrapped_transport.handle_async_request(request)
+        duration_ms = (time.time() - start_time) * 1000
+
+        # Log based on status code
+        if 200 <= response.status_code < 300:
+            await self._log_success_response(response, request, duration_ms)
+        elif 400 <= response.status_code < 500:
+            await self._log_client_error(response, request, duration_ms)
+        elif 500 <= response.status_code < 600:
+            await self._log_server_error(response, request, duration_ms)
+        else:
+            # Unexpected status codes (1xx, 3xx redirects shouldn't reach here)
+            self.logger.warning(
+                f"{request.method} {request.url} -> {response.status_code} "
+                f"({duration_ms:.0f}ms)"
+            )
 
         return response
 
+    async def _log_request(self, request: httpx.Request) -> None:
+        """Log request details at DEBUG level with sanitized headers."""
+        if not self.logger.isEnabledFor(logging.DEBUG):
+            return
+
+        # Sanitize headers (remove auth headers)
+        safe_headers = {
+            k: v
+            for k, v in request.headers.items()
+            if k.lower() not in {"authorization", "api-auth-id", "api-auth-signature"}
+        }
+
+        self.logger.debug(
+            f"Request: {request.method} {request.url}",
+            extra={
+                "method": request.method,
+                "url": str(request.url),
+                "headers": safe_headers,
+            },
+        )
+
+    async def _log_success_response(
+        self, response: httpx.Response, request: httpx.Request, duration_ms: float
+    ) -> None:
+        """Log successful response at INFO level with DEBUG details."""
+        method = request.method
+        url = str(request.url)
+        status_code = response.status_code
+
+        # INFO level: just status and timing
+        self.logger.info(f"{method} {url} -> {status_code} ({duration_ms:.0f}ms)")
+
+        # DEBUG level: include response body excerpt
+        if self.logger.isEnabledFor(logging.DEBUG):
+            # Read response content if it's streaming
+            if hasattr(response, "aread"):
+                with contextlib.suppress(TypeError, AttributeError):
+                    await response.aread()
+
+            try:
+                response_body = response.json()
+                body_type = type(response_body).__name__
+
+                if response_body is None:
+                    self.logger.debug("Response body: null (parsed as None)")
+                    # Warn about null responses that may cause TypeErrors
+                    self.logger.warning(
+                        f"{method} {url} returned null - this may cause TypeError "
+                        f"in generated code expecting a list or object"
+                    )
+                elif isinstance(response_body, list):
+                    self.logger.debug(
+                        f"Response body: list[{len(response_body)}] items"
+                    )
+                elif isinstance(response_body, dict):
+                    body_excerpt = str(response_body)[:200]
+                    self.logger.debug(f"Response body: {body_excerpt}...")
+                else:
+                    self.logger.debug(
+                        f"Response body type: {body_type}, value: {str(response_body)[:200]}"
+                    )
+            except (json.JSONDecodeError, TypeError, ValueError):
+                self.logger.debug(f"Response body (non-JSON): {response.text[:200]}...")
+
     async def _log_client_error(
-        self, response: httpx.Response, request: httpx.Request
+        self, response: httpx.Response, request: httpx.Request, duration_ms: float
     ) -> None:
         """
         Log detailed information for 400-level client errors.
@@ -154,7 +238,7 @@ class ErrorLoggingTransport(AsyncHTTPTransport):
             error_data = response.json()
         except (json.JSONDecodeError, TypeError, ValueError):
             self.logger.error(
-                f"Client error {status_code} for {method} {url} - "
+                f"Client error {status_code} for {method} {url} ({duration_ms:.0f}ms) - "
                 f"Response: {getattr(response, 'text', '')[:500]}..."
             )
             return
@@ -163,7 +247,9 @@ class ErrorLoggingTransport(AsyncHTTPTransport):
         if ProblemDetails is not None:
             try:
                 problem = ProblemDetails.from_dict(error_data)
-                self._log_problem_details(problem, method, url, status_code)
+                self._log_problem_details(
+                    problem, method, url, status_code, duration_ms
+                )
                 return
             except (TypeError, ValueError, AttributeError) as e:
                 self.logger.debug(
@@ -172,14 +258,47 @@ class ErrorLoggingTransport(AsyncHTTPTransport):
 
         # Fallback: log raw error data
         self.logger.error(
-            f"Client error {status_code} for {method} {url} - Error: {error_data}"
+            f"Client error {status_code} for {method} {url} ({duration_ms:.0f}ms) - "
+            f"Error: {error_data}"
         )
 
+    async def _log_server_error(
+        self, response: httpx.Response, request: httpx.Request, duration_ms: float
+    ) -> None:
+        """Log detailed information for 500-level server errors."""
+        method = request.method
+        url = str(request.url)
+        status_code = response.status_code
+
+        # Read response content if it's streaming
+        if hasattr(response, "aread"):
+            with contextlib.suppress(TypeError, AttributeError):
+                await response.aread()
+
+        try:
+            error_data = response.json()
+            self.logger.error(
+                f"Server error {status_code} for {method} {url} ({duration_ms:.0f}ms) - "
+                f"Response: {error_data}"
+            )
+        except (json.JSONDecodeError, TypeError, ValueError):
+            self.logger.error(
+                f"Server error {status_code} for {method} {url} ({duration_ms:.0f}ms) - "
+                f"Response: {getattr(response, 'text', '')[:500]}..."
+            )
+
     def _log_problem_details(
-        self, problem: Any, method: str, url: str, status_code: int
+        self,
+        problem: Any,
+        method: str,
+        url: str,
+        status_code: int,
+        duration_ms: float,
     ) -> None:
         """Log errors using the ProblemDetails model."""
-        log_message = f"Client error {status_code} for {method} {url}"
+        log_message = (
+            f"Client error {status_code} for {method} {url} ({duration_ms:.0f}ms)"
+        )
 
         # Check for Unset values before logging
         title = problem.title if not isinstance(problem.title, Unset) else None
