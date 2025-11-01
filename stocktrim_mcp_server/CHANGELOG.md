@@ -1,5 +1,43 @@
 # CHANGELOG
 
+## v0.2.0 (2025-11-01)
+
+### Features
+
+- **mcp**: Add purchase order CREATE tool and fix READ operations
+  ([#41](https://github.com/dougborg/stocktrim-openapi-client/pull/41),
+  [`1d33131`](https://github.com/dougborg/stocktrim-openapi-client/commit/1d33131e27f419e21bac274fc660028340ad0181))
+
+* Initial plan
+
+* feat(mcp): add create_purchase_order tool and comprehensive tests
+
+- Add create_purchase_order tool to foundation tools - Support all purchase order
+  fields: supplier, line items, location, status, dates - Calculate total_cost from line
+  items since API doesn't provide it - Fix existing get/list tools to use correct field
+  names (purchase_order_line_items) - Add comprehensive test suite with 14 test cases
+  covering all CRUD operations - Update documentation with detailed parameter
+  descriptions and examples - Note: UPDATE operation not supported by StockTrim API (no
+  PUT/PATCH endpoints)
+
+Co-authored-by: dougborg <1261222+dougborg@users.noreply.github.com>
+
+- fix: improve status handling and add status validation test
+
+* Add clarifying comment about PurchaseOrderStatusDto enum values - Add warning log when
+  invalid status is provided - Add test for all valid status values (Draft, Approved,
+  Sent, Received) - Verify status enum accepts user-friendly strings correctly
+
+______________________________________________________________________
+
+Co-authored-by: copilot-swe-agent[bot] <198982749+Copilot@users.noreply.github.com>
+
+Co-authored-by: Doug Borg <dougborg@dougborg.org>
+
+Co-authored-by: Doug Borg <dougborg@apple.com>
+
+Co-authored-by: Claude <noreply@anthropic.com>
+
 ## v0.1.0 (2025-11-01)
 
 ### Bug Fixes
@@ -407,6 +445,9 @@ Co-Authored-By: Claude <noreply@anthropic.com>
 
 - **release**: Client v0.5.1
   ([`53d0dd5`](https://github.com/dougborg/stocktrim-openapi-client/commit/53d0dd5014d7e16c3dbc4fbfdd198ec68067a816))
+
+- **release**: Mcp v0.1.0
+  ([`e863007`](https://github.com/dougborg/stocktrim-openapi-client/commit/e8630071382b6ee07fa25d76b3b946f5b9503335))
 
 ### Continuous Integration
 
