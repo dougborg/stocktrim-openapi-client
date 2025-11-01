@@ -23,11 +23,11 @@ T = TypeVar("T", bound="PurchaseOrderResponseDto")
 class PurchaseOrderResponseDto:
     """
     Attributes:
-        order_date (datetime.datetime | None):
         supplier (PurchaseOrderSupplier):
         purchase_order_line_items (list[PurchaseOrderLineItem]):
         id (int | Unset):
         message (None | str | Unset):
+        order_date (datetime.datetime | None | Unset):
         created_date (datetime.datetime | None | Unset):
         fully_received_date (datetime.datetime | None | Unset):
         external_id (None | str | Unset):
@@ -37,11 +37,11 @@ class PurchaseOrderResponseDto:
         status (PurchaseOrderStatusDto | Unset):
     """
 
-    order_date: datetime.datetime | None
     supplier: PurchaseOrderSupplier
     purchase_order_line_items: list[PurchaseOrderLineItem]
     id: int | Unset = UNSET
     message: None | str | Unset = UNSET
+    order_date: datetime.datetime | None | Unset = UNSET
     created_date: datetime.datetime | None | Unset = UNSET
     fully_received_date: datetime.datetime | None | Unset = UNSET
     external_id: None | str | Unset = UNSET
@@ -51,12 +51,6 @@ class PurchaseOrderResponseDto:
     status: PurchaseOrderStatusDto | Unset = UNSET
 
     def to_dict(self) -> dict[str, Any]:
-        order_date: None | str
-        if isinstance(self.order_date, datetime.datetime):
-            order_date = self.order_date.isoformat()
-        else:
-            order_date = self.order_date
-
         supplier = self.supplier.to_dict()
 
         purchase_order_line_items = []
@@ -73,6 +67,14 @@ class PurchaseOrderResponseDto:
             message = UNSET
         else:
             message = self.message
+
+        order_date: None | str | Unset
+        if isinstance(self.order_date, Unset):
+            order_date = UNSET
+        elif isinstance(self.order_date, datetime.datetime):
+            order_date = self.order_date.isoformat()
+        else:
+            order_date = self.order_date
 
         created_date: None | str | Unset
         if isinstance(self.created_date, Unset):
@@ -120,7 +122,6 @@ class PurchaseOrderResponseDto:
 
         field_dict.update(
             {
-                "orderDate": order_date,
                 "supplier": supplier,
                 "purchaseOrderLineItems": purchase_order_line_items,
             }
@@ -129,6 +130,8 @@ class PurchaseOrderResponseDto:
             field_dict["id"] = id
         if message is not UNSET:
             field_dict["message"] = message
+        if order_date is not UNSET:
+            field_dict["orderDate"] = order_date
         if created_date is not UNSET:
             field_dict["createdDate"] = created_date
         if fully_received_date is not UNSET:
@@ -153,22 +156,6 @@ class PurchaseOrderResponseDto:
         from ..models.purchase_order_supplier import PurchaseOrderSupplier
 
         d = dict(src_dict)
-
-        def _parse_order_date(data: object) -> datetime.datetime | None:
-            if data is None:
-                return data
-            try:
-                if not isinstance(data, str):
-                    raise TypeError()
-                order_date_type_0 = isoparse(data)
-
-                return order_date_type_0
-            except:  # noqa: E722
-                pass
-            return cast(datetime.datetime | None, data)
-
-        order_date = _parse_order_date(d.pop("orderDate"))
-
         supplier = PurchaseOrderSupplier.from_dict(d.pop("supplier"))
 
         purchase_order_line_items = []
@@ -190,6 +177,23 @@ class PurchaseOrderResponseDto:
             return cast(None | str | Unset, data)
 
         message = _parse_message(d.pop("message", UNSET))
+
+        def _parse_order_date(data: object) -> datetime.datetime | None | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            try:
+                if not isinstance(data, str):
+                    raise TypeError()
+                order_date_type_0 = isoparse(data)
+
+                return order_date_type_0
+            except:  # noqa: E722
+                pass
+            return cast(datetime.datetime | None | Unset, data)
+
+        order_date = _parse_order_date(d.pop("orderDate", UNSET))
 
         def _parse_created_date(data: object) -> datetime.datetime | None | Unset:
             if data is None:
@@ -273,11 +277,11 @@ class PurchaseOrderResponseDto:
             status = PurchaseOrderStatusDto(_status)
 
         purchase_order_response_dto = cls(
-            order_date=order_date,
             supplier=supplier,
             purchase_order_line_items=purchase_order_line_items,
             id=id,
             message=message,
+            order_date=order_date,
             created_date=created_date,
             fully_received_date=fully_received_date,
             external_id=external_id,
