@@ -97,10 +97,12 @@ class IdempotentOnlyRetry(Retry):
 
 class ErrorLoggingTransport(AsyncHTTPTransport):
     """
-    Transport layer that adds detailed error logging for 4xx client errors.
+    Transport layer that adds detailed error logging for 4xx client errors
+    and TRACE-level logging for successful responses.
 
     This transport wraps another AsyncHTTPTransport and intercepts responses
-    to log detailed error information using generated error models when available.
+    to log detailed error information using generated error models when available,
+    and full response bodies at TRACE level for successful requests.
     """
 
     def __init__(
@@ -124,12 +126,15 @@ class ErrorLoggingTransport(AsyncHTTPTransport):
         self.logger = logger or logging.getLogger(__name__)
 
     async def handle_async_request(self, request: httpx.Request) -> httpx.Response:
-        """Handle request and log detailed error information for 4xx responses."""
+        """Handle request and log detailed information for errors and TRACE-level success."""
         response = await self._wrapped_transport.handle_async_request(request)
 
         # Log detailed information for 400-level client errors
         if 400 <= response.status_code < 500:
             await self._log_client_error(response, request)
+        # Log full response bodies at TRACE level for successful responses
+        elif 200 <= response.status_code < 300:
+            await self._log_success_response(response, request)
 
         return response
 
@@ -204,6 +209,47 @@ class ErrorLoggingTransport(AsyncHTTPTransport):
             log_message += f"\n  Additional info: {formatted}"
 
         self.logger.error(log_message)
+
+    async def _log_success_response(
+        self, response: httpx.Response, request: httpx.Request
+    ) -> None:
+        """
+        Log full response bodies at TRACE level for successful requests.
+
+        TRACE level logging provides complete response bodies without truncation,
+        useful for deep debugging when DEBUG level doesn't provide enough detail.
+        """
+        # Import TRACE at runtime to avoid circular imports
+        from . import TRACE
+
+        # Only log if TRACE level is enabled
+        if not self.logger.isEnabledFor(TRACE):
+            return
+
+        method = request.method
+        url = str(request.url)
+        status_code = response.status_code
+
+        # Read response content if it's streaming
+        if hasattr(response, "aread"):
+            with contextlib.suppress(TypeError, AttributeError):
+                await response.aread()
+
+        # Try to parse and pretty-print JSON
+        try:
+            body_data = response.json()
+            pretty_json = json.dumps(body_data, indent=2)
+            self.logger.log(
+                TRACE,
+                f"Full response body for {method} {url} ({status_code}):\n{pretty_json}",
+            )
+        except (json.JSONDecodeError, TypeError, ValueError):
+            # Not JSON or can't parse - log raw text
+            response_text = getattr(response, "text", "")
+            self.logger.log(
+                TRACE,
+                f"Full response body for {method} {url} ({status_code}) [raw]:\n{response_text}",
+            )
 
 
 class AuthHeaderTransport(AsyncHTTPTransport):
