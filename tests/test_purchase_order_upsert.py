@@ -172,6 +172,7 @@ class TestPurchaseOrderUpsert:
 
                 # Verify existing date was preserved
                 assert result.order_date is not None
+                assert not isinstance(result.order_date, type(UNSET))
                 assert result.order_date.year == 2025
                 assert result.order_date.month == 1
                 assert result.order_date.day == 15

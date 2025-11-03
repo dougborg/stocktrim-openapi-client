@@ -276,7 +276,7 @@ class PurchaseOrderResponseDto:
             try:
                 if not isinstance(data, dict):
                     raise TypeError()
-                location_type_1 = PurchaseOrderLocation.from_dict(data)
+                location_type_1 = PurchaseOrderLocation.from_dict(cast(dict, data))
 
                 return location_type_1
             except:  # noqa: E722
