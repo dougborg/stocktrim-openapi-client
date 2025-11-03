@@ -491,7 +491,7 @@ paths:
       responses:
         '201':
           description: Created
-          content:
+          content: &id001
             application/json:
               schema:
                 $ref: '#/components/schemas/ProductsResponseDto'
@@ -503,6 +503,9 @@ paths:
                 $ref: '#/components/schemas/ProblemDetails'
         '500':
           description: Server Error
+        '200':
+          description: Success (Updated)
+          content: *id001
     delete:
       tags:
       - Products
@@ -566,7 +569,7 @@ paths:
       responses:
         '201':
           description: Created
-          content:
+          content: &id002
             application/json:
               schema:
                 $ref: '#/components/schemas/PurchaseOrderResponseDto'
@@ -578,6 +581,9 @@ paths:
                 $ref: '#/components/schemas/ProblemDetails'
         '500':
           description: Server Error
+        '200':
+          description: Success (Updated)
+          content: *id002
     delete:
       tags:
       - PurchaseOrders
@@ -1798,7 +1804,6 @@ components:
       additionalProperties: false
     PurchaseOrderRequestDto:
       required:
-      - orderDate
       - purchaseOrderLineItems
       - supplier
       type: object
@@ -1806,6 +1811,7 @@ components:
         orderDate:
           type: string
           format: date-time
+          nullable: true
         createdDate:
           type: string
           format: date-time
@@ -1826,7 +1832,9 @@ components:
           type: string
           nullable: true
         location:
-          $ref: '#/components/schemas/PurchaseOrderLocation'
+          allOf:
+          - $ref: '#/components/schemas/PurchaseOrderLocation'
+          nullable: true
         status:
           $ref: '#/components/schemas/PurchaseOrderStatusDto'
         purchaseOrderLineItems:

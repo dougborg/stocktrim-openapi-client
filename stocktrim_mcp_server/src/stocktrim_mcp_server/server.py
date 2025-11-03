@@ -31,15 +31,20 @@ logger = logging.getLogger(__name__)
 
 
 class ServerContext:
-    """Context object that holds the StockTrimClient instance for the server lifespan."""
+    """Context object that holds the StockTrimClient and service layer for the server lifespan."""
 
     def __init__(self, client: StockTrimClient):
-        """Initialize server context with StockTrimClient.
+        """Initialize server context with StockTrimClient and services.
 
         Args:
             client: Initialized StockTrimClient instance
         """
         self.client = client
+
+        # Service layer (will be populated as services are created)
+        # Example:
+        # from stocktrim_mcp_server.services.products import ProductService
+        # self.products = ProductService(client)
 
 
 @asynccontextmanager

@@ -2,6 +2,263 @@
 
 <!-- version list -->
 
+## v0.6.0 (2025-11-03)
+
+### Bug Fixes
+
+- Use allOf pattern for nullable object references in OpenAPI spec
+  ([`380d97d`](https://github.com/dougborg/stocktrim-openapi-client/commit/380d97d95c6a6b6423a64ee40b2b481f9face92b))
+
+The OpenAPI 3.0 spec ignores `nullable: true` when it appears alongside `$ref`. This
+caused the code generator to produce buggy code for nullable object references like
+PurchaseOrderResponseDto.location, which would crash when the API returned null.
+
+Changes: - Updated regenerate_client.py to detect $ref fields and apply allOf pattern -
+For object references: wraps $ref in allOf array and adds nullable: true - For
+scalar/date fields: continues to use simple nullable: true - Regenerated client with
+proper None handling for location field - Updated all documentation to reference the
+allOf pattern
+
+The generated code now correctly handles null object references: - Type annotation
+includes | None - Parser function checks for None before calling .from_dict() - Tested
+with real API data showing location: null
+
+This fix only affects PurchaseOrderResponseDto.location, which is the only nullable
+object reference in NULLABLE_FIELDS. All other fields are scalars.
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+
+### Chores
+
+- **release**: Mcp v0.1.0
+  ([`e863007`](https://github.com/dougborg/stocktrim-openapi-client/commit/e8630071382b6ee07fa25d76b3b946f5b9503335))
+
+- **release**: Mcp v0.2.0
+  ([`bd21dba`](https://github.com/dougborg/stocktrim-openapi-client/commit/bd21dba21e44556df958cf1d426d6b41810d8fcd))
+
+### Features
+
+- Add support for purchase order upsert and nullable orderDate
+  ([#44](https://github.com/dougborg/stocktrim-openapi-client/pull/44),
+  [`3ff95cd`](https://github.com/dougborg/stocktrim-openapi-client/commit/3ff95cd3a14197de25a55babd7c9ab30b753c9be))
+
+* feat: add support for purchase order upsert and nullable orderDate
+
+This commit implements two key improvements to the StockTrim API client:
+
+1. **Upsert Support for POST Endpoints** (STEP 2.6) - POST /api/PurchaseOrders now
+   handles both 200 (update) and 201 (create) responses - POST /api/Products now handles
+   both 200 (update) and 201 (create) responses - Uses client_reference_number as upsert
+   key for purchase orders - Uses code as upsert key for products
+
+1. **Nullable orderDate in PurchaseOrderRequestDto** - Made orderDate nullable to match
+   response schema behavior - Allows proper handling of null order dates from API -
+   Enables updates that preserve existing dates (using UNSET) - Documents API
+   limitation: orderDate cannot be cleared once set
+
+Changes to regeneration script: - Added STEP 2.6: add_200_response_to_upsert_endpoints()
+\- Added PurchaseOrderRequestDto to NULLABLE_FIELDS configuration - Made orderDate,
+externalId, referenceNumber, and location nullable
+
+Documentation: - Added section on upsert pattern discovery and implementation -
+Documented orderDate field asymmetric behavior (nullable in responses, required in
+requests) - Provided workarounds for common use cases
+
+Closes: API feedback improvements for purchase order management
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+
+- test: add comprehensive tests for purchase order upsert functionality
+
+Add test suite for purchase order upsert behavior (create OR update): - Test POST
+returns 201 for new purchase orders - Test POST returns 200 for updates (based on
+clientReferenceNumber) - Test orderDate can be None (nullable) - Test orderDate can be
+UNSET (omitted to preserve existing) - Test location can be None (nullable) - Test
+status enum handles integer values from API
+
+Fix PurchaseOrderStatusDto to handle integer status codes: - API returns integers
+(0=Draft, 1=Approved, 2=Sent, 3=Received) - Added _missing_ classmethod to map integers
+to enum values
+
+Relates to #44
+
+- fix: add explicit __aenter__/__aexit__ for proper type checking
+
+Add explicit async context manager methods to StockTrimClient that return the correct
+type (StockTrimClient instead of AuthenticatedClient).
+
+This fixes type checker errors in consuming code where `async with client` would resolve
+to AuthenticatedClient instead of StockTrimClient, causing type checkers to not
+recognize the helper properties (products, purchase_orders_v2, etc.).
+
+- feat(mcp): implement base service infrastructure (#43)
+
+Create foundational service layer for MCP tools to eliminate code duplication and
+improve maintainability.
+
+## Changes
+
+- Create `services/base.py` with BaseService class - Common validation helpers
+  (validate_not_empty, validate_positive) - Base initialization pattern for all services
+  \- Create `services/__init__.py` package initialization - Create `dependencies.py` with
+  get_services() helper - Clean context extraction for tool functions - Update
+  `server.py` ServerContext to support service layer - Added comments for future service
+  instances
+
+## Infrastructure
+
+This establishes the foundation for: - ProductService (#45) - All foundation tool
+services (#46) - Comprehensive unit testing (#47) - Workflow tool services (#48)
+
+## Testing
+
+- All new files pass ruff checks - No regressions in existing tests - Ready for service
+  migration
+
+Related: #42 (ADR), #45 (Products reference implementation)
+
+- fix: add type guards for nullable location field parsing
+
+Fix type checking errors in purchase order DTOs by adding explicit cast() calls when
+parsing nullable location fields.
+
+- Add `cast(dict, data)` in location field parsers to satisfy type checker - Add UNSET
+  type guard in test to handle nullable order_date assertions - Ensures type safety
+  while maintaining runtime behavior
+
+## Type Errors Fixed
+
+- `purchase_order_request_dto.py:252` - location parsing -
+  `purchase_order_response_dto.py:279` - location parsing -
+  `test_purchase_order_upsert.py:175-177` - order_date assertions
+
+Related: #44
+
+______________________________________________________________________
+
+Co-authored-by: Doug Borg <dougborg@apple.com>
+
+Co-authored-by: Claude <noreply@anthropic.com>
+
+- **mcp**: Add purchase order CREATE tool and fix READ operations
+  ([#41](https://github.com/dougborg/stocktrim-openapi-client/pull/41),
+  [`1d33131`](https://github.com/dougborg/stocktrim-openapi-client/commit/1d33131e27f419e21bac274fc660028340ad0181))
+
+* Initial plan
+
+* feat(mcp): add create_purchase_order tool and comprehensive tests
+
+- Add create_purchase_order tool to foundation tools - Support all purchase order
+  fields: supplier, line items, location, status, dates - Calculate total_cost from line
+  items since API doesn't provide it - Fix existing get/list tools to use correct field
+  names (purchase_order_line_items) - Add comprehensive test suite with 14 test cases
+  covering all CRUD operations - Update documentation with detailed parameter
+  descriptions and examples - Note: UPDATE operation not supported by StockTrim API (no
+  PUT/PATCH endpoints)
+
+Co-authored-by: dougborg <1261222+dougborg@users.noreply.github.com>
+
+- fix: improve status handling and add status validation test
+
+* Add clarifying comment about PurchaseOrderStatusDto enum values - Add warning log when
+  invalid status is provided - Add test for all valid status values (Draft, Approved,
+  Sent, Received) - Verify status enum accepts user-friendly strings correctly
+
+______________________________________________________________________
+
+Co-authored-by: copilot-swe-agent[bot] <198982749+Copilot@users.noreply.github.com>
+
+Co-authored-by: Doug Borg <dougborg@dougborg.org>
+
+Co-authored-by: Doug Borg <dougborg@apple.com>
+
+Co-authored-by: Claude <noreply@anthropic.com>
+
+- **mcp**: Add sales order management tools
+  ([#40](https://github.com/dougborg/stocktrim-openapi-client/pull/40),
+  [`29787ef`](https://github.com/dougborg/stocktrim-openapi-client/commit/29787efef733b4f877b626b38fd4aeea0e28bba5))
+
+* Initial plan
+
+* feat(mcp): add sales order management tools
+
+Implement create, get, list, and delete tools for sales orders. Tools follow existing
+purchase_orders pattern with proper validation, error handling, and logging.
+
+Co-authored-by: dougborg <1261222+dougborg@users.noreply.github.com>
+
+- test(mcp): add comprehensive tests for sales order tools
+
+Add tests for create, get, list, and delete sales order operations with edge cases and
+error handling validation.
+
+- docs(mcp): document sales order tools in MCP server docs
+
+Add comprehensive documentation for sales order tools including create, get, list, and
+delete operations with examples and parameters.
+
+- fix(mcp): improve sales order deletion error handling
+
+* Fix error message to not reference non-existent tool - Handle None/empty results
+  correctly in delete count - Add test case for empty deletion results
+
+- fix: apply ruff formatting to sales order tools
+
+Applied automatic formatting with ruff to resolve CI formatting checks.
+
+Generated with [Claude Code](https://claude.com/claude-code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+
+______________________________________________________________________
+
+Co-authored-by: copilot-swe-agent[bot] <198982749+Copilot@users.noreply.github.com>
+
+Co-authored-by: Doug Borg <dougborg@dougborg.org>
+
+Co-authored-by: Doug Borg <dougborg@apple.com>
+
+Co-authored-by: Claude <noreply@anthropic.com>
+
+### Refactoring
+
+- **mcp**: Align tool patterns with best practices
+  ([`f172c22`](https://github.com/dougborg/stocktrim-openapi-client/commit/f172c228c03ae2ed84c3e4778d04a1f6c804bb03))
+
+Refactored sales_orders, purchase_orders, and inventory tools to follow established
+patterns from existing foundation tools (products, customers).
+
+Key improvements:
+
+**sales_orders.py:** - Removed redundant validation (Pydantic handles this) - Removed
+excessive hasattr() checks - trust generated model schemas - Removed manual list/object
+handling - helpers return proper types - Removed deleted_count field from
+DeleteSalesOrdersResponse
+
+**purchase_orders.py:** - Changed order_date from str to datetime type (better type
+safety) - Removed redundant supplier_code validation - Removed message field from
+CreatePurchaseOrderResponse - Simplified date handling (let Pydantic parse)
+
+**inventory.py:** - Moved UNSET import to module level (consistency) - Changed error
+handling: raise exceptions instead of success/failure model - Simplified InventoryResult
+to only contain data (no success boolean)
+
+**Documentation:** - Updated tools.md to reflect datetime type for purchase orders
+
+Benefits: - Reduced code by ~55 lines - Better type safety with Pydantic validation -
+Consistent patterns across all tools - More Pythonic error handling - Leverages helper
+methods effectively
+
+All tests passing, linting clean, formatting verified.
+
+Generated with [Claude Code](https://claude.com/claude-code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+
 ## v0.5.1 (2025-11-01)
 
 ### Bug Fixes
