@@ -23,31 +23,31 @@ T = TypeVar("T", bound="PurchaseOrderRequestDto")
 class PurchaseOrderRequestDto:
     """
     Attributes:
-        order_date (datetime.datetime):
         supplier (PurchaseOrderSupplier):
         purchase_order_line_items (list[PurchaseOrderLineItem]):
+        order_date (datetime.datetime | None | Unset):
         created_date (datetime.datetime | None | Unset):
         fully_received_date (datetime.datetime | None | Unset):
         external_id (None | str | Unset):
         reference_number (None | str | Unset):
         client_reference_number (None | str | Unset):
-        location (PurchaseOrderLocation | Unset):
+        location (None | PurchaseOrderLocation | Unset):
         status (PurchaseOrderStatusDto | Unset):
     """
 
-    order_date: datetime.datetime
     supplier: PurchaseOrderSupplier
     purchase_order_line_items: list[PurchaseOrderLineItem]
+    order_date: datetime.datetime | None | Unset = UNSET
     created_date: datetime.datetime | None | Unset = UNSET
     fully_received_date: datetime.datetime | None | Unset = UNSET
     external_id: None | str | Unset = UNSET
     reference_number: None | str | Unset = UNSET
     client_reference_number: None | str | Unset = UNSET
-    location: PurchaseOrderLocation | Unset = UNSET
+    location: None | PurchaseOrderLocation | Unset = UNSET
     status: PurchaseOrderStatusDto | Unset = UNSET
 
     def to_dict(self) -> dict[str, Any]:
-        order_date = self.order_date.isoformat()
+        from ..models.purchase_order_location import PurchaseOrderLocation
 
         supplier = self.supplier.to_dict()
 
@@ -57,6 +57,14 @@ class PurchaseOrderRequestDto:
                 purchase_order_line_items_item_data.to_dict()
             )
             purchase_order_line_items.append(purchase_order_line_items_item)
+
+        order_date: None | str | Unset
+        if isinstance(self.order_date, Unset):
+            order_date = UNSET
+        elif isinstance(self.order_date, datetime.datetime):
+            order_date = self.order_date.isoformat()
+        else:
+            order_date = self.order_date
 
         created_date: None | str | Unset
         if isinstance(self.created_date, Unset):
@@ -92,9 +100,13 @@ class PurchaseOrderRequestDto:
         else:
             client_reference_number = self.client_reference_number
 
-        location: dict[str, Any] | Unset = UNSET
-        if not isinstance(self.location, Unset):
+        location: dict[str, Any] | None | Unset
+        if isinstance(self.location, Unset):
+            location = UNSET
+        elif isinstance(self.location, PurchaseOrderLocation):
             location = self.location.to_dict()
+        else:
+            location = self.location
 
         status: str | Unset = UNSET
         if not isinstance(self.status, Unset):
@@ -104,11 +116,12 @@ class PurchaseOrderRequestDto:
 
         field_dict.update(
             {
-                "orderDate": order_date,
                 "supplier": supplier,
                 "purchaseOrderLineItems": purchase_order_line_items,
             }
         )
+        if order_date is not UNSET:
+            field_dict["orderDate"] = order_date
         if created_date is not UNSET:
             field_dict["createdDate"] = created_date
         if fully_received_date is not UNSET:
@@ -133,8 +146,6 @@ class PurchaseOrderRequestDto:
         from ..models.purchase_order_supplier import PurchaseOrderSupplier
 
         d = dict(src_dict)
-        order_date = isoparse(d.pop("orderDate"))
-
         supplier = PurchaseOrderSupplier.from_dict(d.pop("supplier"))
 
         purchase_order_line_items = []
@@ -145,6 +156,23 @@ class PurchaseOrderRequestDto:
             )
 
             purchase_order_line_items.append(purchase_order_line_items_item)
+
+        def _parse_order_date(data: object) -> datetime.datetime | None | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            try:
+                if not isinstance(data, str):
+                    raise TypeError()
+                order_date_type_0 = isoparse(data)
+
+                return order_date_type_0
+            except:  # noqa: E722
+                pass
+            return cast(datetime.datetime | None | Unset, data)
+
+        order_date = _parse_order_date(d.pop("orderDate", UNSET))
 
         def _parse_created_date(data: object) -> datetime.datetime | None | Unset:
             if data is None:
@@ -213,12 +241,22 @@ class PurchaseOrderRequestDto:
             d.pop("clientReferenceNumber", UNSET)
         )
 
-        _location = d.pop("location", UNSET)
-        location: PurchaseOrderLocation | Unset
-        if isinstance(_location, Unset):
-            location = UNSET
-        else:
-            location = PurchaseOrderLocation.from_dict(_location)
+        def _parse_location(data: object) -> None | PurchaseOrderLocation | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            try:
+                if not isinstance(data, dict):
+                    raise TypeError()
+                location_type_1 = PurchaseOrderLocation.from_dict(cast(dict, data))
+
+                return location_type_1
+            except:  # noqa: E722
+                pass
+            return cast(None | PurchaseOrderLocation | Unset, data)
+
+        location = _parse_location(d.pop("location", UNSET))
 
         _status = d.pop("status", UNSET)
         status: PurchaseOrderStatusDto | Unset
@@ -228,9 +266,9 @@ class PurchaseOrderRequestDto:
             status = PurchaseOrderStatusDto(_status)
 
         purchase_order_request_dto = cls(
-            order_date=order_date,
             supplier=supplier,
             purchase_order_line_items=purchase_order_line_items,
+            order_date=order_date,
             created_date=created_date,
             fully_received_date=fully_received_date,
             external_id=external_id,

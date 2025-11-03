@@ -174,6 +174,12 @@ def add_nullable_to_date_fields(spec_path: Path) -> bool:
                 "referenceNumber",  # string
                 "location",  # object
             ],
+            "PurchaseOrderRequestDto": [
+                "orderDate",  # date-time - needs to be nullable to clear dates on update
+                "externalId",  # string
+                "referenceNumber",  # string
+                "location",  # object
+            ],
             "PurchaseOrderSupplier": [
                 "supplierCode",  # string
             ],
@@ -250,6 +256,75 @@ def add_nullable_to_date_fields(spec_path: Path) -> bool:
 
     except Exception as e:
         logger.error(f"❌ Failed to add nullable to date fields: {e}")
+        return False
+
+
+def add_200_response_to_upsert_endpoints(spec_path: Path) -> bool:
+    """Add 200 OK response to POST endpoints that support upsert behavior.
+
+    StockTrim's API uses POST endpoints for both create and update operations.
+    When a POST includes a reference identifier (like client_reference_number),
+    it updates the existing record and returns 200 OK instead of 201 Created.
+
+    This is non-standard REST behavior but commonly used for upsert operations.
+    """
+    logger.info("Adding 200 OK response to POST endpoints that support upsert")
+
+    try:
+        with open(spec_path) as f:
+            spec = yaml.safe_load(f)
+
+        # Define which POST endpoints support upsert (create OR update)
+        # These return 200 when updating, 201 when creating
+        UPSERT_ENDPOINTS = [
+            "/api/PurchaseOrders",  # Uses client_reference_number as upsert key
+            "/api/Products",  # Uses product code as upsert key
+        ]
+
+        paths = spec.get("paths", {})
+        endpoints_modified = 0
+
+        for endpoint_path in UPSERT_ENDPOINTS:
+            if endpoint_path not in paths:
+                logger.warning(f"Endpoint {endpoint_path} not found in spec")
+                continue
+
+            endpoint = paths[endpoint_path]
+            if "post" not in endpoint:
+                logger.warning(f"POST method not found for {endpoint_path}")
+                continue
+
+            post_operation = endpoint["post"]
+            responses = post_operation.get("responses", {})
+
+            # Check if 200 response already exists
+            if "200" in responses:
+                logger.info(f"  ↷ {endpoint_path} already has 200 response")
+                continue
+
+            # Get the 201 response schema to use for 200
+            if "201" not in responses:
+                logger.warning(f"  ⚠️  {endpoint_path} has no 201 response to copy")
+                continue
+
+            # Add 200 response (same schema as 201, but for updates)
+            responses["200"] = {
+                "description": "Success (Updated)",
+                "content": responses["201"]["content"],
+            }
+
+            endpoints_modified += 1
+            logger.info(f"  ✓ Added 200 OK (update) response to POST {endpoint_path}")
+
+        # Save the modified spec
+        with open(spec_path, "w") as f:
+            yaml.dump(spec, f, default_flow_style=False, sort_keys=False)
+
+        logger.info(f"✅ Added 200 response to {endpoints_modified} POST endpoints")
+        return True
+
+    except Exception as e:
+        logger.error(f"❌ Failed to add 200 responses to upsert endpoints: {e}")
         return False
 
 
@@ -754,6 +829,15 @@ def main() -> None:
     logger.info("=" * 60)
     if not add_nullable_to_date_fields(SPEC_FILE):
         logger.error("❌ Failed to add nullable to date/time fields")
+        sys.exit(1)
+    logger.info("")
+
+    # Step 2.6: Add 200 responses to upsert endpoints
+    logger.info("=" * 60)
+    logger.info("STEP 2.6: Add 200 OK Responses to Upsert Endpoints")
+    logger.info("=" * 60)
+    if not add_200_response_to_upsert_endpoints(SPEC_FILE):
+        logger.error("❌ Failed to add 200 responses to upsert endpoints")
         sys.exit(1)
     logger.info("")
 
