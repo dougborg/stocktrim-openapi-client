@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from fastmcp import Context
 
-from stocktrim_mcp_server.server import ServerContext
+from stocktrim_mcp_server.context import ServerContext
 
 
 def get_services(context: Context) -> ServerContext:
