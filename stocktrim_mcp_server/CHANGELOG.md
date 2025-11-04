@@ -1,6 +1,303 @@
 # CHANGELOG
 
+## v0.3.0 (2025-11-04)
+
+### Bug Fixes
+
+- Use allOf pattern for nullable object references in OpenAPI spec
+  ([`380d97d`](https://github.com/dougborg/stocktrim-openapi-client/commit/380d97d95c6a6b6423a64ee40b2b481f9face92b))
+
+The OpenAPI 3.0 spec ignores `nullable: true` when it appears alongside `$ref`. This
+caused the code generator to produce buggy code for nullable object references like
+PurchaseOrderResponseDto.location, which would crash when the API returned null.
+
+Changes: - Updated regenerate_client.py to detect $ref fields and apply allOf pattern -
+For object references: wraps $ref in allOf array and adds nullable: true - For
+scalar/date fields: continues to use simple nullable: true - Regenerated client with
+proper None handling for location field - Updated all documentation to reference the
+allOf pattern
+
+The generated code now correctly handles null object references: - Type annotation
+includes | None - Parser function checks for None before calling .from_dict() - Tested
+with real API data showing location: null
+
+This fix only affects PurchaseOrderResponseDto.location, which is the only nullable
+object reference in NULLABLE_FIELDS. All other fields are scalars.
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+
+### Build System
+
+- **deps**: Bump mdformat from 0.7.22 to 1.0.0
+  ([#50](https://github.com/dougborg/stocktrim-openapi-client/pull/50),
+  [`3212747`](https://github.com/dougborg/stocktrim-openapi-client/commit/321274782c293b2ee8091ec97fe40d376e9f5db9))
+
+Bumps [mdformat](https://github.com/hukkin/mdformat) from 0.7.22 to 1.0.0. -
+[Commits](https://github.com/hukkin/mdformat/compare/0.7.22...1.0.0)
+
+--- updated-dependencies: - dependency-name: mdformat dependency-version: 1.0.0
+
+dependency-type: direct:production
+
+update-type: version-update:semver-major
+
+...
+
+Signed-off-by: dependabot[bot] <support@github.com>
+
+Co-authored-by: dependabot[bot] \<49699333+dependabot[bot]@users.noreply.github.com>
+
+Co-authored-by: Doug Borg <dougborg@dougborg.org>
+
+- **deps**: Bump mkdocs-material from 9.6.22 to 9.6.23
+  ([#49](https://github.com/dougborg/stocktrim-openapi-client/pull/49),
+  [`556e0ca`](https://github.com/dougborg/stocktrim-openapi-client/commit/556e0ca603ea448bf7442c9b33c9cd857380d54a))
+
+Bumps [mkdocs-material](https://github.com/squidfunk/mkdocs-material) from 9.6.22 to
+9.6.23. - [Release notes](https://github.com/squidfunk/mkdocs-material/releases) -
+[Changelog](https://github.com/squidfunk/mkdocs-material/blob/master/CHANGELOG) -
+[Commits](https://github.com/squidfunk/mkdocs-material/compare/9.6.22...9.6.23)
+
+--- updated-dependencies: - dependency-name: mkdocs-material dependency-version: 9.6.23
+
+dependency-type: direct:production
+
+update-type: version-update:semver-patch
+
+...
+
+Signed-off-by: dependabot[bot] <support@github.com>
+
+Co-authored-by: dependabot[bot] \<49699333+dependabot[bot]@users.noreply.github.com>
+
+Co-authored-by: Doug Borg <dougborg@dougborg.org>
+
+### Chores
+
+- **release**: Client v0.6.0
+  ([`78fcfee`](https://github.com/dougborg/stocktrim-openapi-client/commit/78fcfee083cbaf5347ee52226e60201159d8f1e3))
+
+### Features
+
+- Add support for purchase order upsert and nullable orderDate
+  ([#44](https://github.com/dougborg/stocktrim-openapi-client/pull/44),
+  [`3ff95cd`](https://github.com/dougborg/stocktrim-openapi-client/commit/3ff95cd3a14197de25a55babd7c9ab30b753c9be))
+
+* feat: add support for purchase order upsert and nullable orderDate
+
+This commit implements two key improvements to the StockTrim API client:
+
+1. **Upsert Support for POST Endpoints** (STEP 2.6) - POST /api/PurchaseOrders now
+   handles both 200 (update) and 201 (create) responses - POST /api/Products now handles
+   both 200 (update) and 201 (create) responses - Uses client_reference_number as upsert
+   key for purchase orders - Uses code as upsert key for products
+
+1. **Nullable orderDate in PurchaseOrderRequestDto** - Made orderDate nullable to match
+   response schema behavior - Allows proper handling of null order dates from API -
+   Enables updates that preserve existing dates (using UNSET) - Documents API
+   limitation: orderDate cannot be cleared once set
+
+Changes to regeneration script: - Added STEP 2.6: add_200_response_to_upsert_endpoints()
+\- Added PurchaseOrderRequestDto to NULLABLE_FIELDS configuration - Made orderDate,
+externalId, referenceNumber, and location nullable
+
+Documentation: - Added section on upsert pattern discovery and implementation -
+Documented orderDate field asymmetric behavior (nullable in responses, required in
+requests) - Provided workarounds for common use cases
+
+Closes: API feedback improvements for purchase order management
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+
+- test: add comprehensive tests for purchase order upsert functionality
+
+Add test suite for purchase order upsert behavior (create OR update): - Test POST
+returns 201 for new purchase orders - Test POST returns 200 for updates (based on
+clientReferenceNumber) - Test orderDate can be None (nullable) - Test orderDate can be
+UNSET (omitted to preserve existing) - Test location can be None (nullable) - Test
+status enum handles integer values from API
+
+Fix PurchaseOrderStatusDto to handle integer status codes: - API returns integers
+(0=Draft, 1=Approved, 2=Sent, 3=Received) - Added _missing_ classmethod to map integers
+to enum values
+
+Relates to #44
+
+- fix: add explicit __aenter__/__aexit__ for proper type checking
+
+Add explicit async context manager methods to StockTrimClient that return the correct
+type (StockTrimClient instead of AuthenticatedClient).
+
+This fixes type checker errors in consuming code where `async with client` would resolve
+to AuthenticatedClient instead of StockTrimClient, causing type checkers to not
+recognize the helper properties (products, purchase_orders_v2, etc.).
+
+- feat(mcp): implement base service infrastructure (#43)
+
+Create foundational service layer for MCP tools to eliminate code duplication and
+improve maintainability.
+
+## Changes
+
+- Create `services/base.py` with BaseService class - Common validation helpers
+  (validate_not_empty, validate_positive) - Base initialization pattern for all services
+  \- Create `services/__init__.py` package initialization - Create `dependencies.py` with
+  get_services() helper - Clean context extraction for tool functions - Update
+  `server.py` ServerContext to support service layer - Added comments for future service
+  instances
+
+## Infrastructure
+
+This establishes the foundation for: - ProductService (#45) - All foundation tool
+services (#46) - Comprehensive unit testing (#47) - Workflow tool services (#48)
+
+## Testing
+
+- All new files pass ruff checks - No regressions in existing tests - Ready for service
+  migration
+
+Related: #42 (ADR), #45 (Products reference implementation)
+
+- fix: add type guards for nullable location field parsing
+
+Fix type checking errors in purchase order DTOs by adding explicit cast() calls when
+parsing nullable location fields.
+
+- Add `cast(dict, data)` in location field parsers to satisfy type checker - Add UNSET
+  type guard in test to handle nullable order_date assertions - Ensures type safety
+  while maintaining runtime behavior
+
+## Type Errors Fixed
+
+- `purchase_order_request_dto.py:252` - location parsing -
+  `purchase_order_response_dto.py:279` - location parsing -
+  `test_purchase_order_upsert.py:175-177` - order_date assertions
+
+Related: #44
+
+______________________________________________________________________
+
+Co-authored-by: Doug Borg <dougborg@apple.com>
+
+Co-authored-by: Claude <noreply@anthropic.com>
+
+- **mcp**: Migrate products tool to service layer
+  ([#51](https://github.com/dougborg/stocktrim-openapi-client/pull/51),
+  [`eb2ad3c`](https://github.com/dougborg/stocktrim-openapi-client/commit/eb2ad3c651d5a63a288db82d03e888657f52ae6e))
+
+feat(mcp): migrate products tool to service layer with type safety improvements (#45)
+
+Implements ProductService as the reference implementation for the service layer pattern,
+establishing a cleaner architecture for the StockTrim MCP Server.
+
+## Architecture Changes
+
+### Service Layer Pattern - Created ProductService with four core methods: - get_by_code(code: str)
+
+-> ProductsResponseDto | None - search(prefix: str) -> list[ProductsResponseDto] -
+create(code, description, cost_price, selling_price) -> ProductsResponseDto -
+delete(code: str) -> tuple[bool, str] - Created BaseService with common validation
+helpers - Established dependency injection via get_services(context)
+
+### Circular Import Resolution - Created context.py module for ServerContext - Moved ProductService
+
+import to module level - Separated context initialization from server lifecycle
+management - Updated dependencies.py to use context.ServerContext
+
+### Code Quality Improvements - Refactored products tools to thin wrappers (~10-20 lines per
+
+function) - Added comprehensive type annotations throughout - Replaced \*\*kwargs with
+explicit optional parameters - Created utils.py with unset_to_none() helper for Pydantic
+compatibility
+
+## Code Reduction - Products tool: 410 → 246 lines (40% reduction, ~164 lines removed) - Eliminated
+
+duplicate validation logic across all 4 product operations - Centralized error handling
+in service layer
+
+## Type Safety Enhancements - All service methods have explicit return type annotations - Optional
+
+parameters use typed None defaults instead of \*\*kwargs - UNSET sentinel values
+properly converted to None for Pydantic models - Module-level imports for better IDE and
+static analysis support
+
+## Bug Fixes - Fixed Pydantic validation errors in sales_orders when optional fields return UNSET -
+
+Reduced sales_orders test failures from 10 to 6 - Overall test failures reduced from 13
+to 11 - Remaining failures are pre-existing test bugs (confirmed on main branch)
+
+## Testing - All 5 product management workflow tests pass - No new test failures introduced -
+
+Products tool migration fully verified - CI: All checks passing (test, quality,
+security)
+
+## Benefits - **Maintainability**: Clear separation of concerns between tools and business logic -
+
+**Type Safety**: Comprehensive type hints improve IDE support and catch errors early -
+**Testability**: Service layer can be tested independently of FastMCP framework -
+**Consistency**: Establishes pattern for migrating remaining 6 foundation tools -
+**Discoverability**: Explicit parameters make API more intuitive
+
+## Next Steps This PR establishes the reference implementation for Issue #46, which will migrate the
+
+remaining foundation tools (customers, suppliers, locations, sales_orders,
+purchase_orders, inventory) following this proven pattern.
+
+Expected additional code reduction: ~270-370 lines
+
+Related: #42 (ADR), #43 (Base infrastructure), #46 (Remaining tools)
+
+Closes: #45
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+
+### Refactoring
+
+- **mcp**: Align tool patterns with best practices
+  ([`f172c22`](https://github.com/dougborg/stocktrim-openapi-client/commit/f172c228c03ae2ed84c3e4778d04a1f6c804bb03))
+
+Refactored sales_orders, purchase_orders, and inventory tools to follow established
+patterns from existing foundation tools (products, customers).
+
+Key improvements:
+
+**sales_orders.py:** - Removed redundant validation (Pydantic handles this) - Removed
+excessive hasattr() checks - trust generated model schemas - Removed manual list/object
+handling - helpers return proper types - Removed deleted_count field from
+DeleteSalesOrdersResponse
+
+**purchase_orders.py:** - Changed order_date from str to datetime type (better type
+safety) - Removed redundant supplier_code validation - Removed message field from
+CreatePurchaseOrderResponse - Simplified date handling (let Pydantic parse)
+
+**inventory.py:** - Moved UNSET import to module level (consistency) - Changed error
+handling: raise exceptions instead of success/failure model - Simplified InventoryResult
+to only contain data (no success boolean)
+
+**Documentation:** - Updated tools.md to reflect datetime type for purchase orders
+
+Benefits: - Reduced code by ~55 lines - Better type safety with Pydantic validation -
+Consistent patterns across all tools - More Pythonic error handling - Leverages helper
+methods effectively
+
+All tests passing, linting clean, formatting verified.
+
+Generated with [Claude Code](https://claude.com/claude-code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+
 ## v0.2.0 (2025-11-01)
+
+### Chores
+
+- **release**: Mcp v0.2.0
+  ([`bd21dba`](https://github.com/dougborg/stocktrim-openapi-client/commit/bd21dba21e44556df958cf1d426d6b41810d8fcd))
 
 ### Features
 
