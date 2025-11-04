@@ -60,14 +60,19 @@ class ProductService(BaseService):
         return products
 
     async def create(
-        self, code: str, description: str, **kwargs
+        self,
+        code: str,
+        description: str,
+        cost_price: float | None = None,
+        selling_price: float | None = None,
     ) -> ProductsResponseDto:
         """Create a new product.
 
         Args:
             code: Unique product code
             description: Product description
-            **kwargs: Additional product fields (unit_of_measurement, is_active, cost_price, selling_price)
+            cost_price: Cost price (optional)
+            selling_price: Selling price (optional)
 
         Returns:
             Created product details
@@ -90,8 +95,8 @@ class ProductService(BaseService):
             product_id=code,  # Use code as the product ID for creation
             product_code_readable=code,
             name=description,
-            cost=kwargs.get("cost_price"),
-            price=kwargs.get("selling_price"),
+            cost=cost_price,
+            price=selling_price,
         )
 
         # Create product
