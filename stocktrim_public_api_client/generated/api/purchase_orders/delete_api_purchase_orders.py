@@ -7,7 +7,6 @@ from ....client_types import UNSET, Response, Unset
 from ... import errors
 from ...client import AuthenticatedClient, Client
 from ...models.problem_details import ProblemDetails
-from ...models.purchase_order_response_dto import PurchaseOrderResponseDto
 
 
 def _get_kwargs(
@@ -31,11 +30,10 @@ def _get_kwargs(
 
 def _parse_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Any | ProblemDetails | PurchaseOrderResponseDto | None:
-    if response.status_code == 200:
-        response_200 = PurchaseOrderResponseDto.from_dict(response.json())
-
-        return response_200
+) -> Any | ProblemDetails | None:
+    if response.status_code == 204:
+        response_204 = cast(Any, None)
+        return response_204
 
     if response.status_code == 400:
         response_400 = ProblemDetails.from_dict(response.json())
@@ -54,7 +52,7 @@ def _parse_response(
 
 def _build_response(
     *, client: AuthenticatedClient | Client, response: httpx.Response
-) -> Response[Any | ProblemDetails | PurchaseOrderResponseDto]:
+) -> Response[Any | ProblemDetails]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -67,7 +65,7 @@ def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
     reference_number: str | Unset = UNSET,
-) -> Response[Any | ProblemDetails | PurchaseOrderResponseDto]:
+) -> Response[Any | ProblemDetails]:
     """
     Args:
         reference_number (str | Unset):
@@ -77,7 +75,7 @@ def sync_detailed(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Any | ProblemDetails | PurchaseOrderResponseDto]
+        Response[Any | ProblemDetails]
     """
 
     kwargs = _get_kwargs(
@@ -95,7 +93,7 @@ def sync(
     *,
     client: AuthenticatedClient | Client,
     reference_number: str | Unset = UNSET,
-) -> Any | ProblemDetails | PurchaseOrderResponseDto | None:
+) -> Any | ProblemDetails | None:
     """
     Args:
         reference_number (str | Unset):
@@ -105,7 +103,7 @@ def sync(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Any | ProblemDetails | PurchaseOrderResponseDto
+        Any | ProblemDetails
     """
 
     return sync_detailed(
@@ -118,7 +116,7 @@ async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
     reference_number: str | Unset = UNSET,
-) -> Response[Any | ProblemDetails | PurchaseOrderResponseDto]:
+) -> Response[Any | ProblemDetails]:
     """
     Args:
         reference_number (str | Unset):
@@ -128,7 +126,7 @@ async def asyncio_detailed(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[Any | ProblemDetails | PurchaseOrderResponseDto]
+        Response[Any | ProblemDetails]
     """
 
     kwargs = _get_kwargs(
@@ -144,7 +142,7 @@ async def asyncio(
     *,
     client: AuthenticatedClient | Client,
     reference_number: str | Unset = UNSET,
-) -> Any | ProblemDetails | PurchaseOrderResponseDto | None:
+) -> Any | ProblemDetails | None:
     """
     Args:
         reference_number (str | Unset):
@@ -154,7 +152,7 @@ async def asyncio(
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Any | ProblemDetails | PurchaseOrderResponseDto
+        Any | ProblemDetails
     """
 
     return (

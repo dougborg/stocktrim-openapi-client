@@ -34,7 +34,7 @@ class PurchaseOrderResponseDto:
         reference_number (None | str | Unset):
         client_reference_number (None | str | Unset):
         location (None | PurchaseOrderLocation | Unset):
-        status (PurchaseOrderStatusDto | Unset):
+        status (PurchaseOrderStatusDto | Unset): Purchase order status (0=Draft, 1=Approved, 2=Sent, 3=Received)
     """
 
     supplier: PurchaseOrderSupplier
@@ -120,7 +120,7 @@ class PurchaseOrderResponseDto:
         else:
             location = self.location
 
-        status: str | Unset = UNSET
+        status: int | Unset = UNSET
         if not isinstance(self.status, Unset):
             status = self.status.value
 
@@ -276,7 +276,7 @@ class PurchaseOrderResponseDto:
             try:
                 if not isinstance(data, dict):
                     raise TypeError()
-                location_type_1 = PurchaseOrderLocation.from_dict(cast(dict, data))
+                location_type_1 = PurchaseOrderLocation.from_dict(data)
 
                 return location_type_1
             except:  # noqa: E722

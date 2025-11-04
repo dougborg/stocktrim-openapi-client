@@ -328,6 +328,105 @@ def add_200_response_to_upsert_endpoints(spec_path: Path) -> bool:
         return False
 
 
+def fix_status_enum_to_integer(spec_path: Path) -> bool:
+    """Fix PurchaseOrderStatusDto enum to use integer values.
+
+    The StockTrim API returns integer values (0, 1, 2, 3) for purchase order status,
+    but the OpenAPI spec defines it as a string enum ("Draft", "Approved", etc.).
+    This causes the generated client to crash when parsing responses.
+
+    This function updates the spec to match the actual API behavior by converting
+    the enum to use integer values with x-enum-varnames for human-readable names.
+    """
+    logger.info("Fixing PurchaseOrderStatusDto enum to use integer values")
+
+    try:
+        with open(spec_path) as f:
+            spec = yaml.safe_load(f)
+
+        # Find the status enum
+        schemas = spec.get("components", {}).get("schemas", {})
+        status_dto = schemas.get("PurchaseOrderStatusDto")
+
+        if not status_dto:
+            logger.warning("PurchaseOrderStatusDto not found in spec")
+            return False
+
+        # Check if already fixed
+        if status_dto.get("type") == "integer":
+            logger.info("  ↷ Status enum already uses integer type")
+            return True
+
+        # Update to integer enum
+        # API returns: 0 = Draft, 1 = Approved, 2 = Sent, 3 = Received
+        logger.info("  Converting from string enum to integer enum")
+        status_dto["type"] = "integer"
+        status_dto["enum"] = [0, 1, 2, 3]
+        status_dto["x-enum-varnames"] = ["Draft", "Approved", "Sent", "Received"]
+        status_dto["description"] = (
+            "Purchase order status (0=Draft, 1=Approved, 2=Sent, 3=Received)"
+        )
+
+        # Save the modified spec
+        with open(spec_path, "w") as f:
+            yaml.dump(spec, f, default_flow_style=False, sort_keys=False)
+
+        logger.info("✅ Fixed status enum to use integer values")
+        return True
+
+    except Exception as e:
+        logger.error(f"❌ Failed to fix status enum: {e}")
+        return False
+
+
+def fix_delete_responses_to_204(spec_path: Path) -> bool:
+    """Update DELETE /api/PurchaseOrders to return 204 No Content.
+
+    The StockTrim API was updated to return 204 No Content for DELETE operations,
+    but the OpenAPI spec still documents 200 OK. This updates the spec to match
+    the actual API behavior.
+    """
+    logger.info("Updating DELETE endpoints to return 204 No Content")
+
+    try:
+        with open(spec_path) as f:
+            spec = yaml.safe_load(f)
+
+        paths = spec.get("paths", {})
+        endpoints_modified = 0
+
+        # UPDATE: Only PurchaseOrders DELETE returns 204
+        # Other DELETE endpoints still return 200
+        purchase_orders_path = paths.get("/api/PurchaseOrders")
+        if purchase_orders_path and "delete" in purchase_orders_path:
+            delete_op = purchase_orders_path["delete"]
+            responses = delete_op.get("responses", {})
+
+            # Remove 200 response if present
+            if "200" in responses:
+                del responses["200"]
+                logger.info("  ✓ Removed 200 response from DELETE /api/PurchaseOrders")
+
+            # Add 204 response if not present
+            if "204" not in responses:
+                responses["204"] = {
+                    "description": "No Content - Purchase order deleted successfully"
+                }
+                logger.info("  ✓ Added 204 response to DELETE /api/PurchaseOrders")
+                endpoints_modified += 1
+
+        # Save the modified spec
+        with open(spec_path, "w") as f:
+            yaml.dump(spec, f, default_flow_style=False, sort_keys=False)
+
+        logger.info(f"✅ Updated {endpoints_modified} DELETE endpoints to return 204")
+        return True
+
+    except Exception as e:
+        logger.error(f"❌ Failed to fix DELETE responses: {e}")
+        return False
+
+
 def validate_openapi_spec_python(spec_path: Path) -> bool:
     """Validate the OpenAPI specification using openapi-spec-validator."""
     logger.info("Validating OpenAPI specification with openapi-spec-validator")
@@ -838,6 +937,24 @@ def main() -> None:
     logger.info("=" * 60)
     if not add_200_response_to_upsert_endpoints(SPEC_FILE):
         logger.error("❌ Failed to add 200 responses to upsert endpoints")
+        sys.exit(1)
+    logger.info("")
+
+    # Step 2.7: Fix status enum to use integers
+    logger.info("=" * 60)
+    logger.info("STEP 2.7: Fix Status Enum to Use Integer Values")
+    logger.info("=" * 60)
+    if not fix_status_enum_to_integer(SPEC_FILE):
+        logger.error("❌ Failed to fix status enum")
+        sys.exit(1)
+    logger.info("")
+
+    # Step 2.8: Fix DELETE responses to 204
+    logger.info("=" * 60)
+    logger.info("STEP 2.8: Fix DELETE Responses to 204 No Content")
+    logger.info("=" * 60)
+    if not fix_delete_responses_to_204(SPEC_FILE):
+        logger.error("❌ Failed to fix DELETE responses")
         sys.exit(1)
     logger.info("")
 
