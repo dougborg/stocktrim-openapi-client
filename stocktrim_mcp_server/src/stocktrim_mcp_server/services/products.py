@@ -90,10 +90,17 @@ class ProductService(BaseService):
         from stocktrim_public_api_client.generated.models import ProductsRequestDto
 
         # Create product DTO
-        # Note: product_id is the internal ID - we use the code as product_code_readable
+        # Note: StockTrim API requires both product_id and product_code_readable.
+        # - product_id: Internal unique identifier (used as primary key)
+        # - product_code_readable: Display/reference code (shown to users)
+        # We set both to the same value (code) since:
+        # 1. Users think of "code" as the primary identifier
+        # 2. StockTrim will auto-generate product_id if not provided, but we want
+        #    consistent IDs that match the user-facing code
+        # 3. This ensures find_by_code() can locate products using either field
         product_dto = ProductsRequestDto(
-            product_id=code,  # Use code as the product ID for creation
-            product_code_readable=code,
+            product_id=code,  # Internal ID (must match user code for consistency)
+            product_code_readable=code,  # User-facing code
             name=description,
             cost=cost_price,
             price=selling_price,
