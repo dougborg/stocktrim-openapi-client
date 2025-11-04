@@ -152,7 +152,7 @@ class PurchaseOrderRequestDto:
         _purchase_order_line_items = d.pop("purchaseOrderLineItems")
         for purchase_order_line_items_item_data in _purchase_order_line_items:
             purchase_order_line_items_item = PurchaseOrderLineItem.from_dict(
-                purchase_order_line_items_item_data
+                cast(Mapping[str, Any], purchase_order_line_items_item_data)
             )
 
             purchase_order_line_items.append(purchase_order_line_items_item)
@@ -249,7 +249,9 @@ class PurchaseOrderRequestDto:
             try:
                 if not isinstance(data, dict):
                     raise TypeError()
-                location_type_1 = PurchaseOrderLocation.from_dict(data)
+                location_type_1 = PurchaseOrderLocation.from_dict(
+                    cast(Mapping[str, Any], data)
+                )
 
                 return location_type_1
             except:  # noqa: E722

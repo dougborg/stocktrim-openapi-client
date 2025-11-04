@@ -749,6 +749,8 @@ def _fix_from_dict_type_issues(workspace_path: Path) -> None:
         "order_plan_results_dto.py",
         "products_request_dto.py",
         "products_response_dto.py",
+        "purchase_order_request_dto.py",
+        "purchase_order_response_dto.py",
         "sales_order_with_line_items_request_dto.py",
         "set_inventory_request.py",
         "square_web_hook_object.py",
