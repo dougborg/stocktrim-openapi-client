@@ -8,6 +8,8 @@ from datetime import datetime
 from fastmcp import Context, FastMCP
 from pydantic import BaseModel, Field
 
+from stocktrim_mcp_server.utils import unset_to_none
+
 logger = logging.getLogger(__name__)
 
 # ============================================================================
@@ -93,19 +95,19 @@ async def _create_sales_order_impl(
         # Create the sales order
         result = await client.sales_orders.create(order_dto)
 
-        # Build response model
+        # Build response model (convert UNSET to None for Pydantic)
         order_info = SalesOrderInfo(
-            id=result.id,
+            id=unset_to_none(result.id),
             product_id=result.product_id,
             order_date=result.order_date,
             quantity=result.quantity,
-            external_reference_id=result.external_reference_id,
-            unit_price=result.unit_price,
-            location_code=result.location_code,
-            location_name=result.location_name,
-            customer_code=result.customer_code,
-            customer_name=result.customer_name,
-            location_id=result.location_id,
+            external_reference_id=unset_to_none(result.external_reference_id),
+            unit_price=unset_to_none(result.unit_price),
+            location_code=unset_to_none(result.location_code),
+            location_name=unset_to_none(result.location_name),
+            customer_code=unset_to_none(result.customer_code),
+            customer_name=unset_to_none(result.customer_name),
+            location_id=unset_to_none(result.location_id),
         )
 
         logger.info(
@@ -201,20 +203,20 @@ async def _get_sales_orders_impl(
             orders = await client.sales_orders.get_all()
 
         # Helper methods already return list[SalesOrderResponseDto]
-        # Build response
+        # Build response (convert UNSET to None for Pydantic)
         order_infos = [
             SalesOrderInfo(
-                id=order.id,
+                id=unset_to_none(order.id),
                 product_id=order.product_id,
                 order_date=order.order_date,
                 quantity=order.quantity,
-                external_reference_id=order.external_reference_id,
-                unit_price=order.unit_price,
-                location_code=order.location_code,
-                location_name=order.location_name,
-                customer_code=order.customer_code,
-                customer_name=order.customer_name,
-                location_id=order.location_id,
+                external_reference_id=unset_to_none(order.external_reference_id),
+                unit_price=unset_to_none(order.unit_price),
+                location_code=unset_to_none(order.location_code),
+                location_name=unset_to_none(order.location_name),
+                customer_code=unset_to_none(order.customer_code),
+                customer_name=unset_to_none(order.customer_name),
+                location_id=unset_to_none(order.location_id),
             )
             for order in orders
         ]

@@ -20,6 +20,7 @@ from dotenv import load_dotenv
 from fastmcp import FastMCP
 
 from stocktrim_mcp_server import __version__
+from stocktrim_mcp_server.context import ServerContext
 from stocktrim_public_api_client import StockTrimClient
 
 # Configure logging
@@ -28,23 +29,6 @@ logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
 logger = logging.getLogger(__name__)
-
-
-class ServerContext:
-    """Context object that holds the StockTrimClient and service layer for the server lifespan."""
-
-    def __init__(self, client: StockTrimClient):
-        """Initialize server context with StockTrimClient and services.
-
-        Args:
-            client: Initialized StockTrimClient instance
-        """
-        self.client = client
-
-        # Service layer (will be populated as services are created)
-        # Example:
-        # from stocktrim_mcp_server.services.products import ProductService
-        # self.products = ProductService(client)
 
 
 @asynccontextmanager
