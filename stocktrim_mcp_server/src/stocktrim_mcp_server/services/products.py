@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 
 from stocktrim_mcp_server.services.base import BaseService
+from stocktrim_public_api_client.generated.models import ProductsResponseDto
 
 logger = logging.getLogger(__name__)
 
@@ -12,7 +13,7 @@ logger = logging.getLogger(__name__)
 class ProductService(BaseService):
     """Service for product management operations."""
 
-    async def get_by_code(self, code: str):
+    async def get_by_code(self, code: str) -> ProductsResponseDto | None:
         """Get a single product by code.
 
         Args:
@@ -37,7 +38,7 @@ class ProductService(BaseService):
         logger.info(f"Product retrieved: {code}")
         return product
 
-    async def search(self, prefix: str):
+    async def search(self, prefix: str) -> list[ProductsResponseDto]:
         """Search products by code prefix.
 
         Args:
@@ -58,7 +59,9 @@ class ProductService(BaseService):
         logger.info(f"Found {len(products)} products matching prefix: {prefix}")
         return products
 
-    async def create(self, code: str, description: str, **kwargs):
+    async def create(
+        self, code: str, description: str, **kwargs
+    ) -> ProductsResponseDto:
         """Create a new product.
 
         Args:
