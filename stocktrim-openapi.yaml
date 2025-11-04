@@ -593,12 +593,6 @@ paths:
         schema:
           type: string
       responses:
-        '200':
-          description: Success
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PurchaseOrderResponseDto'
         '400':
           description: Bad Request
           content:
@@ -607,6 +601,8 @@ paths:
                 $ref: '#/components/schemas/ProblemDetails'
         '500':
           description: Server Error
+        '204':
+          description: No Content - Purchase order deleted successfully
   /api/V2/PurchaseOrders/{referenceNumber}:
     get:
       tags:
@@ -1890,11 +1886,17 @@ components:
       additionalProperties: false
     PurchaseOrderStatusDto:
       enum:
+      - 0
+      - 1
+      - 2
+      - 3
+      type: integer
+      x-enum-varnames:
       - Draft
       - Approved
       - Sent
       - Received
-      type: string
+      description: Purchase order status (0=Draft, 1=Approved, 2=Sent, 3=Received)
     PurchaseOrderSupplier:
       type: object
       properties:

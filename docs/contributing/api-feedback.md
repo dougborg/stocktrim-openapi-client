@@ -658,6 +658,120 @@ to enable clearing dates, matching the behavior already supported in GET respons
 
 ______________________________________________________________________
 
+### DELETE Endpoint Returns 204 Instead of 200
+
+**Issue Discovered**: 2025-11-04 **Status**: ✅ **PARTIALLY FIXED** - PurchaseOrders
+updated, others still use 200
+
+**Discovery**: The StockTrim API was updated to return `204 No Content` for DELETE
+operations on Purchase Orders, but the OpenAPI spec still documents `200 OK`.
+
+**Affected Endpoints**:
+
+- `DELETE /api/PurchaseOrders` - ✅ Returns 204 No Content (updated by Joel on
+  2025-11-04)
+- `DELETE /api/Products` - ⚠️ Still returns 200 OK (takes 5+ seconds to complete)
+- `DELETE /api/SalesOrders` - Status unknown
+- `DELETE /api/SalesOrders/All` - Status unknown
+- `DELETE /api/SalesOrders/Range` - Status unknown
+- `DELETE /api/SalesOrdersLocation` - Status unknown
+- `DELETE /api/Suppliers` - Status unknown
+- `DELETE /api/boms` - Status unknown (spec says 201 which is incorrect for DELETE)
+
+**REST Best Practice**: DELETE operations should return `204 No Content` when successful
+and no response body is returned.
+
+**Impact Before Fix**: The Python client would crash on `DELETE /api/PurchaseOrders`
+because it expected response data for status 200, but the API returned empty body with
+204\.
+
+**Solution**: Our client regeneration script now automatically updates DELETE
+/api/PurchaseOrders to expect 204 in STEP 2.8.
+
+**Recommendation for StockTrim**: Consider migrating all DELETE endpoints to return 204
+No Content for consistency and REST compliance.
+
+______________________________________________________________________
+
+### Purchase Order Status Returns Integer Instead of String
+
+**Issue Discovered**: 2025-11-04 **Status**: ✅ **DOCUMENTED** - Spec updated to match
+API behavior
+
+**Discovery**: The `PurchaseOrderStatusDto` enum in the OpenAPI spec defines status as a
+string enum with values `["Draft", "Approved", "Sent", "Received"]`, but the actual API
+returns integer values `[0, 1, 2, 3]`.
+
+**Mapping**:
+
+- `0` = Draft
+- `1` = Approved
+- `2` = Sent
+- `3` = Received
+
+**Impact Before Fix**: The generated Python client would crash when parsing purchase
+order responses with:
+
+```
+ValueError: 0 is not a valid PurchaseOrderStatusDto
+```
+
+**Example API Response**:
+
+```json
+{
+  "id": 12347,
+  "clientReferenceNumber": "PO-TEST-006",
+  "status": 0,  // Integer value, not "Draft"
+  "orderDate": "2025-01-01T00:00:00Z",
+  ...
+}
+```
+
+**OpenAPI Spec (Current - Incorrect)**:
+
+```yaml
+PurchaseOrderStatusDto:
+  type: string
+  enum:
+    - Draft
+    - Approved
+    - Sent
+    - Received
+```
+
+**Solution**: Our client regeneration script now automatically converts the enum to use
+integer type with `x-enum-varnames` for human-readable names in STEP 2.7:
+
+```yaml
+PurchaseOrderStatusDto:
+  type: integer
+  enum: [0, 1, 2, 3]
+  x-enum-varnames: [Draft, Approved, Sent, Received]
+  description: Purchase order status (0=Draft, 1=Approved, 2=Sent, 3=Received)
+```
+
+The `x-enum-varnames` extension tells code generators to use the provided names for each
+enum value. The mapping is positional: the first value in `enum` (0) gets the first name
+in `x-enum-varnames` ("Draft"), the second value (1) gets the second name ("Approved"),
+etc.
+
+This generates a proper Python `IntEnum`:
+
+```python
+class PurchaseOrderStatusDto(IntEnum):
+    DRAFT = 0      # "Draft" from x-enum-varnames[0] → DRAFT = enum[0]
+    APPROVED = 1   # "Approved" from x-enum-varnames[1] → APPROVED = enum[1]
+    SENT = 2
+    RECEIVED = 3
+```
+
+**Recommendation for StockTrim**: Update the OpenAPI spec to use integer type with
+x-enum-varnames to match actual API behavior, or update the API to return string values
+to match the current spec.
+
+______________________________________________________________________
+
 ## Closing Notes
 
 Thank you for providing a public API! These suggestions come from a place of wanting to

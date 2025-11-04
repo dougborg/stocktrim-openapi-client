@@ -23,7 +23,7 @@ def _get_kwargs(
 
     params["pageSize"] = page_size
 
-    json_status: str | Unset = UNSET
+    json_status: int | Unset = UNSET
     if not isinstance(status, Unset):
         json_status = status.value
 
@@ -93,7 +93,8 @@ def sync_detailed(
     Args:
         page (int | Unset):  Default: 0.
         page_size (int | Unset):  Default: 10.
-        status (PurchaseOrderStatusDto | Unset):
+        status (PurchaseOrderStatusDto | Unset): Purchase order status (0=Draft, 1=Approved,
+            2=Sent, 3=Received)
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -128,7 +129,8 @@ def sync(
     Args:
         page (int | Unset):  Default: 0.
         page_size (int | Unset):  Default: 10.
-        status (PurchaseOrderStatusDto | Unset):
+        status (PurchaseOrderStatusDto | Unset): Purchase order status (0=Draft, 1=Approved,
+            2=Sent, 3=Received)
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -158,7 +160,8 @@ async def asyncio_detailed(
     Args:
         page (int | Unset):  Default: 0.
         page_size (int | Unset):  Default: 10.
-        status (PurchaseOrderStatusDto | Unset):
+        status (PurchaseOrderStatusDto | Unset): Purchase order status (0=Draft, 1=Approved,
+            2=Sent, 3=Received)
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -191,7 +194,8 @@ async def asyncio(
     Args:
         page (int | Unset):  Default: 0.
         page_size (int | Unset):  Default: 10.
-        status (PurchaseOrderStatusDto | Unset):
+        status (PurchaseOrderStatusDto | Unset): Purchase order status (0=Draft, 1=Approved,
+            2=Sent, 3=Received)
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
