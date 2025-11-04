@@ -2,6 +2,221 @@
 
 <!-- version list -->
 
+## v0.7.0 (2025-11-04)
+
+### Bug Fixes
+
+- Add type checking to pre-commit and fix purchase order type issues
+  ([`17ff3dc`](https://github.com/dougborg/stocktrim-openapi-client/commit/17ff3dcae73749a693f2f250bc9cdbabf5f2265b))
+
+- Added purchase_order_request_dto.py and purchase_order_response_dto.py to type fix
+  list - Added 'lint' hook to pre-commit to catch type errors before commit -
+  Regenerated client with type fixes applied - All type checks now passing
+
+This ensures ty check runs before every commit, preventing type errors from reaching CI.
+
+- Update spec for DELETE 204 and integer status enum
+  ([`e6bf963`](https://github.com/dougborg/stocktrim-openapi-client/commit/e6bf963a23412418273452d51819d05a32685fb6))
+
+## Summary
+
+Fixed two critical spec/API mismatches discovered through testing:
+
+1. DELETE /api/PurchaseOrders returns 204 (not 200) 2. PurchaseOrderStatusDto uses
+   integers (not strings)
+
+## Changes Made
+
+### 1. DELETE Response Status Code - **Issue**: API updated to return 204 No Content, spec still
+
+documented 200 OK - **Impact**: Client crashed expecting response data for 200 -
+**Fix**: Updated spec DELETE /api/PurchaseOrders to expect 204 - **Automated**: Added
+STEP 2.8 to regenerate_client.py
+
+### 2. Purchase Order Status Enum Type - **Issue**: API returns integers (0,1,2,3), spec defined
+
+strings ("Draft", etc.) - **Impact**: Client crashed with
+`ValueError: 0 is not a valid   PurchaseOrderStatusDto` - **Fix**: Changed enum type to
+integer with x-enum-varnames mapping - **Automated**: Added STEP 2.7 to
+regenerate_client.py - **Result**: Generates IntEnum accepting API's integer values
+
+### 3. Documentation - Added comprehensive sections to api-feedback.md documenting both issues -
+
+Included DELETE endpoint status (PurchaseOrders fixed, others unknown) - Explained
+x-enum-varnames positional mapping for future reference
+
+## Testing - All 71 tests passing - Verified DELETE /api/PurchaseOrders returns 204 via API testing
+
+- Verified DELETE /api/Products still returns 200 (5+ second delay) - Confirmed status
+  enum handles integer values correctly
+
+## Automation Both fixes now run automatically in regenerate_client.py: - STEP 2.7: Converts status
+
+enum to integer with varnames - STEP 2.8: Updates DELETE /api/PurchaseOrders to 204
+
+Related: #53
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+
+### Build System
+
+- **deps**: Bump mdformat from 0.7.22 to 1.0.0
+  ([#50](https://github.com/dougborg/stocktrim-openapi-client/pull/50),
+  [`3212747`](https://github.com/dougborg/stocktrim-openapi-client/commit/321274782c293b2ee8091ec97fe40d376e9f5db9))
+
+Bumps [mdformat](https://github.com/hukkin/mdformat) from 0.7.22 to 1.0.0. -
+[Commits](https://github.com/hukkin/mdformat/compare/0.7.22...1.0.0)
+
+--- updated-dependencies: - dependency-name: mdformat dependency-version: 1.0.0
+
+dependency-type: direct:production
+
+update-type: version-update:semver-major
+
+...
+
+Signed-off-by: dependabot[bot] <support@github.com>
+
+Co-authored-by: dependabot[bot] \<49699333+dependabot[bot]@users.noreply.github.com>
+
+Co-authored-by: Doug Borg <dougborg@dougborg.org>
+
+- **deps**: Bump mkdocs-material from 9.6.22 to 9.6.23
+  ([#49](https://github.com/dougborg/stocktrim-openapi-client/pull/49),
+  [`556e0ca`](https://github.com/dougborg/stocktrim-openapi-client/commit/556e0ca603ea448bf7442c9b33c9cd857380d54a))
+
+Bumps [mkdocs-material](https://github.com/squidfunk/mkdocs-material) from 9.6.22 to
+9.6.23. - [Release notes](https://github.com/squidfunk/mkdocs-material/releases) -
+[Changelog](https://github.com/squidfunk/mkdocs-material/blob/master/CHANGELOG) -
+[Commits](https://github.com/squidfunk/mkdocs-material/compare/9.6.22...9.6.23)
+
+--- updated-dependencies: - dependency-name: mkdocs-material dependency-version: 9.6.23
+
+dependency-type: direct:production
+
+update-type: version-update:semver-patch
+
+...
+
+Signed-off-by: dependabot[bot] <support@github.com>
+
+Co-authored-by: dependabot[bot] \<49699333+dependabot[bot]@users.noreply.github.com>
+
+Co-authored-by: Doug Borg <dougborg@dougborg.org>
+
+### Chores
+
+- **release**: Mcp v0.3.0
+  ([`debbd48`](https://github.com/dougborg/stocktrim-openapi-client/commit/debbd48165cd0813bd688eed5bc727609da78b5f))
+
+### Documentation
+
+- **mcp**: Improve documentation clarity for UNSET handling and product_id usage
+  ([`315534c`](https://github.com/dougborg/stocktrim-openapi-client/commit/315534ceeaedd4d1d434706e7d4584fa40ce828a))
+
+Addresses post-merge Copilot review comments on PR #51.
+
+## Changes
+
+### utils.py - Add detailed docstring explaining UNSET vs None semantics - Clarify that OpenAPI
+
+client uses UNSET as sentinel value - Document why conversion to None is needed for
+Pydantic models - Note: UNSET not imported here (only Unset class for type checking) but
+shown in docstring example for user reference
+
+### services/products.py - Expand comment explaining product_id and product_code_readable dual
+
+assignment - Document the three key reasons for setting both fields to the same value:
+1\. Users think of "code" as primary identifier 2. Ensures consistent IDs that match
+user-facing code 3. Makes find_by_code() work reliably with either field - Add inline
+comments distinguishing internal ID vs user-facing code
+
+## Benefits - Better understanding of UNSET sentinel pattern - Clear rationale for seemingly
+
+redundant field assignment - Improved maintainability through explicit documentation
+
+Addresses: Copilot review comments from PR #51 (post-merge)
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+
+### Features
+
+- **mcp**: Migrate products tool to service layer
+  ([#51](https://github.com/dougborg/stocktrim-openapi-client/pull/51),
+  [`eb2ad3c`](https://github.com/dougborg/stocktrim-openapi-client/commit/eb2ad3c651d5a63a288db82d03e888657f52ae6e))
+
+feat(mcp): migrate products tool to service layer with type safety improvements (#45)
+
+Implements ProductService as the reference implementation for the service layer pattern,
+establishing a cleaner architecture for the StockTrim MCP Server.
+
+## Architecture Changes
+
+### Service Layer Pattern - Created ProductService with four core methods: - get_by_code(code: str)
+
+-> ProductsResponseDto | None - search(prefix: str) -> list[ProductsResponseDto] -
+create(code, description, cost_price, selling_price) -> ProductsResponseDto -
+delete(code: str) -> tuple[bool, str] - Created BaseService with common validation
+helpers - Established dependency injection via get_services(context)
+
+### Circular Import Resolution - Created context.py module for ServerContext - Moved ProductService
+
+import to module level - Separated context initialization from server lifecycle
+management - Updated dependencies.py to use context.ServerContext
+
+### Code Quality Improvements - Refactored products tools to thin wrappers (~10-20 lines per
+
+function) - Added comprehensive type annotations throughout - Replaced \*\*kwargs with
+explicit optional parameters - Created utils.py with unset_to_none() helper for Pydantic
+compatibility
+
+## Code Reduction - Products tool: 410 → 246 lines (40% reduction, ~164 lines removed) - Eliminated
+
+duplicate validation logic across all 4 product operations - Centralized error handling
+in service layer
+
+## Type Safety Enhancements - All service methods have explicit return type annotations - Optional
+
+parameters use typed None defaults instead of \*\*kwargs - UNSET sentinel values
+properly converted to None for Pydantic models - Module-level imports for better IDE and
+static analysis support
+
+## Bug Fixes - Fixed Pydantic validation errors in sales_orders when optional fields return UNSET -
+
+Reduced sales_orders test failures from 10 to 6 - Overall test failures reduced from 13
+to 11 - Remaining failures are pre-existing test bugs (confirmed on main branch)
+
+## Testing - All 5 product management workflow tests pass - No new test failures introduced -
+
+Products tool migration fully verified - CI: All checks passing (test, quality,
+security)
+
+## Benefits - **Maintainability**: Clear separation of concerns between tools and business logic -
+
+**Type Safety**: Comprehensive type hints improve IDE support and catch errors early -
+**Testability**: Service layer can be tested independently of FastMCP framework -
+**Consistency**: Establishes pattern for migrating remaining 6 foundation tools -
+**Discoverability**: Explicit parameters make API more intuitive
+
+## Next Steps This PR establishes the reference implementation for Issue #46, which will migrate the
+
+remaining foundation tools (customers, suppliers, locations, sales_orders,
+purchase_orders, inventory) following this proven pattern.
+
+Expected additional code reduction: ~270-370 lines
+
+Related: #42 (ADR), #43 (Base infrastructure), #46 (Remaining tools)
+
+Closes: #45
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+
 ## v0.6.0 (2025-11-03)
 
 ### Bug Fixes
