@@ -46,9 +46,15 @@ repos:
       - id: yamllint
         args: [-c=.yamllint.yml]
 
-  # Run tests
+  # Run linting (includes type checking)
   - repo: local
     hooks:
+      - id: lint
+        name: lint
+        entry: bash -c 'uv run poe lint'
+        language: system
+        pass_filenames: false
+        always_run: true
       - id: pytest
         name: pytest
         entry: bash -c 'uv run poe test'
