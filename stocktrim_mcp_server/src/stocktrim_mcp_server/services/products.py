@@ -92,7 +92,8 @@ class ProductService(BaseService):
         # Create product DTO
         # Note: StockTrim API requires both product_id and product_code_readable.
         # - product_id: Internal unique identifier (required, used as primary key)
-        # - product_code_readable: Display/reference code (optional, shown to users)
+        # - product_code_readable: Display/reference code (optional/nullable, shown to users)
+        #   While technically optional, it's recommended to provide this for better UX
         # We set both to the same value (code) since:
         # 1. Users think of "code" as the primary identifier
         # 2. This ensures consistent IDs that match the user-facing code
