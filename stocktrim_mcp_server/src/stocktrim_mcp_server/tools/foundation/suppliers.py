@@ -105,7 +105,7 @@ async def list_suppliers(
         Returns: {"suppliers": [...], "total_count": 10}
     """
     services = get_services(context)
-    suppliers = await services.suppliers.list_suppliers(request.active_only)
+    suppliers = await services.suppliers.list_all(request.active_only)
 
     # Build response
     supplier_infos = [
