@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from stocktrim_mcp_server.services.customers import CustomerService
 from stocktrim_mcp_server.services.locations import LocationService
 from stocktrim_mcp_server.services.products import ProductService
 from stocktrim_mcp_server.services.purchase_orders import PurchaseOrderService
@@ -22,6 +23,7 @@ class ServerContext:
         self.client = client
 
         # Service layer
+        self.customers = CustomerService(client)
         self.locations = LocationService(client)
         self.products = ProductService(client)
         self.purchase_orders = PurchaseOrderService(client)
