@@ -1,5 +1,179 @@
 # CHANGELOG
 
+## v0.4.0 (2025-11-05)
+
+### Bug Fixes
+
+- Add type checking to pre-commit and fix purchase order type issues
+  ([`17ff3dc`](https://github.com/dougborg/stocktrim-openapi-client/commit/17ff3dcae73749a693f2f250bc9cdbabf5f2265b))
+
+- Added purchase_order_request_dto.py and purchase_order_response_dto.py to type fix
+  list - Added 'lint' hook to pre-commit to catch type errors before commit -
+  Regenerated client with type fixes applied - All type checks now passing
+
+This ensures ty check runs before every commit, preventing type errors from reaching CI.
+
+- Update spec for DELETE 204 and integer status enum
+  ([`e6bf963`](https://github.com/dougborg/stocktrim-openapi-client/commit/e6bf963a23412418273452d51819d05a32685fb6))
+
+## Summary
+
+Fixed two critical spec/API mismatches discovered through testing:
+
+1. DELETE /api/PurchaseOrders returns 204 (not 200) 2. PurchaseOrderStatusDto uses
+   integers (not strings)
+
+## Changes Made
+
+### 1. DELETE Response Status Code - **Issue**: API updated to return 204 No Content, spec still
+
+documented 200 OK - **Impact**: Client crashed expecting response data for 200 -
+**Fix**: Updated spec DELETE /api/PurchaseOrders to expect 204 - **Automated**: Added
+STEP 2.8 to regenerate_client.py
+
+### 2. Purchase Order Status Enum Type - **Issue**: API returns integers (0,1,2,3), spec defined
+
+strings ("Draft", etc.) - **Impact**: Client crashed with
+`ValueError: 0 is not a valid   PurchaseOrderStatusDto` - **Fix**: Changed enum type to
+integer with x-enum-varnames mapping - **Automated**: Added STEP 2.7 to
+regenerate_client.py - **Result**: Generates IntEnum accepting API's integer values
+
+### 3. Documentation - Added comprehensive sections to api-feedback.md documenting both issues -
+
+Included DELETE endpoint status (PurchaseOrders fixed, others unknown) - Explained
+x-enum-varnames positional mapping for future reference
+
+## Testing - All 71 tests passing - Verified DELETE /api/PurchaseOrders returns 204 via API testing
+
+- Verified DELETE /api/Products still returns 200 (5+ second delay) - Confirmed status
+  enum handles integer values correctly
+
+## Automation Both fixes now run automatically in regenerate_client.py: - STEP 2.7: Converts status
+
+enum to integer with varnames - STEP 2.8: Updates DELETE /api/PurchaseOrders to 204
+
+Related: #53
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+
+### Chores
+
+- **release**: Client v0.7.0
+  ([`71e9567`](https://github.com/dougborg/stocktrim-openapi-client/commit/71e956772828e97b1c569c5d7293f592fc5529ce))
+
+### Documentation
+
+- **mcp**: Improve documentation clarity for UNSET handling and product_id usage
+  ([`315534c`](https://github.com/dougborg/stocktrim-openapi-client/commit/315534ceeaedd4d1d434706e7d4584fa40ce828a))
+
+Addresses post-merge Copilot review comments on PR #51.
+
+## Changes
+
+### utils.py - Add detailed docstring explaining UNSET vs None semantics - Clarify that OpenAPI
+
+client uses UNSET as sentinel value - Document why conversion to None is needed for
+Pydantic models - Note: UNSET not imported here (only Unset class for type checking) but
+shown in docstring example for user reference
+
+### services/products.py - Expand comment explaining product_id and product_code_readable dual
+
+assignment - Document the three key reasons for setting both fields to the same value:
+1\. Users think of "code" as primary identifier 2. Ensures consistent IDs that match
+user-facing code 3. Makes find_by_code() work reliably with either field - Add inline
+comments distinguishing internal ID vs user-facing code
+
+## Benefits - Better understanding of UNSET sentinel pattern - Clear rationale for seemingly
+
+redundant field assignment - Improved maintainability through explicit documentation
+
+Addresses: Copilot review comments from PR #51 (post-merge)
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+
+- **mcp**: Improve documentation clarity for UNSET handling and product_id usage
+  ([#52](https://github.com/dougborg/stocktrim-openapi-client/pull/52),
+  [`e1d2c40`](https://github.com/dougborg/stocktrim-openapi-client/commit/e1d2c40a9189a4b712beb38704a9e82fa91aeeeb))
+
+* fix: correct product_id documentation to reflect required field status
+
+Address Copilot review feedback by fixing inaccurate documentation: - Clarify that
+product_id is required (not auto-generated) - Remove unverified claim about
+find_by_code() searching both fields
+
+- Simplify comment to focus on verified behavior
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+
+- docs: clarify product_code_readable is optional but recommended
+
+Address Copilot nitpick: while product_code_readable is technically optional/nullable,
+it's recommended to provide it for better user experience as it's used for user-facing
+displays.
+
+______________________________________________________________________
+
+Co-authored-by: Doug Borg <dougborg@apple.com>
+
+Co-authored-by: Claude <noreply@anthropic.com>
+
+### Features
+
+- **mcp**: Migrate sales orders tool to service layer pattern
+  ([#64](https://github.com/dougborg/stocktrim-openapi-client/pull/64),
+  [`d53632e`](https://github.com/dougborg/stocktrim-openapi-client/commit/d53632eea06ab2734845305ef4723e760c159a57))
+
+* Initial plan
+
+* docs: initial plan for sales orders service layer migration
+
+Co-authored-by: dougborg <1261222+dougborg@users.noreply.github.com>
+
+- feat(mcp): migrate sales orders to service layer pattern
+
+* Created SalesOrderService with create, get_all, get_for_product, and
+  delete_for_product methods - Updated ServerContext to include sales_orders service -
+  Refactored tools to use thin wrappers calling service via get_services() - Updated all
+  tests to mock service layer instead of client helpers - All tests passing (12/12) -
+  Type checking passed - Linting passed
+
+- style: apply ruff formatting to sales orders service
+
+- fix: use specific ValidationError in test for zero quantity
+
+Addresses code review comment to use `pytest.raises(ValidationError)` instead of generic
+Exception for better test specificity.
+
+- style: apply ruff formatting to test_delete_status.py
+
+Fix formatting to pass CI format-check.
+
+______________________________________________________________________
+
+Co-authored-by: copilot-swe-agent[bot] <198982749+Copilot@users.noreply.github.com>
+
+### Testing
+
+- Add scripts to verify DELETE endpoint status codes
+  ([`a9c0f27`](https://github.com/dougborg/stocktrim-openapi-client/commit/a9c0f2743a8a35a8e27a0d23574f6339f5b4af8c))
+
+Add test scripts to verify actual API behavior for DELETE endpoints: -
+test_delete_status.py: Tests DELETE /api/PurchaseOrders (returns 204) -
+test_delete_products.py: Tests DELETE /api/Products (returns 200, slow)
+
+These scripts are useful for: - Verifying API behavior matches our spec modifications -
+Detecting future API changes - Documenting actual endpoint behavior
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+
 ## v0.3.0 (2025-11-04)
 
 ### Bug Fixes
@@ -78,6 +252,9 @@ Co-authored-by: Doug Borg <dougborg@dougborg.org>
 
 - **release**: Client v0.6.0
   ([`78fcfee`](https://github.com/dougborg/stocktrim-openapi-client/commit/78fcfee083cbaf5347ee52226e60201159d8f1e3))
+
+- **release**: Mcp v0.3.0
+  ([`debbd48`](https://github.com/dougborg/stocktrim-openapi-client/commit/debbd48165cd0813bd688eed5bc727609da78b5f))
 
 ### Features
 
