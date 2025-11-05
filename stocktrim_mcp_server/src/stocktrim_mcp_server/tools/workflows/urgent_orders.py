@@ -12,6 +12,7 @@ from collections import defaultdict
 from fastmcp import Context, FastMCP
 from pydantic import BaseModel, Field
 
+from stocktrim_mcp_server.dependencies import get_services
 from stocktrim_public_api_client.client_types import UNSET
 from stocktrim_public_api_client.generated.models.order_plan_filter_criteria_dto import (
     OrderPlanFilterCriteriaDto,
@@ -97,9 +98,8 @@ async def _review_urgent_order_requirements_impl(
     )
 
     try:
-        # Access StockTrimClient from lifespan context
-        server_context = context.request_context.lifespan_context
-        client = server_context.client
+        # Get services from context (note: order_plan not in service layer yet, uses client directly)
+        services = get_services(context)
 
         # Build filter criteria for order plan query
         # Note: order_plan.get_urgent_items() doesn't support all our filters,
@@ -109,8 +109,8 @@ async def _review_urgent_order_requirements_impl(
             supplier_codes=request.supplier_codes or UNSET,
         )
 
-        # Query order plan
-        all_items = await client.order_plan.query(filter_criteria)
+        # Query order plan (uses client directly as order_plan not in service layer)
+        all_items = await services.client.order_plan.query(filter_criteria)
 
         # Filter items by days threshold
         urgent_items = []
@@ -161,7 +161,7 @@ async def _review_urgent_order_requirements_impl(
                 # Note: This fetches the entire product catalog which could be expensive
                 # for large inventories. StockTrim API doesn't provide a batch lookup
                 # method, so this is more efficient than N individual API calls.
-                all_products = await client.products.get_all()
+                all_products = await services.products.list_all()
                 for product in all_products:
                     if product.product_code_readable and product.supplier_code not in (
                         None,
@@ -372,9 +372,8 @@ async def _generate_purchase_orders_from_urgent_items_impl(
     )
 
     try:
-        # Access StockTrimClient from lifespan context
-        server_context = context.request_context.lifespan_context
-        client = server_context.client
+        # Get services from context (note: purchase_orders_v2 not in service layer yet, uses client directly)
+        services = get_services(context)
 
         # Build filter criteria for V2 API's generate_from_order_plan
         # Note: The V2 API generates POs based on the order plan's recommendations,
@@ -388,10 +387,12 @@ async def _generate_purchase_orders_from_urgent_items_impl(
             supplier_codes=request.supplier_codes or UNSET,
         )
 
-        # Generate POs using V2 API
+        # Generate POs using V2 API (uses client directly as purchase_orders_v2 not in service layer)
         # This will create draft POs based on order plan recommendations
-        generated_pos = await client.purchase_orders_v2.generate_from_order_plan(
-            filter_criteria
+        generated_pos = (
+            await services.client.purchase_orders_v2.generate_from_order_plan(
+                filter_criteria
+            )
         )
 
         # Build response with PO details
