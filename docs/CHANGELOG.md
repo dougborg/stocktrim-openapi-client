@@ -2,6 +2,153 @@
 
 <!-- version list -->
 
+## v0.8.0 (2025-11-05)
+
+### Chores
+
+- **release**: Mcp v0.4.0
+  ([`c31dd99`](https://github.com/dougborg/stocktrim-openapi-client/commit/c31dd9970079d9736f1c715fd6458c2c3e4af2a1))
+
+### Documentation
+
+- **mcp**: Improve documentation clarity for UNSET handling and product_id usage
+  ([#52](https://github.com/dougborg/stocktrim-openapi-client/pull/52),
+  [`e1d2c40`](https://github.com/dougborg/stocktrim-openapi-client/commit/e1d2c40a9189a4b712beb38704a9e82fa91aeeeb))
+
+* fix: correct product_id documentation to reflect required field status
+
+Address Copilot review feedback by fixing inaccurate documentation: - Clarify that
+product_id is required (not auto-generated) - Remove unverified claim about
+find_by_code() searching both fields
+
+- Simplify comment to focus on verified behavior
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+
+- docs: clarify product_code_readable is optional but recommended
+
+Address Copilot nitpick: while product_code_readable is technically optional/nullable,
+it's recommended to provide it for better user experience as it's used for user-facing
+displays.
+
+______________________________________________________________________
+
+Co-authored-by: Doug Borg <dougborg@apple.com>
+
+Co-authored-by: Claude <noreply@anthropic.com>
+
+### Features
+
+- Migrate Purchase Orders tool to service layer pattern
+  ([#66](https://github.com/dougborg/stocktrim-openapi-client/pull/66),
+  [`aa0e453`](https://github.com/dougborg/stocktrim-openapi-client/commit/aa0e453a79cc39f681ec348978971106df909ed1))
+
+* feat: migrate Purchase Orders tool to service layer pattern
+
+This PR migrates the Purchase Orders tool to use the service layer pattern following the
+Products service example from PR #51. The Purchase Orders tool is the most complex
+foundation tool with 4 operations and extensive business logic.
+
+## Changes
+
+### New Service Layer - **services/purchase_orders.py**: New PurchaseOrderService class with: -
+
+`get_by_reference()`: Get PO by reference number - `list_all()`: List all purchase
+orders - `create()`: Create PO with line items, supplier, location, status - `delete()`:
+Delete PO by reference number
+
+### Updated Tool Layer - **tools/foundation/purchase_orders.py**: Refactored to thin wrappers - All
+
+4 tool implementations now delegate to service methods - Removed direct client access -
+Tools focus on request/response transformation only
+
+### Server Integration - **context.py**: Added PurchaseOrderService to ServerContext - Initialized
+
+alongside ProductService - Available to all tools via get_services()
+
+## Key Highlights
+
+- **Status Enum Handling**: Proper IntEnum parsing (DRAFT=0, APPROVED=1, etc.) - **Line
+  Item Validation**: Ensures product_code, quantity, and validates > 0 - **Total Cost
+  Calculation**: Computed from line items in tool layer - **UNSET Handling**: Proper use
+  of UNSET sentinel for optional fields - **Error Handling**: Consistent validation and
+  logging patterns
+
+## Testing
+
+- ✅ All 71 tests passing - ✅ Type checking passes (uv run poe lint) - ✅ Pre-commit hooks
+  pass
+
+Closes #65
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+
+- fix: address Copilot review comments and formatting
+
+* Simplify line_items validation (remove redundant len check) - Clarify status enum
+  comment with more detail about IntEnum behavior - Format test_delete_status.py script
+
+Addresses Copilot review comments on PR #66
+
+______________________________________________________________________
+
+Co-authored-by: Doug Borg <dougborg@apple.com>
+
+Co-authored-by: Claude <noreply@anthropic.com>
+
+- **mcp**: Migrate sales orders tool to service layer pattern
+  ([#64](https://github.com/dougborg/stocktrim-openapi-client/pull/64),
+  [`d53632e`](https://github.com/dougborg/stocktrim-openapi-client/commit/d53632eea06ab2734845305ef4723e760c159a57))
+
+* Initial plan
+
+* docs: initial plan for sales orders service layer migration
+
+Co-authored-by: dougborg <1261222+dougborg@users.noreply.github.com>
+
+- feat(mcp): migrate sales orders to service layer pattern
+
+* Created SalesOrderService with create, get_all, get_for_product, and
+  delete_for_product methods - Updated ServerContext to include sales_orders service -
+  Refactored tools to use thin wrappers calling service via get_services() - Updated all
+  tests to mock service layer instead of client helpers - All tests passing (12/12) -
+  Type checking passed - Linting passed
+
+- style: apply ruff formatting to sales orders service
+
+- fix: use specific ValidationError in test for zero quantity
+
+Addresses code review comment to use `pytest.raises(ValidationError)` instead of generic
+Exception for better test specificity.
+
+- style: apply ruff formatting to test_delete_status.py
+
+Fix formatting to pass CI format-check.
+
+______________________________________________________________________
+
+Co-authored-by: copilot-swe-agent[bot] <198982749+Copilot@users.noreply.github.com>
+
+### Testing
+
+- Add scripts to verify DELETE endpoint status codes
+  ([`a9c0f27`](https://github.com/dougborg/stocktrim-openapi-client/commit/a9c0f2743a8a35a8e27a0d23574f6339f5b4af8c))
+
+Add test scripts to verify actual API behavior for DELETE endpoints: -
+test_delete_status.py: Tests DELETE /api/PurchaseOrders (returns 204) -
+test_delete_products.py: Tests DELETE /api/Products (returns 200, slow)
+
+These scripts are useful for: - Verifying API behavior matches our spec modifications -
+Detecting future API changes - Documenting actual endpoint behavior
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+
 ## v0.7.0 (2025-11-04)
 
 ### Bug Fixes
