@@ -3,13 +3,6 @@
 from stocktrim_mcp_server.services.base import BaseService
 from stocktrim_mcp_server.services.locations import LocationService
 from stocktrim_mcp_server.services.products import ProductService
-from stocktrim_mcp_server.services.sales_orders import SalesOrderService
 from stocktrim_mcp_server.services.suppliers import SupplierService
 
-__all__ = [
-    "BaseService",
-    "LocationService",
-    "ProductService",
-    "SalesOrderService",
-    "SupplierService",
-]
+__all__ = ["BaseService", "LocationService", "ProductService", "SupplierService"]

@@ -8,7 +8,7 @@ from datetime import datetime
 from fastmcp import Context, FastMCP
 from pydantic import BaseModel, Field
 
-from stocktrim_public_api_client.client_types import UNSET
+from stocktrim_mcp_server.dependencies import get_services
 
 logger = logging.getLogger(__name__)
 
@@ -41,7 +41,7 @@ async def _get_purchase_order_impl(
 
     Args:
         request: Request containing reference number
-        context: Server context with StockTrimClient
+        context: Server context with services
 
     Returns:
         PurchaseOrderInfo if found, None otherwise
@@ -50,49 +50,31 @@ async def _get_purchase_order_impl(
         ValueError: If reference number is empty
         Exception: If API call fails
     """
-    if not request.reference_number or not request.reference_number.strip():
-        raise ValueError("Reference number cannot be empty")
+    services = get_services(context)
+    po = await services.purchase_orders.get_by_reference(request.reference_number)
 
-    logger.info(f"Getting purchase order: {request.reference_number}")
+    if not po:
+        return None
 
-    try:
-        # Access StockTrimClient from lifespan context
-        server_context = context.request_context.lifespan_context
-        client = server_context.client
-
-        # Use the find_by_reference convenience method
-        po = await client.purchase_orders.find_by_reference(request.reference_number)
-
-        if not po:
-            logger.warning(f"Purchase order not found: {request.reference_number}")
-            return None
-
-        # Build PurchaseOrderInfo from response
-        # Calculate total cost from line items
-        total_cost = None
-        if po.purchase_order_line_items:
-            total_cost = sum(
-                (item.unit_price or 0.0) * item.quantity
-                for item in po.purchase_order_line_items
-            )
-
-        po_info = PurchaseOrderInfo(
-            reference_number=po.reference_number or "",
-            supplier_code=po.supplier.supplier_code if po.supplier else None,
-            supplier_name=po.supplier.supplier_name if po.supplier else None,
-            status=str(po.status.value) if po.status else None,
-            total_cost=total_cost,
-            line_items_count=(
-                len(po.purchase_order_line_items) if po.purchase_order_line_items else 0
-            ),
+    # Build PurchaseOrderInfo from response
+    # Calculate total cost from line items
+    total_cost = None
+    if po.purchase_order_line_items:
+        total_cost = sum(
+            (item.unit_price or 0.0) * item.quantity
+            for item in po.purchase_order_line_items
         )
 
-        logger.info(f"Purchase order retrieved: {request.reference_number}")
-        return po_info
-
-    except Exception as e:
-        logger.error(f"Failed to get purchase order {request.reference_number}: {e}")
-        raise
+    return PurchaseOrderInfo(
+        reference_number=po.reference_number or "",
+        supplier_code=po.supplier.supplier_code if po.supplier else None,
+        supplier_name=po.supplier.supplier_name if po.supplier else None,
+        status=str(po.status.value) if po.status else None,
+        total_cost=total_cost,
+        line_items_count=(
+            len(po.purchase_order_line_items) if po.purchase_order_line_items else 0
+        ),
+    )
 
 
 async def get_purchase_order(
@@ -142,7 +124,7 @@ async def _list_purchase_orders_impl(
 
     Args:
         request: Request (no filters supported yet)
-        context: Server context with StockTrimClient
+        context: Server context with services
 
     Returns:
         ListPurchaseOrdersResponse with purchase orders
@@ -150,59 +132,39 @@ async def _list_purchase_orders_impl(
     Raises:
         Exception: If API call fails
     """
-    logger.info("Listing purchase orders")
+    services = get_services(context)
+    pos = await services.purchase_orders.list_all()
 
-    try:
-        # Access StockTrimClient from lifespan context
-        server_context = context.request_context.lifespan_context
-        client = server_context.client
-
-        # Get all purchase orders
-        result = await client.purchase_orders.get_all()
-
-        # Handle API inconsistency - could return single object or list
-        if isinstance(result, list):
-            pos = result
-        else:
-            pos = [result] if result else []
-
-        # Build response
-        po_infos = []
-        for po in pos:
-            # Calculate total cost from line items
-            total_cost = None
-            if po.purchase_order_line_items:
-                total_cost = sum(
-                    (item.unit_price or 0.0) * item.quantity
-                    for item in po.purchase_order_line_items
-                )
-
-            po_infos.append(
-                PurchaseOrderInfo(
-                    reference_number=po.reference_number or "",
-                    supplier_code=po.supplier.supplier_code if po.supplier else None,
-                    supplier_name=po.supplier.supplier_name if po.supplier else None,
-                    status=str(po.status.value) if po.status else None,
-                    total_cost=total_cost,
-                    line_items_count=(
-                        len(po.purchase_order_line_items)
-                        if po.purchase_order_line_items
-                        else 0
-                    ),
-                )
+    # Build response
+    po_infos = []
+    for po in pos:
+        # Calculate total cost from line items
+        total_cost = None
+        if po.purchase_order_line_items:
+            total_cost = sum(
+                (item.unit_price or 0.0) * item.quantity
+                for item in po.purchase_order_line_items
             )
 
-        response = ListPurchaseOrdersResponse(
-            purchase_orders=po_infos,
-            total_count=len(po_infos),
+        po_infos.append(
+            PurchaseOrderInfo(
+                reference_number=po.reference_number or "",
+                supplier_code=po.supplier.supplier_code if po.supplier else None,
+                supplier_name=po.supplier.supplier_name if po.supplier else None,
+                status=str(po.status.value) if po.status else None,
+                total_cost=total_cost,
+                line_items_count=(
+                    len(po.purchase_order_line_items)
+                    if po.purchase_order_line_items
+                    else 0
+                ),
+            )
         )
 
-        logger.info(f"Found {response.total_count} purchase orders")
-        return response
-
-    except Exception as e:
-        logger.error(f"Failed to list purchase orders: {e}")
-        raise
+    return ListPurchaseOrdersResponse(
+        purchase_orders=po_infos,
+        total_count=len(po_infos),
+    )
 
 
 async def list_purchase_orders(
@@ -283,7 +245,7 @@ async def _create_purchase_order_impl(
 
     Args:
         request: Request containing purchase order details
-        context: Server context with StockTrimClient
+        context: Server context with services
 
     Returns:
         CreatePurchaseOrderResponse with created PO details
@@ -291,116 +253,56 @@ async def _create_purchase_order_impl(
     Raises:
         Exception: If API call fails
     """
-    logger.info(f"Creating purchase order for supplier: {request.supplier_code}")
+    services = get_services(context)
 
-    try:
-        # Access StockTrimClient from lifespan context
-        server_context = context.request_context.lifespan_context
-        client = server_context.client
+    # Convert line items from pydantic models to dicts for service layer
+    line_items = [
+        {
+            "product_code": item.product_code,
+            "quantity": item.quantity,
+            "unit_price": item.unit_price,
+        }
+        for item in request.line_items
+    ]
 
-        # Import required models
-        from stocktrim_public_api_client.generated.models import (
-            PurchaseOrderLineItem,
-            PurchaseOrderLocation,
-            PurchaseOrderRequestDto,
-            PurchaseOrderStatusDto,
-            PurchaseOrderSupplier,
+    # Create purchase order via service
+    created_po = await services.purchase_orders.create(
+        supplier_code=request.supplier_code,
+        line_items=line_items,
+        supplier_name=request.supplier_name,
+        order_date=request.order_date,
+        location_code=request.location_code,
+        location_name=request.location_name,
+        reference_number=request.reference_number,
+        client_reference_number=request.client_reference_number,
+        status=request.status,
+    )
+
+    # Build response
+    # Calculate total cost from line items
+    total_cost = None
+    if created_po.purchase_order_line_items:
+        total_cost = sum(
+            (item.unit_price or 0.0) * item.quantity
+            for item in created_po.purchase_order_line_items
         )
 
-        # Default to now if not provided
-        order_date = request.order_date or datetime.now()
-
-        # Build supplier object
-        supplier = PurchaseOrderSupplier(
-            supplier_code=request.supplier_code,
-            supplier_name=request.supplier_name,
-        )
-
-        # Build location object (optional)
-        location = None
-        if request.location_code or request.location_name:
-            location = PurchaseOrderLocation(
-                location_code=request.location_code,
-                location_name=request.location_name,
-            )
-
-        # Build line items
-        line_items = [
-            PurchaseOrderLineItem(
-                product_id=item.product_code,
-                quantity=item.quantity,
-                unit_price=item.unit_price,
-            )
-            for item in request.line_items
-        ]
-
-        # Parse status
-        # Note: PurchaseOrderStatusDto enum values are user-friendly strings:
-        # "Draft", "Approved", "Sent", "Received"
-        status = None
-        if request.status:
-            try:
-                status = PurchaseOrderStatusDto(request.status)
-            except ValueError:
-                # If invalid status provided, default to Draft
-                logger.warning(
-                    f"Invalid status '{request.status}' provided, defaulting to Draft"
-                )
-                status = PurchaseOrderStatusDto.DRAFT
-
-        # Build purchase order DTO
-        po_dto = PurchaseOrderRequestDto(
-            order_date=order_date,
-            supplier=supplier,
-            purchase_order_line_items=line_items,
-            reference_number=request.reference_number,
-            client_reference_number=request.client_reference_number,
-            location=location if location else UNSET,
-            status=status if status else UNSET,
-        )
-
-        # Create purchase order
-        created_po = await client.purchase_orders.create(po_dto)
-
-        if not created_po:
-            raise Exception(
-                f"Failed to create purchase order for supplier {request.supplier_code}"
-            )
-
-        # Build response
-        # Calculate total cost from line items
-        total_cost = None
-        if created_po.purchase_order_line_items:
-            total_cost = sum(
-                (item.unit_price or 0.0) * item.quantity
-                for item in created_po.purchase_order_line_items
-            )
-
-        response = CreatePurchaseOrderResponse(
-            reference_number=created_po.reference_number or "",
-            supplier_code=(
-                created_po.supplier.supplier_code if created_po.supplier else None
-            ),
-            supplier_name=(
-                created_po.supplier.supplier_name if created_po.supplier else None
-            ),
-            status=str(created_po.status.value) if created_po.status else None,
-            total_cost=total_cost,
-            line_items_count=(
-                len(created_po.purchase_order_line_items)
-                if created_po.purchase_order_line_items
-                else 0
-            ),
-        )
-
-        logger.info(f"Purchase order created: {created_po.reference_number}")
-        return response
-
-    except Exception as e:
-        logger.error(
-            f"Failed to create purchase order for supplier {request.supplier_code}: {e}"
-        )
-        raise
+    return CreatePurchaseOrderResponse(
+        reference_number=created_po.reference_number or "",
+        supplier_code=(
+            created_po.supplier.supplier_code if created_po.supplier else None
+        ),
+        supplier_name=(
+            created_po.supplier.supplier_name if created_po.supplier else None
+        ),
+        status=str(created_po.status.value) if created_po.status else None,
+        total_cost=total_cost,
+        line_items_count=(
+            len(created_po.purchase_order_line_items)
+            if created_po.purchase_order_line_items
+            else 0
+        ),
+    )
 
 
 async def create_purchase_order(
@@ -463,7 +365,7 @@ async def _delete_purchase_order_impl(
 
     Args:
         request: Request containing reference number
-        context: Server context with StockTrimClient
+        context: Server context with services
 
     Returns:
         DeletePurchaseOrderResponse indicating success
@@ -472,36 +374,13 @@ async def _delete_purchase_order_impl(
         ValueError: If reference number is empty
         Exception: If API call fails
     """
-    if not request.reference_number or not request.reference_number.strip():
-        raise ValueError("Reference number cannot be empty")
+    services = get_services(context)
+    success, message = await services.purchase_orders.delete(request.reference_number)
 
-    logger.info(f"Deleting purchase order: {request.reference_number}")
-
-    try:
-        # Access StockTrimClient from lifespan context
-        server_context = context.request_context.lifespan_context
-        client = server_context.client
-
-        # Check if PO exists first
-        po = await client.purchase_orders.find_by_reference(request.reference_number)
-        if not po:
-            return DeletePurchaseOrderResponse(
-                success=False,
-                message=f"Purchase order {request.reference_number} not found",
-            )
-
-        # Delete PO
-        await client.purchase_orders.delete(reference_number=request.reference_number)
-
-        logger.info(f"Purchase order deleted: {request.reference_number}")
-        return DeletePurchaseOrderResponse(
-            success=True,
-            message=f"Purchase order {request.reference_number} deleted successfully",
-        )
-
-    except Exception as e:
-        logger.error(f"Failed to delete purchase order {request.reference_number}: {e}")
-        raise
+    return DeletePurchaseOrderResponse(
+        success=success,
+        message=message,
+    )
 
 
 async def delete_purchase_order(
