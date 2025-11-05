@@ -75,7 +75,9 @@ class SalesOrderService(BaseService):
         logger.info(f"Sales order created successfully for product {product_id}")
         return created_order
 
-    async def get_all(self, product_id: str | None = None) -> list[SalesOrderResponseDto]:
+    async def get_all(
+        self, product_id: str | None = None
+    ) -> list[SalesOrderResponseDto]:
         """Get all sales orders, optionally filtered by product.
 
         Args:
