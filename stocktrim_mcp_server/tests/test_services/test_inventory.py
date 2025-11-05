@@ -78,7 +78,7 @@ async def test_set_for_product_success(
 async def test_set_for_product_with_optional_params(
     inventory_service, mock_client, sample_purchase_order_response
 ):
-    """Test setting inventory with only required parameters."""
+    """Test setting inventory with some optional parameters."""
     # Setup
     mock_client.inventory.set_for_product.return_value = sample_purchase_order_response
 
