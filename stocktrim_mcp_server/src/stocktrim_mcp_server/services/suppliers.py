@@ -38,9 +38,7 @@ class SupplierService(BaseService):
         logger.info(f"Supplier retrieved: {code}")
         return supplier
 
-    async def list_suppliers(
-        self, active_only: bool = False
-    ) -> list[SupplierResponseDto]:
+    async def list_all(self, active_only: bool = False) -> list[SupplierResponseDto]:
         """List all suppliers.
 
         Note: The active_only parameter is included for API compatibility but is not
@@ -62,7 +60,9 @@ class SupplierService(BaseService):
         suppliers = await self._client.suppliers.get_all()
 
         # Handle API returning either single object or list
-        if not isinstance(suppliers, list):
+        if isinstance(suppliers, list):
+            pass  # Already a list
+        else:
             suppliers = [suppliers] if suppliers else []
 
         logger.info(f"Found {len(suppliers)} suppliers")
