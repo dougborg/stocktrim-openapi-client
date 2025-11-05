@@ -1,5 +1,105 @@
 # CHANGELOG
 
+## v0.5.0 (2025-11-05)
+
+### Chores
+
+- **release**: Client v0.8.0
+  ([`c082cd0`](https://github.com/dougborg/stocktrim-openapi-client/commit/c082cd0276dc39db395436ed0e5e57c5057b28ef))
+
+### Features
+
+- Migrate Purchase Orders tool to service layer pattern
+  ([#66](https://github.com/dougborg/stocktrim-openapi-client/pull/66),
+  [`aa0e453`](https://github.com/dougborg/stocktrim-openapi-client/commit/aa0e453a79cc39f681ec348978971106df909ed1))
+
+* feat: migrate Purchase Orders tool to service layer pattern
+
+This PR migrates the Purchase Orders tool to use the service layer pattern following the
+Products service example from PR #51. The Purchase Orders tool is the most complex
+foundation tool with 4 operations and extensive business logic.
+
+## Changes
+
+### New Service Layer - **services/purchase_orders.py**: New PurchaseOrderService class with: -
+
+`get_by_reference()`: Get PO by reference number - `list_all()`: List all purchase
+orders - `create()`: Create PO with line items, supplier, location, status - `delete()`:
+Delete PO by reference number
+
+### Updated Tool Layer - **tools/foundation/purchase_orders.py**: Refactored to thin wrappers - All
+
+4 tool implementations now delegate to service methods - Removed direct client access -
+Tools focus on request/response transformation only
+
+### Server Integration - **context.py**: Added PurchaseOrderService to ServerContext - Initialized
+
+alongside ProductService - Available to all tools via get_services()
+
+## Key Highlights
+
+- **Status Enum Handling**: Proper IntEnum parsing (DRAFT=0, APPROVED=1, etc.) - **Line
+  Item Validation**: Ensures product_code, quantity, and validates > 0 - **Total Cost
+  Calculation**: Computed from line items in tool layer - **UNSET Handling**: Proper use
+  of UNSET sentinel for optional fields - **Error Handling**: Consistent validation and
+  logging patterns
+
+## Testing
+
+- ✅ All 71 tests passing - ✅ Type checking passes (uv run poe lint) - ✅ Pre-commit hooks
+  pass
+
+Closes #65
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+
+- fix: address Copilot review comments and formatting
+
+* Simplify line_items validation (remove redundant len check) - Clarify status enum
+  comment with more detail about IntEnum behavior - Format test_delete_status.py script
+
+Addresses Copilot review comments on PR #66
+
+______________________________________________________________________
+
+Co-authored-by: Doug Borg <dougborg@apple.com>
+
+Co-authored-by: Claude <noreply@anthropic.com>
+
+- **mcp**: Migrate suppliers tool to service layer pattern
+  ([#61](https://github.com/dougborg/stocktrim-openapi-client/pull/61),
+  [`a7b3b94`](https://github.com/dougborg/stocktrim-openapi-client/commit/a7b3b94f2efabeb2917e764a1b589a0cf6c03a0f))
+
+feat(mcp): migrate suppliers tool to service layer pattern
+
+Migrates the Suppliers tool to use the service layer pattern following the Products
+service example from PR #51.
+
+## Changes
+
+### New Service Layer - Created `SupplierService` with methods: - `get_by_code()`: Get supplier by
+
+code - `list_suppliers()`: List all suppliers - `create()`: Create new supplier -
+`delete()`: Delete supplier by code
+
+### Updated Tool Layer - Refactored suppliers tools to thin wrappers using `get_services()` - Fixed
+
+field mapping to use correct DTO fields (supplier_code, supplier_name, email_address,
+primary_contact_name) - Removed non-existent fields (phone, is_active) from SupplierInfo
+model
+
+### Server Integration - Updated ServerContext to include SupplierService - Updated
+
+services/__init__.py to export SupplierService
+
+### Testing - Added comprehensive test coverage (18 tests) - All tests passing, type checking clean,
+
+linting passes
+
+Closes #56 Part of #46
+
 ## v0.4.0 (2025-11-05)
 
 ### Bug Fixes
@@ -62,6 +162,9 @@ Co-Authored-By: Claude <noreply@anthropic.com>
 
 - **release**: Client v0.7.0
   ([`71e9567`](https://github.com/dougborg/stocktrim-openapi-client/commit/71e956772828e97b1c569c5d7293f592fc5529ce))
+
+- **release**: Mcp v0.4.0
+  ([`c31dd99`](https://github.com/dougborg/stocktrim-openapi-client/commit/c31dd9970079d9736f1c715fd6458c2c3e4af2a1))
 
 ### Documentation
 
