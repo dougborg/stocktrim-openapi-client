@@ -6,6 +6,7 @@ import pytest
 
 from stocktrim_mcp_server.services.customers import CustomerService
 from stocktrim_public_api_client.generated.models.customer_dto import CustomerDto
+from stocktrim_public_api_client.utils import NotFoundError
 
 
 @pytest.fixture
@@ -81,7 +82,9 @@ async def test_get_by_code_success(customer_service, mock_client, sample_custome
 async def test_get_by_code_not_found(customer_service, mock_client):
     """Test getting a customer that doesn't exist returns None."""
     # Setup - simulate 404 error
-    mock_client.customers.get = AsyncMock(side_effect=Exception("404 not found"))
+    mock_client.customers.get = AsyncMock(
+        side_effect=NotFoundError("Customer not found", 404)
+    )
 
     # Execute
     result = await customer_service.get_by_code("NONEXISTENT")
