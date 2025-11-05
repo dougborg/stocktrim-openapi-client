@@ -11,15 +11,13 @@ import logging
 from fastmcp import Context, FastMCP
 from pydantic import BaseModel, Field
 
+from stocktrim_mcp_server.dependencies import get_services
 from stocktrim_public_api_client.client_types import UNSET
 from stocktrim_public_api_client.generated.models.product_supplier import (
     ProductSupplier,
 )
 from stocktrim_public_api_client.generated.models.products_request_dto import (
     ProductsRequestDto,
-)
-from stocktrim_public_api_client.generated.models.supplier_request_dto import (
-    SupplierRequestDto,
 )
 
 logger = logging.getLogger(__name__)
@@ -94,17 +92,14 @@ async def _create_supplier_with_products_impl(
     logger.info(f"Creating supplier: {request.supplier_code}")
 
     try:
-        # Access StockTrimClient from lifespan context
-        server_context = context.request_context.lifespan_context
-        client = server_context.client
+        # Get services from context
+        services = get_services(context)
 
         # Step 1: Create the supplier first
-        supplier_data = SupplierRequestDto(
-            supplier_code=request.supplier_code,
-            supplier_name=request.supplier_name,
+        created_supplier = await services.suppliers.create(
+            code=request.supplier_code,
+            name=request.supplier_name,
         )
-
-        created_supplier = await client.suppliers.create_one(supplier_data)
 
         if not created_supplier:
             raise ValueError(f"Failed to create supplier: {request.supplier_code}")
@@ -119,7 +114,7 @@ async def _create_supplier_with_products_impl(
         for mapping in request.product_mappings:
             try:
                 # Fetch existing product
-                existing_product = await client.products.find_by_code(
+                existing_product = await services.products.get_by_code(
                     mapping.product_code
                 )
 
@@ -181,7 +176,8 @@ async def _create_supplier_with_products_impl(
                     # Set the primary supplier code
                     update_data.supplier_code = request.supplier_code
 
-                await client.products.create(update_data)
+                # Update product using client directly for complex supplier mapping
+                await services._client.products.create(update_data)
 
                 mapping_details.append(
                     ProductMappingSummary(

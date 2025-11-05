@@ -12,6 +12,7 @@ from typing import Literal
 from fastmcp import Context, FastMCP
 from pydantic import BaseModel, Field
 
+from stocktrim_mcp_server.dependencies import get_services
 from stocktrim_public_api_client.client_types import UNSET
 from stocktrim_public_api_client.generated.models.products_request_dto import (
     ProductsRequestDto,
@@ -195,12 +196,11 @@ async def _update_forecast_settings_impl(
     logger.info(f"Updating forecast settings for product: {request.product_code}")
 
     try:
-        # Access StockTrimClient from lifespan context
-        server_context = context.request_context.lifespan_context
-        client = server_context.client
+        # Get services from context
+        services = get_services(context)
 
         # First, fetch the existing product
-        existing_product = await client.products.find_by_code(request.product_code)
+        existing_product = await services.products.get_by_code(request.product_code)
 
         if not existing_product:
             raise ValueError(f"Product not found: {request.product_code}")
@@ -227,8 +227,8 @@ async def _update_forecast_settings_impl(
         if request.minimum_order_quantity is not None:
             update_data.minimum_order_quantity = request.minimum_order_quantity
 
-        # Update the product using the API
-        updated_product = await client.products.create(update_data)
+        # Update the product using the API (uses client directly for complex update)
+        updated_product = await services._client.products.create(update_data)
 
         response = UpdateForecastSettingsResponse(
             product_code=request.product_code,
