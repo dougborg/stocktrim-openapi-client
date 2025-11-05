@@ -140,6 +140,12 @@ class SalesOrderService(BaseService):
         self.validate_not_empty(product_id, "Product ID")
         logger.info(f"Deleting sales orders for product: {product_id}")
 
+        # Check if any sales orders exist for this product
+        orders = await self._client.sales_orders.get_for_product(product_id)
+        if not orders:
+            logger.warning(f"No sales orders found for product: {product_id}")
+            return False, f"No sales orders found for product {product_id}"
+
         # Delete sales orders for product
         await self._client.sales_orders.delete_for_product(product_id)
 

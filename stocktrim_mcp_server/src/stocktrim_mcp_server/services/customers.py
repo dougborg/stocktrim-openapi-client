@@ -6,7 +6,6 @@ import logging
 
 from stocktrim_mcp_server.services.base import BaseService
 from stocktrim_public_api_client.generated.models import CustomerDto
-from stocktrim_public_api_client.utils import NotFoundError
 
 logger = logging.getLogger(__name__)
 
@@ -30,13 +29,14 @@ class CustomerService(BaseService):
         self.validate_not_empty(code, "Customer code")
         logger.info(f"Getting customer: {code}")
 
-        try:
-            customer = await self._client.customers.get(code)
-            logger.info(f"Customer retrieved: {code}")
-            return customer
-        except NotFoundError:
+        customer = await self._client.customers.get(code)
+
+        if not customer:
             logger.warning(f"Customer not found: {code}")
             return None
+
+        logger.info(f"Customer retrieved: {code}")
+        return customer
 
     async def list_all(self, limit: int | None = None) -> list[CustomerDto]:
         """List all customers.
