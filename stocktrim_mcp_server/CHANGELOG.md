@@ -1,11 +1,53 @@
 # CHANGELOG
 
+## v0.6.0 (2025-11-05)
+
+### Features
+
+- **mcp**: Migrate customers tool to service layer pattern
+  ([#62](https://github.com/dougborg/stocktrim-openapi-client/pull/62),
+  [`4ed5d64`](https://github.com/dougborg/stocktrim-openapi-client/commit/4ed5d6486d4f3561106d14fe95b1c5bd30d6df6a))
+
+feat: migrate customers tool to service layer (#57)
+
+Implements service layer pattern for customers tool, separating business logic from tool
+layer.
+
+## Changes
+
+**New Service Layer** - Add `stocktrim_mcp_server/services/customers.py`: -
+`CustomerService` class extending `BaseService` - `get_by_code()` - Get customer by code
+\- `list_all()` - List all customers - `ensure_exists()` - Ensure customer exists (get or
+create) - Comprehensive logging at INFO level for all operations - Proper validation
+using BaseService helpers
+
+**Updated Tool Layer** - Refactor `stocktrim_mcp_server/tools/foundation/customers.py`:
+\- Convert to thin wrappers calling service methods - Use `get_services()` for dependency
+injection - Keep view concerns (response formatting) in tool layer
+
+**Server Integration** - Update `stocktrim_mcp_server/context.py`: - Add
+`CustomerService` initialization - Inject via `ServerContext`
+
+**Testing** - All tests passing - Type checking passing - Pre-commit hooks passing
+
+This migration improves code organization, testability, and maintainability by
+separating business logic from presentation concerns.
+
+Closes #57 Part of #46
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+Co-Authored-By: copilot-swe-agent <noreply@github.com>
+
 ## v0.5.0 (2025-11-05)
 
 ### Chores
 
 - **release**: Client v0.8.0
   ([`c082cd0`](https://github.com/dougborg/stocktrim-openapi-client/commit/c082cd0276dc39db395436ed0e5e57c5057b28ef))
+
+- **release**: Mcp v0.5.0
+  ([`c2e0ec2`](https://github.com/dougborg/stocktrim-openapi-client/commit/c2e0ec2767d652d0d323cb2284069da76b9a56c9))
 
 ### Features
 
