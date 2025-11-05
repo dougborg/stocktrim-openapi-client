@@ -19,9 +19,7 @@ logger = logging.getLogger(__name__)
 class ListLocationsRequest(BaseModel):
     """Request model for listing locations."""
 
-    active_only: bool = Field(
-        default=True, description="Only return active locations (default: true)"
-    )
+    pass  # No parameters needed for listing all locations
 
 
 class LocationInfo(BaseModel):
@@ -29,7 +27,6 @@ class LocationInfo(BaseModel):
 
     code: str
     name: str | None
-    is_active: bool
 
 
 class ListLocationsResponse(BaseModel):
@@ -44,29 +41,27 @@ async def list_locations(
 ) -> ListLocationsResponse:
     """List all locations.
 
-    This tool retrieves all warehouse/store locations from StockTrim,
-    optionally filtered by active status.
+    This tool retrieves all warehouse/store locations from StockTrim.
 
     Args:
-        request: Request with filter options
+        request: Request (no parameters needed)
         context: Server context with StockTrimClient
 
     Returns:
         ListLocationsResponse with locations
 
     Example:
-        Request: {"active_only": true}
+        Request: {}
         Returns: {"locations": [...], "total_count": 5}
     """
     services = get_services(context)
-    locations = await services.locations.list_all(active_only=request.active_only)
+    locations = await services.locations.list_all()
 
-    # Build response
+    # Build response - map DTO fields to tool response
     location_infos = [
         LocationInfo(
-            code=loc.code or "",
-            name=loc.name,
-            is_active=loc.is_active or False,
+            code=loc.location_code or "",
+            name=loc.location_name,
         )
         for loc in locations
     ]
@@ -87,7 +82,6 @@ class CreateLocationRequest(BaseModel):
 
     code: str = Field(..., description="Unique location code")
     name: str = Field(..., description="Location name")
-    is_active: bool = Field(default=True, description="Whether location is active")
 
 
 async def create_location(
@@ -106,20 +100,18 @@ async def create_location(
 
     Example:
         Request: {"code": "WH-01", "name": "Main Warehouse"}
-        Returns: {"code": "WH-01", "name": "Main Warehouse", "is_active": true}
+        Returns: {"code": "WH-01", "name": "Main Warehouse"}
     """
     services = get_services(context)
     created_location = await services.locations.create(
         code=request.code,
         name=request.name,
-        is_active=request.is_active,
     )
 
-    # Build LocationInfo from response
+    # Build LocationInfo from response - map DTO fields to tool response
     return LocationInfo(
-        code=created_location.code or "",
-        name=created_location.name,
-        is_active=created_location.is_active or False,
+        code=created_location.location_code or "",
+        name=created_location.location_name,
     )
 
 

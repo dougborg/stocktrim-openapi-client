@@ -16,11 +16,8 @@ logger = logging.getLogger(__name__)
 class LocationService(BaseService):
     """Service for location management operations."""
 
-    async def list_all(self, active_only: bool = True) -> list[LocationResponseDto]:
-        """List all locations, optionally filtered by active status.
-
-        Args:
-            active_only: Only return active locations (default: True)
+    async def list_all(self) -> list[LocationResponseDto]:
+        """List all locations.
 
         Returns:
             List of locations
@@ -28,7 +25,7 @@ class LocationService(BaseService):
         Raises:
             Exception: If API call fails
         """
-        logger.info(f"Listing locations (active_only={active_only})")
+        logger.info("Listing locations")
 
         # Get all locations
         locations_result = await self._client.locations.get_all()
@@ -39,10 +36,6 @@ class LocationService(BaseService):
         else:
             locations = [locations_result]
 
-        # Filter by active status if requested
-        if active_only:
-            locations = [loc for loc in locations if loc.is_active]
-
         logger.info(f"Found {len(locations)} locations")
         return locations
 
@@ -50,14 +43,12 @@ class LocationService(BaseService):
         self,
         code: str,
         name: str,
-        is_active: bool = True,
     ) -> LocationResponseDto:
         """Create a new location.
 
         Args:
             code: Unique location code
             name: Location name
-            is_active: Whether location is active (default: True)
 
         Returns:
             Created location details
