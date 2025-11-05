@@ -59,11 +59,9 @@ async def get_supplier(
     # Build SupplierInfo from response
     return SupplierInfo(
         code=supplier.supplier_code,
-        name=supplier.supplier_name if supplier.supplier_name else None,
-        email=supplier.email_address if supplier.email_address else None,
-        primary_contact=supplier.primary_contact_name
-        if supplier.primary_contact_name
-        else None,
+        name=supplier.supplier_name,
+        email=supplier.email_address,
+        primary_contact=supplier.primary_contact_name,
     )
 
 
@@ -113,9 +111,9 @@ async def list_suppliers(
     supplier_infos = [
         SupplierInfo(
             code=s.supplier_code,
-            name=s.supplier_name if s.supplier_name else None,
-            email=s.email_address if s.email_address else None,
-            primary_contact=s.primary_contact_name if s.primary_contact_name else None,
+            name=s.supplier_name,
+            email=s.email_address,
+            primary_contact=s.primary_contact_name,
         )
         for s in suppliers
     ]
@@ -171,13 +169,9 @@ async def create_supplier(
     # Build SupplierInfo from response
     return SupplierInfo(
         code=created_supplier.supplier_code,
-        name=created_supplier.supplier_name if created_supplier.supplier_name else None,
-        email=created_supplier.email_address
-        if created_supplier.email_address
-        else None,
-        primary_contact=created_supplier.primary_contact_name
-        if created_supplier.primary_contact_name
-        else None,
+        name=created_supplier.supplier_name,
+        email=created_supplier.email_address,
+        primary_contact=created_supplier.primary_contact_name,
     )
 
 
