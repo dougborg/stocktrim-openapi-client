@@ -1,6 +1,48 @@
 # CHANGELOG
 
+## v0.7.0 (2025-11-05)
+
+### Features
+
+- **mcp**: Migrate inventory tool to service layer pattern
+  ([#63](https://github.com/dougborg/stocktrim-openapi-client/pull/63),
+  [`71a6ecf`](https://github.com/dougborg/stocktrim-openapi-client/commit/71a6ecfa51b8bcc7eaddc18919a24a673ecf13d4))
+
+feat: migrate inventory tool to service layer (#58)
+
+Implements service layer pattern for inventory tool, separating business logic from tool
+layer.
+
+## Changes
+
+**New Service Layer** - Add `stocktrim_mcp_server/services/inventory.py`: -
+`InventoryService` class extending `BaseService` - `get_stock_level()` - Get current
+stock level for a product at a location - `set_stock_level()` - Set stock level for a
+product at a location - Comprehensive logging at INFO level for all operations - Proper
+validation using BaseService helpers - Error handling with try-catch and re-raise
+pattern
+
+**Updated Tool Layer** - Refactor `stocktrim_mcp_server/tools/foundation/inventory.py`:
+\- Convert to thin wrappers calling service methods - Use `get_services()` for dependency
+injection - Keep view concerns (response formatting) in tool layer
+
+**Server Integration** - Update `stocktrim_mcp_server/context.py`: - Add
+`InventoryService` initialization - Inject via `ServerContext`
+
+**Testing** - Add comprehensive test suite for `InventoryService` - All tests passing -
+Type checking passing - Pre-commit hooks passing
+
+This migration improves code organization, testability, and maintainability by
+separating business logic from presentation concerns.
+
+Closes #58 Part of #46
+
 ## v0.6.0 (2025-11-05)
+
+### Chores
+
+- **release**: Mcp v0.6.0
+  ([`ccb4fce`](https://github.com/dougborg/stocktrim-openapi-client/commit/ccb4fce81f150e9bd39bf2ba576c7c6d519d4961))
 
 ### Features
 
