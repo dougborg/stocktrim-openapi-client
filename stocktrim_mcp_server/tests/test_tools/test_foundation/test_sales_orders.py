@@ -4,6 +4,7 @@ from datetime import datetime
 from unittest.mock import AsyncMock
 
 import pytest
+from pydantic import ValidationError
 
 from stocktrim_mcp_server.tools.foundation.sales_orders import (
     CreateSalesOrderRequest,
@@ -40,13 +41,11 @@ def sample_sales_order():
 
 @pytest.fixture
 def extended_mock_context(mock_context):
-    """Extend mock context with sales_orders helper."""
-    mock_client = mock_context.request_context.lifespan_context.client
-    mock_client.sales_orders = AsyncMock()
-    mock_client.sales_orders.create = AsyncMock()
-    mock_client.sales_orders.get_all = AsyncMock()
-    mock_client.sales_orders.get_for_product = AsyncMock()
-    mock_client.sales_orders.delete_for_product = AsyncMock()
+    """Extend mock context with sales_orders service."""
+    from stocktrim_mcp_server.services.sales_orders import SalesOrderService
+
+    mock_service = AsyncMock(spec=SalesOrderService)
+    mock_context.request_context.lifespan_context.sales_orders = mock_service
     return mock_context
 
 
@@ -59,8 +58,8 @@ def extended_mock_context(mock_context):
 async def test_create_sales_order_success(extended_mock_context, sample_sales_order):
     """Test successfully creating a sales order."""
     # Setup
-    mock_client = extended_mock_context.request_context.lifespan_context.client
-    mock_client.sales_orders.create.return_value = sample_sales_order
+    mock_service = extended_mock_context.request_context.lifespan_context.sales_orders
+    mock_service.create.return_value = sample_sales_order
 
     # Execute
     request = CreateSalesOrderRequest(
@@ -78,21 +77,21 @@ async def test_create_sales_order_success(extended_mock_context, sample_sales_or
     assert response.quantity == 10.0
     assert response.customer_code == "CUST-001"
     assert response.unit_price == 29.99
-    mock_client.sales_orders.create.assert_called_once()
+    mock_service.create.assert_called_once()
 
 
 @pytest.mark.asyncio
 async def test_create_sales_order_minimal(extended_mock_context, sample_sales_order):
     """Test creating a sales order with minimal required fields."""
     # Setup
-    mock_client = extended_mock_context.request_context.lifespan_context.client
+    mock_service = extended_mock_context.request_context.lifespan_context.sales_orders
     minimal_order = SalesOrderResponseDto(
         id=790,
         product_id="prod-456",
         order_date=datetime(2024, 1, 15, 10, 0, 0),
         quantity=5.0,
     )
-    mock_client.sales_orders.create.return_value = minimal_order
+    mock_service.create.return_value = minimal_order
 
     # Execute
     request = CreateSalesOrderRequest(
@@ -113,6 +112,10 @@ async def test_create_sales_order_minimal(extended_mock_context, sample_sales_or
 @pytest.mark.asyncio
 async def test_create_sales_order_empty_product_id(extended_mock_context):
     """Test creating a sales order with empty product_id raises error."""
+    # Setup - service layer validates and raises ValueError
+    mock_service = extended_mock_context.request_context.lifespan_context.sales_orders
+    mock_service.create.side_effect = ValueError("Product ID cannot be empty")
+
     # Execute and verify
     request = CreateSalesOrderRequest(
         product_id="",
@@ -126,14 +129,13 @@ async def test_create_sales_order_empty_product_id(extended_mock_context):
 @pytest.mark.asyncio
 async def test_create_sales_order_zero_quantity(extended_mock_context):
     """Test creating a sales order with zero quantity raises error."""
-    # Execute and verify
-    request = CreateSalesOrderRequest(
-        product_id="prod-123",
-        order_date=datetime(2024, 1, 15, 10, 0, 0),
-        quantity=0.0,
-    )
-    with pytest.raises(ValueError, match="Quantity must be greater than 0"):
-        await create_sales_order(request, extended_mock_context)
+    # Pydantic validation prevents zero quantity at the request level
+    with pytest.raises(ValidationError):
+        CreateSalesOrderRequest(
+            product_id="prod-123",
+            order_date=datetime(2024, 1, 15, 10, 0, 0),
+            quantity=0.0,
+        )
 
 
 # ============================================================================
@@ -145,8 +147,8 @@ async def test_create_sales_order_zero_quantity(extended_mock_context):
 async def test_get_sales_orders_all(extended_mock_context, sample_sales_order):
     """Test getting all sales orders."""
     # Setup
-    mock_client = extended_mock_context.request_context.lifespan_context.client
-    mock_client.sales_orders.get_all.return_value = [
+    mock_service = extended_mock_context.request_context.lifespan_context.sales_orders
+    mock_service.get_all.return_value = [
         sample_sales_order,
         SalesOrderResponseDto(
             id=790,
@@ -165,15 +167,15 @@ async def test_get_sales_orders_all(extended_mock_context, sample_sales_order):
     assert len(response.sales_orders) == 2
     assert response.sales_orders[0].id == 789
     assert response.sales_orders[1].id == 790
-    mock_client.sales_orders.get_all.assert_called_once()
+    mock_service.get_all.assert_called_once_with(product_id=None)
 
 
 @pytest.mark.asyncio
 async def test_get_sales_orders_by_product(extended_mock_context, sample_sales_order):
     """Test getting sales orders filtered by product ID."""
     # Setup
-    mock_client = extended_mock_context.request_context.lifespan_context.client
-    mock_client.sales_orders.get_for_product.return_value = [sample_sales_order]
+    mock_service = extended_mock_context.request_context.lifespan_context.sales_orders
+    mock_service.get_all.return_value = [sample_sales_order]
 
     # Execute
     request = GetSalesOrdersRequest(product_id="prod-123")
@@ -183,15 +185,15 @@ async def test_get_sales_orders_by_product(extended_mock_context, sample_sales_o
     assert response.total_count == 1
     assert len(response.sales_orders) == 1
     assert response.sales_orders[0].product_id == "prod-123"
-    mock_client.sales_orders.get_for_product.assert_called_once_with("prod-123")
+    mock_service.get_all.assert_called_once_with(product_id="prod-123")
 
 
 @pytest.mark.asyncio
 async def test_get_sales_orders_empty_list(extended_mock_context):
     """Test getting sales orders when none exist."""
     # Setup
-    mock_client = extended_mock_context.request_context.lifespan_context.client
-    mock_client.sales_orders.get_all.return_value = []
+    mock_service = extended_mock_context.request_context.lifespan_context.sales_orders
+    mock_service.get_all.return_value = []
 
     # Execute
     request = GetSalesOrdersRequest()
@@ -207,10 +209,9 @@ async def test_get_sales_orders_single_object(
     extended_mock_context, sample_sales_order
 ):
     """Test getting sales orders when API returns single object instead of list."""
-    # Setup
-    mock_client = extended_mock_context.request_context.lifespan_context.client
-    # API inconsistency: sometimes returns single object
-    mock_client.sales_orders.get_all.return_value = sample_sales_order
+    # Setup - service layer already handles this, so it returns a list
+    mock_service = extended_mock_context.request_context.lifespan_context.sales_orders
+    mock_service.get_all.return_value = [sample_sales_order]
 
     # Execute
     request = GetSalesOrdersRequest()
@@ -231,8 +232,8 @@ async def test_get_sales_orders_single_object(
 async def test_list_sales_orders_all(extended_mock_context, sample_sales_order):
     """Test listing all sales orders using alias."""
     # Setup
-    mock_client = extended_mock_context.request_context.lifespan_context.client
-    mock_client.sales_orders.get_all.return_value = [sample_sales_order]
+    mock_service = extended_mock_context.request_context.lifespan_context.sales_orders
+    mock_service.get_all.return_value = [sample_sales_order]
 
     # Execute
     request = ListSalesOrdersRequest()
@@ -241,15 +242,15 @@ async def test_list_sales_orders_all(extended_mock_context, sample_sales_order):
     # Verify
     assert response.total_count == 1
     assert len(response.sales_orders) == 1
-    mock_client.sales_orders.get_all.assert_called_once()
+    mock_service.get_all.assert_called_once()
 
 
 @pytest.mark.asyncio
 async def test_list_sales_orders_by_product(extended_mock_context, sample_sales_order):
     """Test listing sales orders filtered by product using alias."""
     # Setup
-    mock_client = extended_mock_context.request_context.lifespan_context.client
-    mock_client.sales_orders.get_for_product.return_value = [sample_sales_order]
+    mock_service = extended_mock_context.request_context.lifespan_context.sales_orders
+    mock_service.get_all.return_value = [sample_sales_order]
 
     # Execute
     request = ListSalesOrdersRequest(product_id="prod-123")
@@ -271,12 +272,11 @@ async def test_delete_sales_orders_by_product(
 ):
     """Test deleting sales orders for a specific product."""
     # Setup
-    mock_client = extended_mock_context.request_context.lifespan_context.client
-    mock_client.sales_orders.get_for_product.return_value = [
-        sample_sales_order,
-        sample_sales_order,
-    ]
-    mock_client.sales_orders.delete_for_product.return_value = None
+    mock_service = extended_mock_context.request_context.lifespan_context.sales_orders
+    mock_service.delete_for_product.return_value = (
+        True,
+        "Sales orders for product prod-123 deleted successfully",
+    )
 
     # Execute
     request = DeleteSalesOrdersRequest(product_id="prod-123")
@@ -285,9 +285,7 @@ async def test_delete_sales_orders_by_product(
     # Verify
     assert response.success is True
     assert "prod-123" in response.message
-    assert response.deleted_count == 2
-    mock_client.sales_orders.get_for_product.assert_called_once_with("prod-123")
-    mock_client.sales_orders.delete_for_product.assert_called_once_with("prod-123")
+    mock_service.delete_for_product.assert_called_once_with("prod-123")
 
 
 @pytest.mark.asyncio
@@ -297,41 +295,3 @@ async def test_delete_sales_orders_no_filter_raises_error(extended_mock_context)
     request = DeleteSalesOrdersRequest()
     with pytest.raises(ValueError, match="product_id is required for deletion"):
         await delete_sales_orders(request, extended_mock_context)
-
-
-@pytest.mark.asyncio
-async def test_delete_sales_orders_single_object_count(
-    extended_mock_context, sample_sales_order
-):
-    """Test deleting sales orders when get returns single object."""
-    # Setup
-    mock_client = extended_mock_context.request_context.lifespan_context.client
-    # API returns single object instead of list
-    mock_client.sales_orders.get_for_product.return_value = sample_sales_order
-    mock_client.sales_orders.delete_for_product.return_value = None
-
-    # Execute
-    request = DeleteSalesOrdersRequest(product_id="prod-123")
-    response = await delete_sales_orders(request, extended_mock_context)
-
-    # Verify
-    assert response.success is True
-    assert response.deleted_count == 1
-
-
-@pytest.mark.asyncio
-async def test_delete_sales_orders_empty_result_count(extended_mock_context):
-    """Test deleting sales orders when get returns None/empty."""
-    # Setup
-    mock_client = extended_mock_context.request_context.lifespan_context.client
-    # API returns None
-    mock_client.sales_orders.get_for_product.return_value = None
-    mock_client.sales_orders.delete_for_product.return_value = None
-
-    # Execute
-    request = DeleteSalesOrdersRequest(product_id="prod-123")
-    response = await delete_sales_orders(request, extended_mock_context)
-
-    # Verify
-    assert response.success is True
-    assert response.deleted_count == 0
