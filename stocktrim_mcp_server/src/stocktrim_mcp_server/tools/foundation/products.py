@@ -179,8 +179,12 @@ async def create_product(
         description=created_product.name,
         unit_of_measurement=None,
         is_active=not (created_product.discontinued or False),
-        cost_price=created_product.cost if not isinstance(created_product.cost, Unset) else None,
-        selling_price=created_product.price if not isinstance(created_product.price, Unset) else None,
+        cost_price=created_product.cost
+        if not isinstance(created_product.cost, Unset)
+        else None,
+        selling_price=created_product.price
+        if not isinstance(created_product.price, Unset)
+        else None,
     )
 
 

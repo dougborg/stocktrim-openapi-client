@@ -81,9 +81,7 @@ async def test_get_by_code_success(customer_service, mock_client, sample_custome
 async def test_get_by_code_not_found(customer_service, mock_client):
     """Test getting a customer that doesn't exist returns None."""
     # Setup - simulate 404 error
-    mock_client.customers.get = AsyncMock(
-        side_effect=Exception("404 not found")
-    )
+    mock_client.customers.get = AsyncMock(side_effect=Exception("404 not found"))
 
     # Execute
     result = await customer_service.get_by_code("NONEXISTENT")
@@ -108,9 +106,7 @@ async def test_get_by_code_empty_code(customer_service):
 async def test_get_by_code_api_error(customer_service, mock_client):
     """Test handling of API errors (non-404)."""
     # Setup
-    mock_client.customers.get = AsyncMock(
-        side_effect=Exception("Server error")
-    )
+    mock_client.customers.get = AsyncMock(side_effect=Exception("Server error"))
 
     # Execute & Verify
     with pytest.raises(Exception, match="Server error"):
@@ -208,9 +204,7 @@ async def test_list_all_limit_exceeds_count(
 async def test_list_all_api_error(customer_service, mock_client):
     """Test handling of API errors when listing customers."""
     # Setup
-    mock_client.customers.get_all = AsyncMock(
-        side_effect=Exception("API Error")
-    )
+    mock_client.customers.get_all = AsyncMock(side_effect=Exception("API Error"))
 
     # Execute & Verify
     with pytest.raises(Exception, match="API Error"):
