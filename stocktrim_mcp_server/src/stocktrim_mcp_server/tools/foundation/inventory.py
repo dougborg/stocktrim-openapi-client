@@ -54,27 +54,32 @@ async def _set_product_inventory_impl(
         ValueError: If product_id is empty or invalid
         Exception: If API call fails
     """
-    # Use service layer via dependency injection
-    services = get_services(context)
+    try:
+        # Use service layer via dependency injection
+        services = get_services(context)
 
-    await services.inventory.set_for_product(
-        product_id=request.product_id,
-        stock_on_hand=request.stock_on_hand,
-        stock_on_order=request.stock_on_order,
-        location_code=request.location_code,
-        location_name=request.location_name,
-    )
+        await services.inventory.set_for_product(
+            product_id=request.product_id,
+            stock_on_hand=request.stock_on_hand,
+            stock_on_order=request.stock_on_order,
+            location_code=request.location_code,
+            location_name=request.location_name,
+        )
 
-    inventory_result = InventoryResult(
-        product_id=request.product_id,
-        stock_on_hand=request.stock_on_hand,
-        stock_on_order=request.stock_on_order,
-        location_code=request.location_code,
-        location_name=request.location_name,
-    )
+        inventory_result = InventoryResult(
+            product_id=request.product_id,
+            stock_on_hand=request.stock_on_hand,
+            stock_on_order=request.stock_on_order,
+            location_code=request.location_code,
+            location_name=request.location_name,
+        )
 
-    logger.info(f"Inventory set successfully for product: {request.product_id}")
-    return inventory_result
+        logger.info(f"Inventory set successfully for product: {request.product_id}")
+        return inventory_result
+
+    except Exception as e:
+        logger.error(f"Failed to set inventory for product {request.product_id}: {e}")
+        raise
 
 
 async def set_product_inventory(
