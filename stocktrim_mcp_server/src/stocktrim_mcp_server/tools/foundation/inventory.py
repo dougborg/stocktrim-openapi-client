@@ -7,7 +7,7 @@ import logging
 from fastmcp import Context, FastMCP
 from pydantic import BaseModel, Field
 
-from stocktrim_public_api_client.client_types import UNSET
+from stocktrim_mcp_server.dependencies import get_services
 
 logger = logging.getLogger(__name__)
 
@@ -54,31 +54,16 @@ async def _set_product_inventory_impl(
         ValueError: If product_id is empty or invalid
         Exception: If API call fails
     """
-    if not request.product_id or not request.product_id.strip():
-        raise ValueError("Product ID cannot be empty")
-
-    logger.info(f"Setting inventory for product: {request.product_id}")
-
     try:
-        # Access StockTrimClient from lifespan context
-        server_context = context.request_context.lifespan_context
-        client = server_context.client
+        # Use service layer via dependency injection
+        services = get_services(context)
 
-        # Use the set_for_product convenience method
-        await client.inventory.set_for_product(
+        await services.inventory.set_for_product(
             product_id=request.product_id,
-            stock_on_hand=(
-                request.stock_on_hand if request.stock_on_hand is not None else UNSET
-            ),
-            stock_on_order=(
-                request.stock_on_order if request.stock_on_order is not None else UNSET
-            ),
-            location_code=(
-                request.location_code if request.location_code is not None else UNSET
-            ),
-            location_name=(
-                request.location_name if request.location_name is not None else UNSET
-            ),
+            stock_on_hand=request.stock_on_hand,
+            stock_on_order=request.stock_on_order,
+            location_code=request.location_code,
+            location_name=request.location_name,
         )
 
         inventory_result = InventoryResult(
