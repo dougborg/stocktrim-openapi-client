@@ -8,6 +8,7 @@ from datetime import datetime
 from fastmcp import Context, FastMCP
 from pydantic import BaseModel, Field
 
+from stocktrim_mcp_server.dependencies import get_services
 from stocktrim_mcp_server.utils import unset_to_none
 
 logger = logging.getLogger(__name__)
@@ -64,60 +65,35 @@ async def _create_sales_order_impl(
     Raises:
         Exception: If API call fails
     """
-    logger.info(
-        f"Creating sales order for product {request.product_id}, "
-        f"quantity {request.quantity}"
+    services = get_services(context)
+
+    # Create the sales order via service
+    result = await services.sales_orders.create(
+        product_id=request.product_id,
+        order_date=request.order_date,
+        quantity=request.quantity,
+        external_reference_id=request.external_reference_id,
+        unit_price=request.unit_price,
+        location_code=request.location_code,
+        location_name=request.location_name,
+        customer_code=request.customer_code,
+        customer_name=request.customer_name,
     )
 
-    try:
-        # Access StockTrimClient from lifespan context
-        server_context = context.request_context.lifespan_context
-        client = server_context.client
-
-        # Import generated model here to avoid circular imports
-        from stocktrim_public_api_client.generated.models.sales_order_request_dto import (
-            SalesOrderRequestDto,
-        )
-
-        # Build request DTO from our Pydantic model
-        order_dto = SalesOrderRequestDto(
-            product_id=request.product_id,
-            order_date=request.order_date,
-            quantity=request.quantity,
-            external_reference_id=request.external_reference_id,
-            unit_price=request.unit_price,
-            location_code=request.location_code,
-            location_name=request.location_name,
-            customer_code=request.customer_code,
-            customer_name=request.customer_name,
-        )
-
-        # Create the sales order
-        result = await client.sales_orders.create(order_dto)
-
-        # Build response model (convert UNSET to None for Pydantic)
-        order_info = SalesOrderInfo(
-            id=unset_to_none(result.id),
-            product_id=result.product_id,
-            order_date=result.order_date,
-            quantity=result.quantity,
-            external_reference_id=unset_to_none(result.external_reference_id),
-            unit_price=unset_to_none(result.unit_price),
-            location_code=unset_to_none(result.location_code),
-            location_name=unset_to_none(result.location_name),
-            customer_code=unset_to_none(result.customer_code),
-            customer_name=unset_to_none(result.customer_name),
-            location_id=unset_to_none(result.location_id),
-        )
-
-        logger.info(
-            f"Sales order created successfully for product {request.product_id}"
-        )
-        return order_info
-
-    except Exception as e:
-        logger.error(f"Failed to create sales order: {e}")
-        raise
+    # Build response model (convert UNSET to None for Pydantic)
+    return SalesOrderInfo(
+        id=unset_to_none(result.id),
+        product_id=result.product_id,
+        order_date=result.order_date,
+        quantity=result.quantity,
+        external_reference_id=unset_to_none(result.external_reference_id),
+        unit_price=unset_to_none(result.unit_price),
+        location_code=unset_to_none(result.location_code),
+        location_name=unset_to_none(result.location_name),
+        customer_code=unset_to_none(result.customer_code),
+        customer_name=unset_to_none(result.customer_name),
+        location_id=unset_to_none(result.location_id),
+    )
 
 
 async def create_sales_order(
@@ -186,52 +162,33 @@ async def _get_sales_orders_impl(
     Raises:
         Exception: If API call fails
     """
-    logger.info(
-        "Getting sales orders"
-        + (f" for product {request.product_id}" if request.product_id else "")
-    )
+    services = get_services(context)
 
-    try:
-        # Access StockTrimClient from lifespan context
-        server_context = context.request_context.lifespan_context
-        client = server_context.client
+    # Get sales orders via service
+    orders = await services.sales_orders.get_all(product_id=request.product_id)
 
-        # Get sales orders, optionally filtered by product
-        if request.product_id:
-            orders = await client.sales_orders.get_for_product(request.product_id)
-        else:
-            orders = await client.sales_orders.get_all()
-
-        # Helper methods already return list[SalesOrderResponseDto]
-        # Build response (convert UNSET to None for Pydantic)
-        order_infos = [
-            SalesOrderInfo(
-                id=unset_to_none(order.id),
-                product_id=order.product_id,
-                order_date=order.order_date,
-                quantity=order.quantity,
-                external_reference_id=unset_to_none(order.external_reference_id),
-                unit_price=unset_to_none(order.unit_price),
-                location_code=unset_to_none(order.location_code),
-                location_name=unset_to_none(order.location_name),
-                customer_code=unset_to_none(order.customer_code),
-                customer_name=unset_to_none(order.customer_name),
-                location_id=unset_to_none(order.location_id),
-            )
-            for order in orders
-        ]
-
-        response = GetSalesOrdersResponse(
-            sales_orders=order_infos,
-            total_count=len(order_infos),
+    # Build response (convert UNSET to None for Pydantic)
+    order_infos = [
+        SalesOrderInfo(
+            id=unset_to_none(order.id),
+            product_id=order.product_id,
+            order_date=order.order_date,
+            quantity=order.quantity,
+            external_reference_id=unset_to_none(order.external_reference_id),
+            unit_price=unset_to_none(order.unit_price),
+            location_code=unset_to_none(order.location_code),
+            location_name=unset_to_none(order.location_name),
+            customer_code=unset_to_none(order.customer_code),
+            customer_name=unset_to_none(order.customer_name),
+            location_id=unset_to_none(order.location_id),
         )
+        for order in orders
+    ]
 
-        logger.info(f"Found {response.total_count} sales orders")
-        return response
-
-    except Exception as e:
-        logger.error(f"Failed to get sales orders: {e}")
-        raise
+    return GetSalesOrdersResponse(
+        sales_orders=order_infos,
+        total_count=len(order_infos),
+    )
 
 
 async def get_sales_orders(
@@ -347,25 +304,17 @@ async def _delete_sales_orders_impl(
             "product_id is required for deletion to prevent accidental bulk deletion."
         )
 
-    logger.info(f"Deleting sales orders for product: {request.product_id}")
+    services = get_services(context)
 
-    try:
-        # Access StockTrimClient from lifespan context
-        server_context = context.request_context.lifespan_context
-        client = server_context.client
+    # Delete sales orders via service
+    success, message = await services.sales_orders.delete_for_product(
+        request.product_id
+    )
 
-        # Delete sales orders for product
-        await client.sales_orders.delete_for_product(request.product_id)
-
-        logger.info(f"Sales orders deleted for product: {request.product_id}")
-        return DeleteSalesOrdersResponse(
-            success=True,
-            message=f"Sales orders for product {request.product_id} deleted successfully",
-        )
-
-    except Exception as e:
-        logger.error(f"Failed to delete sales orders: {e}")
-        raise
+    return DeleteSalesOrdersResponse(
+        success=success,
+        message=message,
+    )
 
 
 async def delete_sales_orders(
