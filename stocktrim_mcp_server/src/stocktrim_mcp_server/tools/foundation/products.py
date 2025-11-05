@@ -8,6 +8,7 @@ from fastmcp import Context, FastMCP
 from pydantic import BaseModel, Field
 
 from stocktrim_mcp_server.dependencies import get_services
+from stocktrim_public_api_client.client_types import Unset
 
 logger = logging.getLogger(__name__)
 
@@ -60,12 +61,12 @@ async def get_product(
 
     # Build ProductInfo from response
     return ProductInfo(
-        code=product.code or "",
-        description=product.description,
-        unit_of_measurement=product.unit_of_measurement,
-        is_active=product.is_active or False,
-        cost_price=product.cost_price,
-        selling_price=product.selling_price,
+        code=product.product_code_readable or product.product_id or "",
+        description=product.name,
+        unit_of_measurement=None,  # Not available in ProductsResponseDto
+        is_active=not (product.discontinued or False),
+        cost_price=product.cost if not isinstance(product.cost, Unset) else None,
+        selling_price=product.price if not isinstance(product.price, Unset) else None,
     )
 
 
@@ -112,12 +113,12 @@ async def search_products(
     # Build response
     product_infos = [
         ProductInfo(
-            code=p.code or "",
-            description=p.description,
-            unit_of_measurement=p.unit_of_measurement,
-            is_active=p.is_active or False,
-            cost_price=p.cost_price,
-            selling_price=p.selling_price,
+            code=p.product_code_readable or p.product_id or "",
+            description=p.name,
+            unit_of_measurement=None,
+            is_active=not (p.discontinued or False),
+            cost_price=p.cost if not isinstance(p.cost, Unset) else None,
+            selling_price=p.price if not isinstance(p.price, Unset) else None,
         )
         for p in products
     ]
@@ -174,12 +175,12 @@ async def create_product(
 
     # Build ProductInfo from response
     return ProductInfo(
-        code=created_product.code or "",
-        description=created_product.description,
-        unit_of_measurement=created_product.unit_of_measurement,
-        is_active=created_product.is_active or False,
-        cost_price=created_product.cost_price,
-        selling_price=created_product.selling_price,
+        code=created_product.product_code_readable or created_product.product_id or "",
+        description=created_product.name,
+        unit_of_measurement=None,
+        is_active=not (created_product.discontinued or False),
+        cost_price=created_product.cost if not isinstance(created_product.cost, Unset) else None,
+        selling_price=created_product.price if not isinstance(created_product.price, Unset) else None,
     )
 
 
