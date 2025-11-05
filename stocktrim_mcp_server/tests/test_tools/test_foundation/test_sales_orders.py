@@ -4,6 +4,7 @@ from datetime import datetime
 from unittest.mock import AsyncMock
 
 import pytest
+from pydantic import ValidationError
 
 from stocktrim_mcp_server.tools.foundation.sales_orders import (
     CreateSalesOrderRequest,
@@ -129,7 +130,7 @@ async def test_create_sales_order_empty_product_id(extended_mock_context):
 async def test_create_sales_order_zero_quantity(extended_mock_context):
     """Test creating a sales order with zero quantity raises error."""
     # Pydantic validation prevents zero quantity at the request level
-    with pytest.raises(Exception):  # Pydantic ValidationError
+    with pytest.raises(ValidationError):
         CreateSalesOrderRequest(
             product_id="prod-123",
             order_date=datetime(2024, 1, 15, 10, 0, 0),
