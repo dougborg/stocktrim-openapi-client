@@ -94,7 +94,7 @@ async def _configure_product_impl(
             update_data.ignore_seasonality = not request.configure_forecast
 
         # Update the product using the API (uses client directly for complex update)
-        updated_product = await services._client.products.create(update_data)
+        updated_product = await services.client.products.create(update_data)
 
         response = ConfigureProductResponse(
             product_code=request.product_code,

@@ -110,7 +110,7 @@ async def _review_urgent_order_requirements_impl(
         )
 
         # Query order plan (uses client directly as order_plan not in service layer)
-        all_items = await services._client.order_plan.query(filter_criteria)
+        all_items = await services.client.order_plan.query(filter_criteria)
 
         # Filter items by days threshold
         urgent_items = []
@@ -390,7 +390,7 @@ async def _generate_purchase_orders_from_urgent_items_impl(
         # Generate POs using V2 API (uses client directly as purchase_orders_v2 not in service layer)
         # This will create draft POs based on order plan recommendations
         generated_pos = (
-            await services._client.purchase_orders_v2.generate_from_order_plan(
+            await services.client.purchase_orders_v2.generate_from_order_plan(
                 filter_criteria
             )
         )

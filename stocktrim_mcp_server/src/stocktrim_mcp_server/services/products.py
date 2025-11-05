@@ -38,6 +38,22 @@ class ProductService(BaseService):
         logger.info(f"Product retrieved: {code}")
         return product
 
+    async def list_all(self) -> list[ProductsResponseDto]:
+        """List all products.
+
+        Returns:
+            List of all products
+
+        Raises:
+            Exception: If API call fails
+        """
+        logger.info("Listing all products")
+
+        products = await self._client.products.get_all()
+
+        logger.info(f"Found {len(products)} products")
+        return products
+
     async def search(self, prefix: str) -> list[ProductsResponseDto]:
         """Search products by code prefix.
 

@@ -177,7 +177,7 @@ async def _create_supplier_with_products_impl(
                     update_data.supplier_code = request.supplier_code
 
                 # Update product using client directly for complex supplier mapping
-                await services._client.products.create(update_data)
+                await services.client.products.create(update_data)
 
                 mapping_details.append(
                     ProductMappingSummary(

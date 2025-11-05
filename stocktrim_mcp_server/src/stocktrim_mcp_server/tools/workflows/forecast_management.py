@@ -228,7 +228,7 @@ async def _update_forecast_settings_impl(
             update_data.minimum_order_quantity = request.minimum_order_quantity
 
         # Update the product using the API (uses client directly for complex update)
-        updated_product = await services._client.products.create(update_data)
+        updated_product = await services.client.products.create(update_data)
 
         response = UpdateForecastSettingsResponse(
             product_code=request.product_code,
