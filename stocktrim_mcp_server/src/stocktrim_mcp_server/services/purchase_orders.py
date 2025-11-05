@@ -105,7 +105,7 @@ class PurchaseOrderService(BaseService):
         """
         self.validate_not_empty(supplier_code, "Supplier code")
 
-        if not line_items or len(line_items) == 0:
+        if not line_items:
             raise ValueError("At least one line item is required")
 
         logger.info(f"Creating purchase order for supplier: {supplier_code}")
@@ -149,7 +149,10 @@ class PurchaseOrderService(BaseService):
 
         # Parse status
         # Note: PurchaseOrderStatusDto is an IntEnum with values:
-        # DRAFT=0, APPROVED=1, SENT=2, RECEIVED=3
+        #   DRAFT=0, APPROVED=1, SENT=2, RECEIVED=3
+        # The enum can be matched by name (case-insensitive), e.g., "DRAFT", "APPROVED".
+        # The __str__ method returns the integer value as a string, not the name.
+        # The API/UI may use user-friendly strings ("Draft", "Approved", etc.), but code should use enum names or values.
         po_status = None
         if status:
             try:
