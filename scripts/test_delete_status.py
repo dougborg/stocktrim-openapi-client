@@ -44,9 +44,9 @@ async def test_delete_status_code():
         # Generate unique reference for test
         test_ref = f"TEST-DELETE-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
 
-        logger.info(f"\n{'='*60}")
+        logger.info(f"\n{'=' * 60}")
         logger.info("STEP 1: Create test product")
-        logger.info(f"{'='*60}")
+        logger.info(f"{'=' * 60}")
 
         # Create test product first
         test_product_id = f"TEST-DEL-{datetime.now().strftime('%Y%m%d%H%M%S')}"
@@ -63,9 +63,9 @@ async def test_delete_status_code():
             # Product might already exist - that's okay
             logger.info(f"Product may already exist: {e}")
 
-        logger.info(f"\n{'='*60}")
+        logger.info(f"\n{'=' * 60}")
         logger.info("STEP 2: Create test purchase order")
-        logger.info(f"{'='*60}")
+        logger.info(f"{'=' * 60}")
 
         # Create test purchase order
         po_request = PurchaseOrderRequestDto(
@@ -85,25 +85,23 @@ async def test_delete_status_code():
         created_po = await client.purchase_orders.create(po_request)
         logger.info(f"✅ Created PO: {created_po.client_reference_number}")
 
-        logger.info(f"\n{'='*60}")
+        logger.info(f"\n{'=' * 60}")
         logger.info("STEP 3: Delete purchase order and capture status code")
-        logger.info(f"{'='*60}")
+        logger.info(f"{'=' * 60}")
 
         # Delete the purchase order
         # The delete method doesn't expose the status code directly,
         # so we need to check the underlying httpx response
         delete_response = await client.purchase_orders.delete(test_ref)
 
-        logger.info(f"\n{'='*60}")
+        logger.info(f"\n{'=' * 60}")
         logger.info("RESULTS")
-        logger.info(f"{'='*60}")
+        logger.info(f"{'=' * 60}")
 
         # Check what we got back
         if delete_response is None:
             logger.info("✅ DELETE returned: None (typical for 204 No Content)")
-            logger.info(
-                "\n📊 CONCLUSION: API likely returns 204 (spec needs updating)"
-            )
+            logger.info("\n📊 CONCLUSION: API likely returns 204 (spec needs updating)")
         else:
             logger.info(f"✅ DELETE returned: {delete_response}")
             logger.info(
