@@ -104,7 +104,9 @@ async def test_create_success(location_service, mock_client, sample_location):
     mock_client.locations.create = AsyncMock(return_value=sample_location)
 
     # Execute
-    created_location = await location_service.create(code="WH-01", name="Main Warehouse")
+    created_location = await location_service.create(
+        code="WH-01", name="Main Warehouse"
+    )
 
     # Verify
     assert created_location.location_code == "WH-01"
