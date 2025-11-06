@@ -92,7 +92,7 @@ async def test_get_purchase_order_success(mock_po_context, sample_purchase_order
     assert response.reference_number == "PO-2024-001"
     assert response.supplier_code == "SUP-001"
     assert response.supplier_name == "Test Supplier"
-    assert response.status == "DRAFT"
+    assert response.status == "Draft"
     assert response.total_cost == 2800.0
     assert response.line_items_count == 2
 
@@ -226,7 +226,7 @@ async def test_create_purchase_order_success(mock_po_context, sample_purchase_or
     assert response.reference_number == "PO-2024-001"
     assert response.supplier_code == "SUP-001"
     assert response.supplier_name == "Test Supplier"
-    assert response.status == "DRAFT"
+    assert response.status == "Draft"
     assert response.total_cost == 2800.0
     assert response.line_items_count == 2
     services.purchase_orders.create.assert_called_once()

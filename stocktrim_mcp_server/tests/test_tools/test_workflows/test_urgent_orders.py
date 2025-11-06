@@ -251,7 +251,7 @@ async def test_generate_purchase_orders_success(mock_urgent_context):
     assert response.purchase_orders[0].reference_number == "PO-2024-001"
     assert response.purchase_orders[0].supplier_code == "SUP-001"
     assert response.purchase_orders[0].supplier_name == "Acme Supplies"
-    assert response.purchase_orders[0].status == "DRAFT"
+    assert response.purchase_orders[0].status == "Draft"
 
     mock_client.purchase_orders_v2.generate_from_order_plan.assert_called_once()
 

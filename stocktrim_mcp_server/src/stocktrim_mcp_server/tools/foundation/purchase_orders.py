@@ -9,7 +9,6 @@ from fastmcp import Context, FastMCP
 from pydantic import BaseModel, Field
 
 from stocktrim_mcp_server.dependencies import get_services
-from stocktrim_public_api_client.client_types import UNSET
 
 logger = logging.getLogger(__name__)
 
