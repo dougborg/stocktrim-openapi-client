@@ -68,11 +68,17 @@ class SalesOrders(Base):
             Created SalesOrderResponseDto object.
 
         Example:
+            >>> from datetime import datetime
             >>> from stocktrim_public_api_client.generated.models import (
             ...     SalesOrderRequestDto,
             ... )
             >>> order = await client.sales_orders.create(
-            ...     SalesOrderRequestDto(order_number="SO-001", ...)
+            ...     SalesOrderRequestDto(
+            ...         product_id="WIDGET-001",
+            ...         order_date=datetime.now(),
+            ...         quantity=10.0,
+            ...         external_reference_id="SO-001",
+            ...     )
             ... )
         """
         # Convert single order to bulk request with one line item
