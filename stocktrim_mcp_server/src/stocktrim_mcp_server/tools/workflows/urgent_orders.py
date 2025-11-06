@@ -411,7 +411,7 @@ async def _generate_purchase_orders_from_urgent_items_impl(
                 item_count=len(po.purchase_order_line_items)
                 if po.purchase_order_line_items
                 else 0,
-                status=str(po.status.value) if po.status not in (None, UNSET) else None,
+                status=str(po.status) if po.status not in (None, UNSET) else None,
             )
             po_infos.append(po_info)
 
