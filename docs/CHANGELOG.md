@@ -2,6 +2,87 @@
 
 <!-- version list -->
 
+## v0.9.1 (2025-11-06)
+
+### Bug Fixes
+
+- Resolve all 40 test failures across service and tool layers
+  ([#72](https://github.com/dougborg/stocktrim-openapi-client/pull/72),
+  [`770d2b4`](https://github.com/dougborg/stocktrim-openapi-client/commit/770d2b45a3359f2bd62c9a82938d352747613057))
+
+This commit fixes all pre-existing test failures by properly implementing AsyncMock for
+service layer methods and aligning test mocks with the actual service layer
+architecture.
+
+## Changes
+
+### Service Layer Fixes (5 tests) - **customers.py**: Added NotFoundError exception handling to
+
+return None instead of propagating the exception - **test_suppliers.py**: Fixed method
+name calls from `list_suppliers()` to `list_all()`
+
+### Purchase Orders Tool Fixes (15 tests) - **purchase_orders.py**: - Fixed status enum handling:
+
+Changed from `.value` to `.name` for IntEnum - Added proper UNSET checks:
+`if status not in (None,   UNSET)` instead of falsy checks (which fail for
+status=0/DRAFT) - Added list vs single object handling for API responses - Added UNSET
+import
+
+- **test_purchase_orders.py**: - Updated fixture to mock `services.purchase_orders`
+  instead of `client.purchase_orders` - Fixed all method names: `find_by_reference` →
+  `get_by_reference`, `get_all` → `list_all` - Configured proper AsyncMock return values
+  for delete operations - Added validation error mocking using `side_effect` - Fixed
+  status expectations: "0" → "DRAFT"
+
+### Urgent Orders Workflow Fixes (3 tests) - **urgent_orders.py**: Fixed status enum handling
+
+(`.value` → `.name`) and added UNSET checks
+
+### Workflow Tool Test Fixes (18 tests)
+
+#### Forecast Management (7 tests) - Added `mock_forecast_context` fixture with AsyncMock for
+
+products service and client - Updated all tests to use `services.products.get_by_code()`
+and `services.client.products.create()` - Fixed string assertion for API limitation
+message
+
+#### Product Management (5 tests) - Added `mock_product_mgmt_context` fixture with AsyncMock -
+
+Updated all tests to use proper service layer mocking - Converted all `mock_context`
+references to use new fixture
+
+#### Supplier Onboarding (7 tests) - Added `mock_supplier_onboarding_context` fixture with AsyncMock
+
+for suppliers, products services and client - Updated method calls: `.create_one()` →
+`.create()`, `.find_by_code()` → `.get_by_code()` - Fixed supplier_id expectations to
+match implementation (string conversion of id field)
+
+## Key Patterns Established
+
+1. **AsyncMock Required**: All service layer methods require `AsyncMock()` not
+   `MagicMock()` for proper await expression handling
+
+1. **Service vs Client Layer**: Workflow tools use `services.X.method()` for reads but
+   `services.client.X.create()` for complex updates
+
+1. **IntEnum Status Handling**: Use `.name` not `.value` for string representation of
+   IntEnum status fields
+
+1. **UNSET Checks**: Check `if value not in (None, UNSET)` not just `if value` for
+   fields that can legitimately be 0
+
+## Test Results
+
+- **Before**: 157/197 tests passing (40 failures) - **After**: 197/197 tests passing (0
+  failures) ✅
+  - **Coverage**: 79%
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+Co-authored-by: Doug Borg <dougborg@apple.com>
+
+Co-authored-by: Claude <noreply@anthropic.com>
+
 ## v0.9.0 (2025-11-06)
 
 ### Chores
