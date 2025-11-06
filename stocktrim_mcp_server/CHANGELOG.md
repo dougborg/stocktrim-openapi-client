@@ -1,6 +1,241 @@
 # CHANGELOG
 
+## v0.8.0 (2025-11-06)
+
+### Bug Fixes
+
+- Resolve all 40 test failures across service and tool layers
+  ([#72](https://github.com/dougborg/stocktrim-openapi-client/pull/72),
+  [`770d2b4`](https://github.com/dougborg/stocktrim-openapi-client/commit/770d2b45a3359f2bd62c9a82938d352747613057))
+
+This commit fixes all pre-existing test failures by properly implementing AsyncMock for
+service layer methods and aligning test mocks with the actual service layer
+architecture.
+
+## Changes
+
+### Service Layer Fixes (5 tests) - **customers.py**: Added NotFoundError exception handling to
+
+return None instead of propagating the exception - **test_suppliers.py**: Fixed method
+name calls from `list_suppliers()` to `list_all()`
+
+### Purchase Orders Tool Fixes (15 tests) - **purchase_orders.py**: - Fixed status enum handling:
+
+Changed from `.value` to `.name` for IntEnum - Added proper UNSET checks:
+`if status not in (None,   UNSET)` instead of falsy checks (which fail for
+status=0/DRAFT) - Added list vs single object handling for API responses - Added UNSET
+import
+
+- **test_purchase_orders.py**: - Updated fixture to mock `services.purchase_orders`
+  instead of `client.purchase_orders` - Fixed all method names: `find_by_reference` →
+  `get_by_reference`, `get_all` → `list_all` - Configured proper AsyncMock return values
+  for delete operations - Added validation error mocking using `side_effect` - Fixed
+  status expectations: "0" → "DRAFT"
+
+### Urgent Orders Workflow Fixes (3 tests) - **urgent_orders.py**: Fixed status enum handling
+
+(`.value` → `.name`) and added UNSET checks
+
+### Workflow Tool Test Fixes (18 tests)
+
+#### Forecast Management (7 tests) - Added `mock_forecast_context` fixture with AsyncMock for
+
+products service and client - Updated all tests to use `services.products.get_by_code()`
+and `services.client.products.create()` - Fixed string assertion for API limitation
+message
+
+#### Product Management (5 tests) - Added `mock_product_mgmt_context` fixture with AsyncMock -
+
+Updated all tests to use proper service layer mocking - Converted all `mock_context`
+references to use new fixture
+
+#### Supplier Onboarding (7 tests) - Added `mock_supplier_onboarding_context` fixture with AsyncMock
+
+for suppliers, products services and client - Updated method calls: `.create_one()` →
+`.create()`, `.find_by_code()` → `.get_by_code()` - Fixed supplier_id expectations to
+match implementation (string conversion of id field)
+
+## Key Patterns Established
+
+1. **AsyncMock Required**: All service layer methods require `AsyncMock()` not
+   `MagicMock()` for proper await expression handling
+
+1. **Service vs Client Layer**: Workflow tools use `services.X.method()` for reads but
+   `services.client.X.create()` for complex updates
+
+1. **IntEnum Status Handling**: Use `.name` not `.value` for string representation of
+   IntEnum status fields
+
+1. **UNSET Checks**: Check `if value not in (None, UNSET)` not just `if value` for
+   fields that can legitimately be 0
+
+## Test Results
+
+- **Before**: 157/197 tests passing (40 failures) - **After**: 197/197 tests passing (0
+  failures) ✅
+  - **Coverage**: 79%
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+Co-authored-by: Doug Borg <dougborg@apple.com>
+
+Co-authored-by: Claude <noreply@anthropic.com>
+
+- Update test assertions for title-case status enum values
+  ([`7840974`](https://github.com/dougborg/stocktrim-openapi-client/commit/784097493676a0c630ef0e1f09ab2471316dca7c))
+
+After PR #74 fixed PurchaseOrderStatusDto to use proper string enum with title-case
+values ("Draft", "Approved", etc.) instead of incorrect IntEnum, updated 3 test
+assertions that were expecting uppercase values.
+
+Changes: - test_purchase_orders.py: "DRAFT" → "Draft" (2 tests) - test_urgent_orders.py:
+"DRAFT" → "Draft" (1 test)
+
+All 197 tests now passing.
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+
+### Chores
+
+- **release**: Client v0.9.0
+  ([`c1df982`](https://github.com/dougborg/stocktrim-openapi-client/commit/c1df9825ff31fde0afffe53961841b2469a017e2))
+
+- **release**: Client v0.9.1
+  ([`c06e171`](https://github.com/dougborg/stocktrim-openapi-client/commit/c06e171076533cb49a293b8e0a8988065d542052))
+
+- **release**: Client v0.9.2
+  ([`42e3eba`](https://github.com/dougborg/stocktrim-openapi-client/commit/42e3eba3a0202c50f4d538adbffcdb1a5a6fe225))
+
+### Features
+
+- Migrate to PUT /SalesOrdersBulk endpoint for idempotent operations
+  ([#71](https://github.com/dougborg/stocktrim-openapi-client/pull/71),
+  [`8e458ba`](https://github.com/dougborg/stocktrim-openapi-client/commit/8e458bae815932285869fc028f4cba606becc0a8))
+
+- **mcp**: Add structured logging and observability
+  ([`925a19f`](https://github.com/dougborg/stocktrim-openapi-client/commit/925a19fc46b98a61863a9e6ad4ca6208a210b975))
+
+Implements comprehensive structured logging using structlog with automatic observability
+for all MCP tools and service operations.
+
+Features: - Structured logging with dual format support (console/JSON) -
+Environment-based configuration (LOG_LEVEL, LOG_FORMAT) - Automatic tool invocation
+tracking with timing metrics - Service layer operation tracing at DEBUG level - Rich
+error context with categorization - Comprehensive documentation with examples
+
+Changes: - Add structlog dependency (>=24.1.0) - Create logging_config.py for structured
+logging setup - Create observability.py with @observe_tool and @observe_service
+decorators - Update server.py to use structured logging for lifecycle events - Apply
+observability decorator to supplier tools - Add comprehensive logging documentation
+(docs/mcp-server/logging.md)
+
+Console format provides human-readable colored output for development. JSON format
+provides machine-readable logs for production aggregation.
+
+Example structured log events: - logging_configured: Logging system initialized -
+server_starting/ready/shutdown: Server lifecycle - tool_invoked/completed/failed: Tool
+execution tracking - service_operation_started/completed/failed: Service layer tracing
+
+Closes #12
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+
+### Refactoring
+
+- Align service layer patterns for consistency
+  ([#68](https://github.com/dougborg/stocktrim-openapi-client/pull/68),
+  [`8750df4`](https://github.com/dougborg/stocktrim-openapi-client/commit/8750df421860d3933820662a43a763e55e230d05))
+
+Standardizes patterns across all service layer implementations to ensure consistent
+behavior and maintainability.
+
+## Changes
+
+**CustomerService:** - Change get_by_code() from try/except NotFoundError to truthy
+check pattern - Remove unused NotFoundError import - Now consistent with Products,
+Suppliers, and Purchase Orders services
+
+**SupplierService:** - Rename list_suppliers() to list_all() for consistency - Fix
+isinstance() logic to match other services (was inverted) - Update corresponding tool to
+call list_all()
+
+**SalesOrderService:** - Add existence check to delete_for_product() before deletion -
+Return (False, message) if no orders found, matching delete pattern in other services -
+Prevents unnecessary API calls for non-existent resources
+
+**Context:** - Auto-sorted imports (ruff fix)
+
+## Pattern Alignment
+
+All services now follow these consistent patterns:
+
+1. **Get Operations:** Truthy check for not-found (no exceptions) 2. **List
+   Operations:** Consistent isinstance() handling for API quirks 3. **Delete
+   Operations:** Existence check before deletion 4. **Method Naming:** list_all() for
+   listing all entities 5. **Return Types:** Consistent across all services
+
+## Testing - ✅ All 71 tests passing - ✅ Linting clean (ruff, mypy, yamllint) - ✅ No breaking changes
+
+to tool interfaces
+
+This improves code maintainability by ensuring all services follow the same patterns
+established in the Products service (reference implementation).
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+Co-authored-by: Doug Borg <dougborg@apple.com>
+
+Co-authored-by: Claude <noreply@anthropic.com>
+
+- Migrate workflow tools to use service layer
+  ([#69](https://github.com/dougborg/stocktrim-openapi-client/pull/69),
+  [`ca597b1`](https://github.com/dougborg/stocktrim-openapi-client/commit/ca597b12ae6f862ea444362f2591bc7c67d852d7))
+
+refactor: migrate workflow tools to use service layer
+
+Migrate all 4 workflow tools to use the service layer pattern instead of accessing the
+client directly. This completes Issue #48 and aligns workflow tools with the established
+service layer architecture.
+
+## Changes
+
+- **forecast_management.py**: Updated to use ProductService - **product_management.py**:
+  Updated to use ProductService - **supplier_onboarding.py**: Updated to use
+  SupplierService and ProductService
+  - **urgent_orders.py**: Updated to use ProductService (order_plan/PO v2 remain on
+    client)
+
+## Implementation Notes
+
+- All tools now use `get_services(context)` instead of accessing client directly -
+  Complex operations (product updates with DTOs) use `services.client` when needed -
+  Order plan and PO v2 operations still use client as they're not yet in service layer -
+  All 71 tests pass - Removed unused SupplierRequestDto import from
+  supplier_onboarding.py - Added missing `list_all()` method to ProductService -
+  Replaced `services._client` with public `services.client` for proper encapsulation
+
+## Impact
+
+- Improved consistency across codebase - Better separation of concerns - Easier to test
+  and maintain
+  - Sets pattern for future workflow tools
+
+Closes #48
+
+Co-authored-by: Doug Borg <dougborg@apple.com>
+
+Co-authored-by: Claude <noreply@anthropic.com>
+
 ## v0.7.0 (2025-11-05)
+
+### Chores
+
+- **release**: Mcp v0.7.0
+  ([`cc99585`](https://github.com/dougborg/stocktrim-openapi-client/commit/cc995853f59c149465cb708c8f14ab57f05343c6))
 
 ### Features
 
