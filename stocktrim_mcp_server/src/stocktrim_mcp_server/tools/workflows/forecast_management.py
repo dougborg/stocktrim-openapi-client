@@ -668,10 +668,8 @@ async def forecasts_get_for_products(
                 if item.product_code not in (None, UNSET)
                 else "Unknown"
             )
-            product_name = (
-                item.product_code if item.product_code not in (None, UNSET) else "N/A"
-            )
-            product_name = ()
+            # Note: Using product_code as name since DTO doesn't have product_description
+            product_name = product_code
             current_stock = (
                 float(item.stock_on_hand)
                 if item.stock_on_hand not in (None, UNSET)
