@@ -10,7 +10,6 @@ Features:
 - Production-ready with transport-layer resilience
 """
 
-import logging
 import os
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
@@ -21,14 +20,11 @@ from fastmcp import FastMCP
 
 from stocktrim_mcp_server import __version__
 from stocktrim_mcp_server.context import ServerContext
+from stocktrim_mcp_server.logging_config import configure_logging, get_logger
 from stocktrim_public_api_client import StockTrimClient
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-)
-logger = logging.getLogger(__name__)
+# Configure structured logging (will be called in lifespan)
+logger = get_logger(__name__)
 
 
 @asynccontextmanager
@@ -63,8 +59,9 @@ async def lifespan(server: FastMCP) -> AsyncIterator[ServerContext]:
     # Validate required configuration
     if not api_auth_id:
         logger.error(
-            "STOCKTRIM_API_AUTH_ID environment variable is required. "
-            "Please set it in your .env file or environment."
+            "missing_configuration",
+            variable="STOCKTRIM_API_AUTH_ID",
+            message="Environment variable is required. Please set it in your .env file or environment.",
         )
         raise ValueError(
             "STOCKTRIM_API_AUTH_ID environment variable is required for authentication"
@@ -72,15 +69,15 @@ async def lifespan(server: FastMCP) -> AsyncIterator[ServerContext]:
 
     if not api_auth_signature:
         logger.error(
-            "STOCKTRIM_API_AUTH_SIGNATURE environment variable is required. "
-            "Please set it in your .env file or environment."
+            "missing_configuration",
+            variable="STOCKTRIM_API_AUTH_SIGNATURE",
+            message="Environment variable is required. Please set it in your .env file or environment.",
         )
         raise ValueError(
             "STOCKTRIM_API_AUTH_SIGNATURE environment variable is required for authentication"
         )
 
-    logger.info("Initializing StockTrim MCP Server...")
-    logger.info(f"API Base URL: {base_url}")
+    logger.info("server_initializing", base_url=base_url)
 
     try:
         # Initialize StockTrimClient with automatic resilience features
@@ -91,26 +88,32 @@ async def lifespan(server: FastMCP) -> AsyncIterator[ServerContext]:
             timeout=30.0,
             max_retries=5,
         ) as client:
-            logger.info("StockTrimClient initialized successfully")
+            logger.info(
+                "client_initialized", base_url=base_url, timeout=30.0, max_retries=5
+            )
 
             # Create context with client for tools to access
             # Note: client is StockTrimClient but mypy sees it as AuthenticatedClient
             context = ServerContext(client=client)  # type: ignore[arg-type]
 
             # Yield context to server - tools can access via lifespan dependency
-            logger.info("StockTrim MCP Server ready")
+            logger.info("server_ready")
             yield context
 
     except ValueError as e:
         # Authentication or configuration errors
-        logger.error(f"Authentication error: {e}")
+        logger.error("authentication_error", error=str(e), error_type=type(e).__name__)
         raise
     except Exception as e:
         # Unexpected errors during initialization
-        logger.error(f"Failed to initialize StockTrimClient: {e}")
+        logger.error(
+            "initialization_error",
+            error=str(e),
+            error_type=type(e).__name__,
+        )
         raise
     finally:
-        logger.info("StockTrim MCP Server shutting down...")
+        logger.info("server_shutdown")
 
 
 # Initialize FastMCP server with lifespan management
@@ -151,7 +154,10 @@ def main(**kwargs: Any) -> None:
     Args:
         **kwargs: Additional arguments passed to mcp.run()
     """
-    logger.info("Starting StockTrim MCP Server...")
+    # Configure structured logging before anything else
+    configure_logging()
+
+    logger.info("server_starting", version=__version__)
     mcp.run(**kwargs)
 
 

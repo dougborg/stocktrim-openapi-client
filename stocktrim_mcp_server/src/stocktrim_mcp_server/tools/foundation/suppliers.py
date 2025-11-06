@@ -2,14 +2,14 @@
 
 from __future__ import annotations
 
-import logging
-
 from fastmcp import Context, FastMCP
 from pydantic import BaseModel, Field
 
 from stocktrim_mcp_server.dependencies import get_services
+from stocktrim_mcp_server.logging_config import get_logger
+from stocktrim_mcp_server.observability import observe_tool
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 # ============================================================================
 # Tool 1: get_supplier
@@ -31,6 +31,7 @@ class SupplierInfo(BaseModel):
     primary_contact: str | None
 
 
+@observe_tool
 async def get_supplier(
     request: GetSupplierRequest, context: Context
 ) -> SupplierInfo | None:
@@ -85,6 +86,7 @@ class ListSuppliersResponse(BaseModel):
     total_count: int
 
 
+@observe_tool
 async def list_suppliers(
     request: ListSuppliersRequest, context: Context
 ) -> ListSuppliersResponse:
@@ -140,6 +142,7 @@ class CreateSupplierRequest(BaseModel):
     )
 
 
+@observe_tool
 async def create_supplier(
     request: CreateSupplierRequest, context: Context
 ) -> SupplierInfo:
@@ -193,6 +196,7 @@ class DeleteSupplierResponse(BaseModel):
     message: str
 
 
+@observe_tool
 async def delete_supplier(
     request: DeleteSupplierRequest, context: Context
 ) -> DeleteSupplierResponse:
