@@ -1,5 +1,7 @@
 """Tests for product management workflow tools."""
 
+from unittest.mock import AsyncMock
+
 import pytest
 
 from stocktrim_mcp_server.tools.workflows.product_management import (
@@ -11,68 +13,84 @@ from stocktrim_public_api_client.generated.models.products_response_dto import (
 )
 
 
+@pytest.fixture
+def mock_product_mgmt_context(mock_context):
+    """Extend mock_context with products service and client."""
+    services = mock_context.request_context.lifespan_context
+    services.products = AsyncMock()
+    services.client = AsyncMock()
+    services.client.products = AsyncMock()
+    return mock_context
+
+
 @pytest.mark.asyncio
-async def test_configure_product_discontinue_success(mock_context, sample_product):
+async def test_configure_product_discontinue_success(
+    mock_product_mgmt_context, sample_product
+):
     """Test successfully discontinuing a product."""
     # Setup
-    mock_client = mock_context.request_context.lifespan_context.client
-    mock_client.products.find_by_code.return_value = sample_product
+    services = mock_product_mgmt_context.request_context.lifespan_context
+    services.products.get_by_code.return_value = sample_product
 
     updated_product = ProductsResponseDto(
         product_id=sample_product.product_id,
         product_code_readable=sample_product.product_code_readable,
         discontinued=True,
     )
-    mock_client.products.create.return_value = updated_product
+    services.client.products.create.return_value = updated_product
 
     # Execute
     request = ConfigureProductRequest(
         product_code="WIDGET-001",
         discontinue=True,
     )
-    response = await configure_product(request, mock_context)
+    response = await configure_product(request, mock_product_mgmt_context)
 
     # Verify
     assert response.product_code == "WIDGET-001"
     assert response.discontinued is True
     assert "Successfully configured" in response.message
-    mock_client.products.find_by_code.assert_called_once_with("WIDGET-001")
-    mock_client.products.create.assert_called_once()
+    services.products.get_by_code.assert_called_once_with("WIDGET-001")
+    services.client.products.create.assert_called_once()
 
 
 @pytest.mark.asyncio
-async def test_configure_product_forecast_settings(mock_context, sample_product):
+async def test_configure_product_forecast_settings(
+    mock_product_mgmt_context, sample_product
+):
     """Test updating forecast configuration."""
     # Setup
-    mock_client = mock_context.request_context.lifespan_context.client
-    mock_client.products.find_by_code.return_value = sample_product
+    services = mock_product_mgmt_context.request_context.lifespan_context
+    services.products.get_by_code.return_value = sample_product
 
     updated_product = ProductsResponseDto(
         product_id=sample_product.product_id,
         product_code_readable=sample_product.product_code_readable,
         ignore_seasonality=True,  # Forecast disabled
     )
-    mock_client.products.create.return_value = updated_product
+    services.client.products.create.return_value = updated_product
 
     # Execute
     request = ConfigureProductRequest(
         product_code="WIDGET-001",
         configure_forecast=False,  # Disable forecast
     )
-    response = await configure_product(request, mock_context)
+    response = await configure_product(request, mock_product_mgmt_context)
 
     # Verify
     assert response.product_code == "WIDGET-001"
     assert response.ignore_seasonality is True
-    mock_client.products.create.assert_called_once()
+    services.client.products.create.assert_called_once()
 
 
 @pytest.mark.asyncio
-async def test_configure_product_both_settings(mock_context, sample_product):
+async def test_configure_product_both_settings(
+    mock_product_mgmt_context, sample_product
+):
     """Test updating both discontinue and forecast settings."""
     # Setup
-    mock_client = mock_context.request_context.lifespan_context.client
-    mock_client.products.find_by_code.return_value = sample_product
+    services = mock_product_mgmt_context.request_context.lifespan_context
+    services.products.get_by_code.return_value = sample_product
 
     updated_product = ProductsResponseDto(
         product_id=sample_product.product_id,
@@ -80,7 +98,7 @@ async def test_configure_product_both_settings(mock_context, sample_product):
         discontinued=True,
         ignore_seasonality=False,  # Forecast enabled
     )
-    mock_client.products.create.return_value = updated_product
+    services.client.products.create.return_value = updated_product
 
     # Execute
     request = ConfigureProductRequest(
@@ -88,7 +106,7 @@ async def test_configure_product_both_settings(mock_context, sample_product):
         discontinue=True,
         configure_forecast=True,  # Enable forecast
     )
-    response = await configure_product(request, mock_context)
+    response = await configure_product(request, mock_product_mgmt_context)
 
     # Verify
     assert response.product_code == "WIDGET-001"
@@ -97,11 +115,11 @@ async def test_configure_product_both_settings(mock_context, sample_product):
 
 
 @pytest.mark.asyncio
-async def test_configure_product_not_found(mock_context):
+async def test_configure_product_not_found(mock_product_mgmt_context):
     """Test error when product doesn't exist."""
     # Setup
-    mock_client = mock_context.request_context.lifespan_context.client
-    mock_client.products.find_by_code.return_value = None
+    services = mock_product_mgmt_context.request_context.lifespan_context
+    services.products.get_by_code.return_value = None
 
     # Execute & Verify
     request = ConfigureProductRequest(
@@ -110,18 +128,18 @@ async def test_configure_product_not_found(mock_context):
     )
 
     with pytest.raises(ValueError, match="Product not found"):
-        await configure_product(request, mock_context)
+        await configure_product(request, mock_product_mgmt_context)
 
-    mock_client.products.create.assert_not_called()
+    services.client.products.create.assert_not_called()
 
 
 @pytest.mark.asyncio
-async def test_configure_product_api_error(mock_context, sample_product):
+async def test_configure_product_api_error(mock_product_mgmt_context, sample_product):
     """Test handling of API errors."""
     # Setup
-    mock_client = mock_context.request_context.lifespan_context.client
-    mock_client.products.find_by_code.return_value = sample_product
-    mock_client.products.create.side_effect = Exception("API Error")
+    services = mock_product_mgmt_context.request_context.lifespan_context
+    services.products.get_by_code.return_value = sample_product
+    services.client.products.create.side_effect = Exception("API Error")
 
     # Execute & Verify
     request = ConfigureProductRequest(
@@ -130,4 +148,4 @@ async def test_configure_product_api_error(mock_context, sample_product):
     )
 
     with pytest.raises(Exception, match="API Error"):
-        await configure_product(request, mock_context)
+        await configure_product(request, mock_product_mgmt_context)

@@ -9,6 +9,7 @@ from fastmcp import Context, FastMCP
 from pydantic import BaseModel, Field
 
 from stocktrim_mcp_server.dependencies import get_services
+from stocktrim_public_api_client.client_types import UNSET
 
 logger = logging.getLogger(__name__)
 
@@ -134,6 +135,10 @@ async def _list_purchase_orders_impl(
     """
     services = get_services(context)
     pos = await services.purchase_orders.list_all()
+
+    # Handle case where API returns single object instead of list
+    if not isinstance(pos, list):
+        pos = [pos] if pos else []
 
     # Build response
     po_infos = []

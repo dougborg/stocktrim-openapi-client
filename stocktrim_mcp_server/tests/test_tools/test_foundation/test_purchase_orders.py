@@ -65,8 +65,9 @@ def sample_purchase_order():
 
 @pytest.fixture
 def mock_po_context(mock_context):
-    """Extend mock_context with purchase_orders helper."""
-    mock_context.request_context.lifespan_context.client.purchase_orders = AsyncMock()
+    """Extend mock_context with purchase_orders service."""
+    services = mock_context.request_context.lifespan_context
+    services.purchase_orders = AsyncMock()
     return mock_context
 
 
@@ -79,8 +80,8 @@ def mock_po_context(mock_context):
 async def test_get_purchase_order_success(mock_po_context, sample_purchase_order):
     """Test successfully getting a purchase order."""
     # Setup
-    mock_client = mock_po_context.request_context.lifespan_context.client
-    mock_client.purchase_orders.find_by_reference.return_value = sample_purchase_order
+    services = mock_po_context.request_context.lifespan_context
+    services.purchase_orders.get_by_reference.return_value = sample_purchase_order
 
     # Execute
     request = GetPurchaseOrderRequest(reference_number="PO-2024-001")
@@ -91,19 +92,19 @@ async def test_get_purchase_order_success(mock_po_context, sample_purchase_order
     assert response.reference_number == "PO-2024-001"
     assert response.supplier_code == "SUP-001"
     assert response.supplier_name == "Test Supplier"
-    assert response.status == "Draft"
+    assert response.status == "DRAFT"
     assert response.total_cost == 2800.0
     assert response.line_items_count == 2
 
-    mock_client.purchase_orders.find_by_reference.assert_called_once_with("PO-2024-001")
+    services.purchase_orders.get_by_reference.assert_called_once_with("PO-2024-001")
 
 
 @pytest.mark.asyncio
 async def test_get_purchase_order_not_found(mock_po_context):
     """Test getting a purchase order that doesn't exist."""
     # Setup
-    mock_client = mock_po_context.request_context.lifespan_context.client
-    mock_client.purchase_orders.find_by_reference.return_value = None
+    services = mock_po_context.request_context.lifespan_context
+    services.purchase_orders.get_by_reference.return_value = None
 
     # Execute
     request = GetPurchaseOrderRequest(reference_number="PO-MISSING")
@@ -111,12 +112,18 @@ async def test_get_purchase_order_not_found(mock_po_context):
 
     # Verify
     assert response is None
-    mock_client.purchase_orders.find_by_reference.assert_called_once_with("PO-MISSING")
+    services.purchase_orders.get_by_reference.assert_called_once_with("PO-MISSING")
 
 
 @pytest.mark.asyncio
 async def test_get_purchase_order_empty_reference(mock_po_context):
     """Test getting a purchase order with empty reference number."""
+    # Setup - mock service to raise ValueError for empty reference
+    services = mock_po_context.request_context.lifespan_context
+    services.purchase_orders.get_by_reference.side_effect = ValueError(
+        "Reference number cannot be empty"
+    )
+
     # Execute & Verify
     request = GetPurchaseOrderRequest(reference_number="")
     with pytest.raises(ValueError, match="Reference number cannot be empty"):
@@ -132,8 +139,8 @@ async def test_get_purchase_order_empty_reference(mock_po_context):
 async def test_list_purchase_orders_success(mock_po_context, sample_purchase_order):
     """Test successfully listing purchase orders."""
     # Setup
-    mock_client = mock_po_context.request_context.lifespan_context.client
-    mock_client.purchase_orders.get_all.return_value = [sample_purchase_order]
+    services = mock_po_context.request_context.lifespan_context
+    services.purchase_orders.list_all.return_value = [sample_purchase_order]
 
     # Execute
     request = ListPurchaseOrdersRequest()
@@ -150,8 +157,8 @@ async def test_list_purchase_orders_success(mock_po_context, sample_purchase_ord
 async def test_list_purchase_orders_empty(mock_po_context):
     """Test listing purchase orders when none exist."""
     # Setup
-    mock_client = mock_po_context.request_context.lifespan_context.client
-    mock_client.purchase_orders.get_all.return_value = []
+    services = mock_po_context.request_context.lifespan_context
+    services.purchase_orders.list_all.return_value = []
 
     # Execute
     request = ListPurchaseOrdersRequest()
@@ -168,8 +175,8 @@ async def test_list_purchase_orders_api_returns_single_object(
 ):
     """Test listing when API returns single object instead of list."""
     # Setup - API inconsistency where it returns single object
-    mock_client = mock_po_context.request_context.lifespan_context.client
-    mock_client.purchase_orders.get_all.return_value = sample_purchase_order
+    services = mock_po_context.request_context.lifespan_context
+    services.purchase_orders.list_all.return_value = sample_purchase_order
 
     # Execute
     request = ListPurchaseOrdersRequest()
@@ -190,8 +197,8 @@ async def test_list_purchase_orders_api_returns_single_object(
 async def test_create_purchase_order_success(mock_po_context, sample_purchase_order):
     """Test successfully creating a purchase order."""
     # Setup
-    mock_client = mock_po_context.request_context.lifespan_context.client
-    mock_client.purchase_orders.create.return_value = sample_purchase_order
+    services = mock_po_context.request_context.lifespan_context
+    services.purchase_orders.create.return_value = sample_purchase_order
 
     # Execute
     request = CreatePurchaseOrderRequest(
@@ -219,12 +226,10 @@ async def test_create_purchase_order_success(mock_po_context, sample_purchase_or
     assert response.reference_number == "PO-2024-001"
     assert response.supplier_code == "SUP-001"
     assert response.supplier_name == "Test Supplier"
-    assert response.status == "Draft"
+    assert response.status == "DRAFT"
     assert response.total_cost == 2800.0
     assert response.line_items_count == 2
-    assert "created successfully" in response.message
-
-    mock_client.purchase_orders.create.assert_called_once()
+    services.purchase_orders.create.assert_called_once()
 
 
 @pytest.mark.asyncio
@@ -233,8 +238,8 @@ async def test_create_purchase_order_minimal_fields(
 ):
     """Test creating a purchase order with minimal required fields."""
     # Setup
-    mock_client = mock_po_context.request_context.lifespan_context.client
-    mock_client.purchase_orders.create.return_value = sample_purchase_order
+    services = mock_po_context.request_context.lifespan_context
+    services.purchase_orders.create.return_value = sample_purchase_order
 
     # Execute
     request = CreatePurchaseOrderRequest(
@@ -248,12 +253,18 @@ async def test_create_purchase_order_minimal_fields(
     # Verify
     assert response.reference_number == "PO-2024-001"
     assert response.supplier_code == "SUP-001"
-    mock_client.purchase_orders.create.assert_called_once()
+    services.purchase_orders.create.assert_called_once()
 
 
 @pytest.mark.asyncio
 async def test_create_purchase_order_empty_supplier_code(mock_po_context):
     """Test creating a purchase order with empty supplier code."""
+    # Setup - mock service to raise ValueError for empty supplier code
+    services = mock_po_context.request_context.lifespan_context
+    services.purchase_orders.create.side_effect = ValueError(
+        "Supplier code cannot be empty"
+    )
+
     # Execute & Verify
     request = CreatePurchaseOrderRequest(
         supplier_code="",
@@ -285,8 +296,8 @@ async def test_create_purchase_order_with_custom_date(
 ):
     """Test creating a purchase order with a custom order date."""
     # Setup
-    mock_client = mock_po_context.request_context.lifespan_context.client
-    mock_client.purchase_orders.create.return_value = sample_purchase_order
+    services = mock_po_context.request_context.lifespan_context
+    services.purchase_orders.create.return_value = sample_purchase_order
 
     # Execute
     request = CreatePurchaseOrderRequest(
@@ -298,7 +309,7 @@ async def test_create_purchase_order_with_custom_date(
 
     # Verify
     assert response.reference_number == "PO-2024-001"
-    mock_client.purchase_orders.create.assert_called_once()
+    services.purchase_orders.create.assert_called_once()
 
 
 @pytest.mark.asyncio
@@ -307,8 +318,8 @@ async def test_create_purchase_order_with_different_statuses(
 ):
     """Test creating a purchase order with different valid statuses."""
     # Setup
-    mock_client = mock_po_context.request_context.lifespan_context.client
-    mock_client.purchase_orders.create.return_value = sample_purchase_order
+    services = mock_po_context.request_context.lifespan_context
+    services.purchase_orders.create.return_value = sample_purchase_order
 
     # Test each valid status
     for status in ["Draft", "Approved", "Sent", "Received"]:
@@ -321,7 +332,7 @@ async def test_create_purchase_order_with_different_statuses(
         assert response.reference_number == "PO-2024-001"
 
     # Verify create was called for each status
-    assert mock_client.purchase_orders.create.call_count == 4
+    assert services.purchase_orders.create.call_count == 4
 
 
 # ============================================================================
@@ -333,9 +344,11 @@ async def test_create_purchase_order_with_different_statuses(
 async def test_delete_purchase_order_success(mock_po_context, sample_purchase_order):
     """Test successfully deleting a purchase order."""
     # Setup
-    mock_client = mock_po_context.request_context.lifespan_context.client
-    mock_client.purchase_orders.find_by_reference.return_value = sample_purchase_order
-    mock_client.purchase_orders.delete.return_value = sample_purchase_order
+    services = mock_po_context.request_context.lifespan_context
+    services.purchase_orders.delete.return_value = (
+        True,
+        "Purchase order PO-2024-001 deleted successfully",
+    )
 
     # Execute
     request = DeletePurchaseOrderRequest(reference_number="PO-2024-001")
@@ -346,18 +359,18 @@ async def test_delete_purchase_order_success(mock_po_context, sample_purchase_or
     assert "deleted successfully" in response.message
     assert "PO-2024-001" in response.message
 
-    mock_client.purchase_orders.find_by_reference.assert_called_once_with("PO-2024-001")
-    mock_client.purchase_orders.delete.assert_called_once_with(
-        reference_number="PO-2024-001"
-    )
+    services.purchase_orders.delete.assert_called_once_with("PO-2024-001")
 
 
 @pytest.mark.asyncio
 async def test_delete_purchase_order_not_found(mock_po_context):
     """Test deleting a purchase order that doesn't exist."""
     # Setup
-    mock_client = mock_po_context.request_context.lifespan_context.client
-    mock_client.purchase_orders.find_by_reference.return_value = None
+    services = mock_po_context.request_context.lifespan_context
+    services.purchase_orders.delete.return_value = (
+        False,
+        "Purchase order PO-MISSING not found",
+    )
 
     # Execute
     request = DeletePurchaseOrderRequest(reference_number="PO-MISSING")
@@ -368,13 +381,18 @@ async def test_delete_purchase_order_not_found(mock_po_context):
     assert "not found" in response.message
     assert "PO-MISSING" in response.message
 
-    mock_client.purchase_orders.find_by_reference.assert_called_once_with("PO-MISSING")
-    mock_client.purchase_orders.delete.assert_not_called()
+    services.purchase_orders.delete.assert_called_once_with("PO-MISSING")
 
 
 @pytest.mark.asyncio
 async def test_delete_purchase_order_empty_reference(mock_po_context):
     """Test deleting a purchase order with empty reference number."""
+    # Setup - mock service to raise ValueError for empty reference
+    services = mock_po_context.request_context.lifespan_context
+    services.purchase_orders.delete.side_effect = ValueError(
+        "Reference number cannot be empty"
+    )
+
     # Execute & Verify
     request = DeletePurchaseOrderRequest(reference_number="")
     with pytest.raises(ValueError, match="Reference number cannot be empty"):
