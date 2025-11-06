@@ -70,7 +70,7 @@ async def _get_purchase_order_impl(
         reference_number=po.reference_number or "",
         supplier_code=po.supplier.supplier_code if po.supplier else None,
         supplier_name=po.supplier.supplier_name if po.supplier else None,
-        status=po.status.name if po.status not in (None, UNSET) else None,
+        status=str(po.status) if po.status else None,
         total_cost=total_cost,
         line_items_count=(
             len(po.purchase_order_line_items) if po.purchase_order_line_items else 0
@@ -156,7 +156,7 @@ async def _list_purchase_orders_impl(
                 reference_number=po.reference_number or "",
                 supplier_code=po.supplier.supplier_code if po.supplier else None,
                 supplier_name=po.supplier.supplier_name if po.supplier else None,
-                status=po.status.name if po.status not in (None, UNSET) else None,
+                status=str(po.status) if po.status else None,
                 total_cost=total_cost,
                 line_items_count=(
                     len(po.purchase_order_line_items)
@@ -300,9 +300,7 @@ async def _create_purchase_order_impl(
         supplier_name=(
             created_po.supplier.supplier_name if created_po.supplier else None
         ),
-        status=created_po.status.name
-        if created_po.status not in (None, UNSET)
-        else None,
+        status=str(created_po.status) if created_po.status else None,
         total_cost=total_cost,
         line_items_count=(
             len(created_po.purchase_order_line_items)

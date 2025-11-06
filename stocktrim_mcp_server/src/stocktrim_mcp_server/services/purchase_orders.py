@@ -148,11 +148,10 @@ class PurchaseOrderService(BaseService):
             )
 
         # Parse status
-        # Note: PurchaseOrderStatusDto is an IntEnum with values:
-        #   DRAFT=0, APPROVED=1, SENT=2, RECEIVED=3
-        # The enum can be matched by name (case-insensitive), e.g., "DRAFT", "APPROVED".
-        # The __str__ method returns the integer value as a string, not the name.
-        # The API/UI may use user-friendly strings ("Draft", "Approved", etc.), but code should use enum names or values.
+        # Note: PurchaseOrderStatusDto is a string enum with values:
+        #   DRAFT="Draft", APPROVED="Approved", SENT="Sent", RECEIVED="Received"
+        # The enum can be matched by attribute name (DRAFT, APPROVED, etc.)
+        # and the value is the title-case string ("Draft", "Approved", etc.).
         po_status = None
         if status:
             try:

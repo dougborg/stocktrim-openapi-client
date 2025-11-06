@@ -1,11 +1,11 @@
-from enum import IntEnum
+from enum import Enum
 
 
-class PurchaseOrderStatusDto(IntEnum):
-    DRAFT = 0
-    APPROVED = 1
-    SENT = 2
-    RECEIVED = 3
+class PurchaseOrderStatusDto(str, Enum):
+    APPROVED = "Approved"
+    DRAFT = "Draft"
+    RECEIVED = "Received"
+    SENT = "Sent"
 
     def __str__(self) -> str:
         return str(self.value)
