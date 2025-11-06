@@ -119,33 +119,80 @@ async def _configure_product_impl(
 async def configure_product(
     request: ConfigureProductRequest, ctx: Context
 ) -> ConfigureProductResponse:
-    """Configure product settings such as discontinue status and forecast configuration.
+    """Configure product lifecycle settings (discontinue status, forecast configuration).
 
-    This workflow tool updates product configuration settings. It supports partial
-    updates, meaning only the fields provided in the request will be updated.
+    This workflow tool manages product lifecycle transitions such as discontinuation
+    and seasonal activation. It supports partial updates, updating only the fields
+    provided in the request.
 
-    The tool first fetches the existing product to ensure it exists and to get its
-    product_id, then applies the requested configuration changes.
+    ## How It Works
+
+    1. Fetches the existing product to verify it exists
+    2. Applies only the requested configuration changes
+    3. Returns updated product settings
+
+    ## Common Use Cases
+
+    - **Product Discontinuation**: Mark products as discontinued and stop forecasting
+    - **Seasonal Activation**: Enable products and forecasting for seasonal items
+    - **Product End-of-Life**: Prepare products for phase-out
+    - **SKU Rationalization**: Disable forecasting for slow-moving items
+
+    ## Best Practices
+
+    1. **Discontinue + Disable Forecast**: When discontinuing, also set `configure_forecast=false`
+    2. **Activate + Enable Forecast**: When activating seasonal products, set `configure_forecast=true`
+    3. **Update Forecast Settings After**: Use `update_forecast_settings` to adjust parameters
+    4. **Re-run Forecasts**: After configuration changes, run `forecasts_update_and_monitor`
+
+    ## Field Mappings
+
+    - `discontinue` → `discontinued` (product lifecycle status)
+    - `configure_forecast=true` → `ignore_seasonality=false` (forecasting enabled)
+    - `configure_forecast=false` → `ignore_seasonality=true` (forecasting disabled)
 
     Args:
         request: Request with product configuration settings
         context: Server context with StockTrimClient
 
     Returns:
-        ConfigureProductResponse with updated product info
+        ConfigureProductResponse with updated product info, including:
+        - Product code
+        - Discontinued status
+        - Forecast configuration status
+        - Success message
 
-    Example:
+    Examples:
+        **Discontinuing a Product**:
         Request: {
-            "product_code": "WIDGET-001",
+            "product_code": "WIDGET-OLD",
             "discontinue": true,
             "configure_forecast": false
         }
         Returns: {
-            "product_code": "WIDGET-001",
+            "product_code": "WIDGET-OLD",
             "discontinued": true,
             "ignore_seasonality": true,
-            "message": "Successfully configured product WIDGET-001"
+            "message": "Successfully configured product WIDGET-OLD"
         }
+
+        **Activating a Seasonal Product**:
+        Request: {
+            "product_code": "HOLIDAY-001",
+            "discontinue": false,
+            "configure_forecast": true
+        }
+        Returns: {
+            "product_code": "HOLIDAY-001",
+            "discontinued": false,
+            "ignore_seasonality": false,
+            "message": "Successfully configured product HOLIDAY-001"
+        }
+
+    See Also:
+        - Complete workflow: docs/mcp-server/examples.md#workflow-4-product-lifecycle-management
+        - `update_forecast_settings`: Adjust forecast parameters after configuration
+        - `forecasts_update_and_monitor`: Re-calculate forecasts after changes
     """
     return await _configure_product_impl(request, ctx)
 

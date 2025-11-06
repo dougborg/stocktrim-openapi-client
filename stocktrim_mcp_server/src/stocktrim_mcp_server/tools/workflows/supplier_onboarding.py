@@ -231,56 +231,96 @@ async def _create_supplier_with_products_impl(
 async def create_supplier_with_products(
     request: CreateSupplierWithProductsRequest, ctx: Context
 ) -> CreateSupplierWithProductsResponse:
-    """Onboard a new supplier with product mappings.
+    """Onboard a new supplier with product mappings in a single atomic operation.
 
     This workflow tool creates a new supplier and establishes mappings between
-    the supplier and specified products. The operation follows a transactional
-    approach:
+    the supplier and specified products, reducing complexity and API calls compared
+    to manual step-by-step onboarding.
 
-    1. Create the supplier first
-    2. If supplier creation succeeds, create product-supplier mappings
-    3. If supplier creation fails, no mappings are attempted
+    ## How It Works
 
-    Individual mapping failures are logged but don't fail the entire operation,
-    allowing partial success when some products don't exist or have issues.
+    1. Creates the supplier entity first
+    2. If supplier creation succeeds, creates product-supplier mappings
+    3. If supplier creation fails, no mappings are attempted (atomic transaction)
+    4. Individual mapping failures are logged but don't fail the entire operation
+
+    This transactional approach ensures data consistency while allowing partial
+    success when some products don't exist or have issues.
+
+    ## Common Use Cases
+
+    - **New Vendor Onboarding**: Add a new supplier with their full product catalog
+    - **Alternative Suppliers**: Add secondary supplier for existing products
+    - **Supplier Consolidation**: Migrate products to a new consolidated supplier
+    - **Bulk Product Mapping**: Map multiple products to a supplier at once
+
+    ## Best Practices
+
+    1. **Verify Products First**: Ensure all products exist before mapping
+    2. **Use Supplier SKU Codes**: Include `supplier_product_code` for order accuracy
+    3. **Set Cost Prices**: Provide `cost_price` for accurate cost tracking
+    4. **Check Mapping Details**: Review `mapping_details` for any failures
+    5. **Handle Partial Failures**: Not all mappings need to succeed - check the response
+
+    ## Advantages Over Manual Approach
+
+    - ✅ Single API operation (vs 2+ separate calls)
+    - ✅ Atomic supplier creation (all-or-nothing)
+    - ✅ Detailed success/failure tracking per product
+    - ✅ Automatic error handling and rollback
+    - ✅ Reduced complexity and code
 
     Args:
         request: Request with supplier and product mapping details
         context: Server context with StockTrimClient
 
     Returns:
-        CreateSupplierWithProductsResponse with detailed results
+        CreateSupplierWithProductsResponse with detailed results, including:
+        - Supplier details (code, name, ID)
+        - Mapping success counts
+        - Detailed per-product results
+        - Summary message
 
     Example:
         Request: {
-            "supplier_code": "SUP-NEW",
-            "supplier_name": "New Supplier Inc",
+            "supplier_code": "SUP-NEW-001",
+            "supplier_name": "NewTech Suppliers Ltd",
             "is_active": true,
             "product_mappings": [
                 {
                     "product_code": "WIDGET-001",
-                    "supplier_product_code": "SUP-SKU-001",
-                    "cost_price": 15.50
+                    "supplier_product_code": "NT-WID-001",
+                    "cost_price": 14.50
                 },
                 {
                     "product_code": "WIDGET-002",
-                    "supplier_product_code": "SUP-SKU-002",
-                    "cost_price": 22.00
+                    "supplier_product_code": "NT-WID-002",
+                    "cost_price": 11.00
+                },
+                {
+                    "product_code": "GADGET-001",
+                    "supplier_product_code": "NT-GAD-001",
+                    "cost_price": 24.00
                 }
             ]
         }
         Returns: {
-            "supplier_code": "SUP-NEW",
-            "supplier_name": "New Supplier Inc",
-            "supplier_id": "123",
-            "mappings_attempted": 2,
-            "mappings_successful": 2,
+            "supplier_code": "SUP-NEW-001",
+            "supplier_name": "NewTech Suppliers Ltd",
+            "supplier_id": "12345",
+            "mappings_attempted": 3,
+            "mappings_successful": 3,
             "mapping_details": [
-                {"product_code": "WIDGET-001", "success": true},
-                {"product_code": "WIDGET-002", "success": true}
+                {"product_code": "WIDGET-001", "success": true, "error": null},
+                {"product_code": "WIDGET-002", "success": true, "error": null},
+                {"product_code": "GADGET-001", "success": true, "error": null}
             ],
-            "message": "Supplier 'SUP-NEW' created successfully. 2/2 product mappings completed."
+            "message": "Supplier 'SUP-NEW-001' created successfully. 3/3 product mappings completed."
         }
+
+    See Also:
+        - Complete workflow: docs/mcp-server/examples.md#workflow-3-new-supplier-onboarding
+        - Foundation tools: `create_suppliers`, `get_product` for manual approach
     """
     return await _create_supplier_with_products_impl(request, ctx)
 

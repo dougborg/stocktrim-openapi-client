@@ -273,17 +273,40 @@ async def review_urgent_order_requirements(
 
     This workflow tool analyzes StockTrim's forecast and order plan data to identify
     items approaching stockout. Results are grouped by supplier to facilitate
-    purchase order generation.
+    efficient purchase order generation.
 
-    The tool queries the order plan for items with days_until_stock_out below the
-    specified threshold and enriches the data with supplier information.
+    ## How It Works
+
+    1. Queries the order plan for items with days_until_stock_out < threshold
+    2. Enriches data with supplier information from product catalog
+    3. Groups items by supplier for consolidated purchasing
+    4. Calculates estimated costs per supplier and overall
+
+    ## Common Use Cases
+
+    - **Weekly/Monthly Reorder Cycles**: Run with `days_threshold=30` to identify
+      items needing reorder in the next month
+    - **Urgent Restocking**: Use lower threshold (7-14 days) for critical items
+    - **Supplier-Specific Review**: Filter by `supplier_codes` to review specific vendors
+    - **Multi-Location Management**: Use `location_codes` to check each warehouse
+
+    ## Typical Workflow
+
+    1. Run `forecasts_update_and_monitor` to ensure forecasts are current
+    2. Call this tool to identify urgent items grouped by supplier
+    3. Review the recommendations (items, quantities, costs)
+    4. Call `generate_purchase_orders_from_urgent_items` for approved suppliers
+    5. Review draft POs in StockTrim UI before approving
 
     Args:
         request: Request with filters for urgent items
         context: Server context with StockTrimClient
 
     Returns:
-        ReviewUrgentOrdersResponse with items grouped by supplier
+        ReviewUrgentOrdersResponse with items grouped by supplier, including:
+        - List of suppliers with urgent items
+        - Items per supplier with stock levels and recommendations
+        - Total estimated costs per supplier and overall
 
     Example:
         Request: {
@@ -295,14 +318,27 @@ async def review_urgent_order_requirements(
             "suppliers": [
                 {
                     "supplier_code": "SUP-001",
-                    "items": [...],
-                    "total_items": 5,
-                    "total_estimated_cost": 1250.00
+                    "items": [
+                        {
+                            "product_code": "WIDGET-001",
+                            "current_stock": 45.0,
+                            "days_until_stock_out": 12,
+                            "recommended_order_qty": 200.0,
+                            "estimated_unit_cost": 15.50
+                        }
+                    ],
+                    "total_items": 1,
+                    "total_estimated_cost": 3100.00
                 }
             ],
-            "total_items": 5,
-            "total_estimated_cost": 1250.00
+            "total_items": 1,
+            "total_estimated_cost": 3100.00
         }
+
+    See Also:
+        - Complete workflow: docs/mcp-server/examples.md#workflow-1-automated-inventory-reordering
+        - `generate_purchase_orders_from_urgent_items`: Auto-generate POs from this data
+        - `forecasts_update_and_monitor`: Ensure forecasts are current before using this tool
     """
     return await _review_urgent_order_requirements_impl(request, ctx)
 
@@ -438,24 +474,47 @@ async def generate_purchase_orders_from_urgent_items(
 
     This workflow tool uses StockTrim's V2 API to automatically generate draft
     purchase orders based on order plan recommendations. The generated POs will
-    be in Draft status by default and can be reviewed before approval.
+    be in Draft status by default and must be reviewed in StockTrim UI before approval.
 
-    This is a powerful feature that leverages StockTrim's forecast engine to
-    automatically create purchase orders with appropriate quantities for items
-    needing reorder.
+    ## How It Works
 
-    Note on days_threshold: While this parameter is accepted for API consistency
-    with review_urgent_order_requirements, the V2 API's generate_from_order_plan
-    endpoint uses StockTrim's internal urgency logic. For more control over which
-    items are included based on days_until_stock_out, use review_urgent_order_requirements
-    first to analyze items, then generate POs for specific suppliers.
+    1. Queries the order plan with specified filters (location, supplier, category)
+    2. Leverages StockTrim's forecast engine to calculate optimal order quantities
+    3. Creates draft POs grouped by supplier
+    4. Returns PO reference numbers and summary information
+
+    ## Common Use Cases
+
+    - **Automated Weekly Reordering**: Generate POs for all suppliers with urgent items
+    - **Supplier-Specific Orders**: Filter by `supplier_codes` to create POs for specific vendors
+    - **Location-Based Purchasing**: Use `location_codes` for warehouse-specific orders
+    - **Post-Review Generation**: After running `review_urgent_order_requirements`, generate POs
+      for approved suppliers
+
+    ## Best Practices
+
+    1. **Review First**: Run `review_urgent_order_requirements` first to see what will be ordered
+    2. **Use Supplier Filters**: Generate POs for specific suppliers after review
+    3. **Check StockTrim UI**: Always review draft POs before approving
+    4. **Monitor Costs**: Review `total_estimated_cost` from review tool before generating
+
+    ## Important Notes
+
+    - **Draft Status**: Generated POs are in Draft status and require manual approval
+    - **days_threshold Note**: While accepted for API consistency, the V2 API uses StockTrim's
+      internal urgency logic. For precise control, use `review_urgent_order_requirements` first.
+    - **No Undo**: Once created, POs must be deleted manually if incorrect. Review carefully!
 
     Args:
         request: Request with filters for PO generation
         context: Server context with StockTrimClient
 
     Returns:
-        GeneratePurchaseOrdersResponse with created PO details
+        GeneratePurchaseOrdersResponse with created PO details, including:
+        - List of generated POs with reference numbers
+        - Supplier information per PO
+        - Item counts per PO
+        - Total PO count
 
     Example:
         Request: {
@@ -471,10 +530,22 @@ async def generate_purchase_orders_from_urgent_items(
                     "supplier_name": "Acme Supplies",
                     "item_count": 5,
                     "status": "Draft"
+                },
+                {
+                    "reference_number": "PO-2024-002",
+                    "supplier_code": "SUP-002",
+                    "supplier_name": "Global Parts",
+                    "item_count": 3,
+                    "status": "Draft"
                 }
             ],
-            "total_count": 1
+            "total_count": 2
         }
+
+    See Also:
+        - Complete workflow: docs/mcp-server/examples.md#workflow-1-automated-inventory-reordering
+        - `review_urgent_order_requirements`: Review items before generating POs
+        - `forecasts_update_and_monitor`: Ensure forecasts are current
     """
     return await _generate_purchase_orders_from_urgent_items_impl(request, ctx)
 
