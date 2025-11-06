@@ -54,7 +54,7 @@ class TestPurchaseOrderUpsert:
             "supplier": {"supplierName": "Test Supplier", "supplierCode": "SUP-001"},
             "purchaseOrderLineItems": [],
             "orderDate": "2025-01-01T00:00:00Z",
-            "status": 0,  # Draft
+            "status": "Draft",  # String value
         }
 
         with patch("httpx.AsyncClient.request") as mock_request:
@@ -82,7 +82,7 @@ class TestPurchaseOrderUpsert:
             "supplier": {"supplierName": "Test Supplier", "supplierCode": "SUP-001"},
             "purchaseOrderLineItems": [],
             "orderDate": "2025-01-01T00:00:00Z",
-            "status": 0,  # Draft
+            "status": "Draft",  # String value
         }
 
         with patch("httpx.AsyncClient.request") as mock_request:
@@ -157,7 +157,7 @@ class TestPurchaseOrderUpsert:
             "supplier": {"supplierName": "Test Supplier", "supplierCode": "SUP-001"},
             "purchaseOrderLineItems": [],
             "orderDate": "2025-01-15T12:00:00Z",  # Existing date preserved
-            "status": 0,
+            "status": "Draft",  # String value
         }
 
         with patch("httpx.AsyncClient.request") as mock_request:
@@ -197,19 +197,19 @@ class TestPurchaseOrderUpsert:
 
 
 class TestPurchaseOrderStatusEnum:
-    """Test purchase order status enum handles both integers and strings."""
+    """Test purchase order status enum handles string values."""
 
     @pytest.mark.asyncio
-    async def test_status_handles_integer_values(self, mock_api_credentials):
-        """Test that status enum can handle integer values from API."""
-        # Mock response with integer status
+    async def test_status_handles_string_values(self, mock_api_credentials):
+        """Test that status enum can handle string values from API."""
+        # Mock response with string status
         mock_response_data = {
             "id": 12347,
             "clientReferenceNumber": "PO-TEST-006",
             "supplier": {"supplierName": "Test Supplier", "supplierCode": "SUP-001"},
             "purchaseOrderLineItems": [],
             "orderDate": "2025-01-01T00:00:00Z",
-            "status": 0,  # Integer value (0 = Draft)
+            "status": "Draft",  # String value
         }
 
         with patch("httpx.AsyncClient.request") as mock_request:
