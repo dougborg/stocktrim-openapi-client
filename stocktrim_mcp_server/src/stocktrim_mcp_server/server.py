@@ -122,17 +122,211 @@ mcp = FastMCP(
     version=__version__,
     lifespan=lifespan,
     instructions="""
-    StockTrim MCP Server provides tools for interacting with StockTrim Inventory Management.
+StockTrim MCP Server - Inventory Management for AI Assistants
 
-    Available capabilities:
-    - Product management (search, get, create, delete)
-    - Customer management (get, list, ensure exists)
-    - Supplier management (get, create, delete)
-    - Order management (sales and purchase orders)
-    - Inventory management (check levels, set stock)
+## Overview
 
-    All tools require STOCKTRIM_API_AUTH_ID and STOCKTRIM_API_AUTH_SIGNATURE
-    environment variables to be set.
+This server provides comprehensive tools for managing StockTrim inventory, including
+products, customers, suppliers, purchase orders, sales orders, and stock levels.
+The server includes both foundational CRUD tools and high-level workflow tools for
+common inventory management tasks.
+
+## Authentication
+
+All API calls require environment variables:
+- STOCKTRIM_API_AUTH_ID: Your StockTrim API authentication ID
+- STOCKTRIM_API_AUTH_SIGNATURE: Your StockTrim API signature
+
+Authentication is handled automatically by the server.
+
+## Tool Categories
+
+### Foundation Tools (Direct API Access)
+Basic CRUD operations for direct data manipulation:
+
+**Products**: get_product, search_products, list_products, create_products, delete_products
+**Customers**: get_customer, list_customers, create_customers
+**Suppliers**: get_supplier, list_suppliers, create_suppliers
+**Inventory**: get_inventory, set_inventory
+**Orders**: create_sales_order, get_sales_orders, delete_sales_orders,
+           get_purchase_order, list_purchase_orders, create_purchase_order, delete_purchase_order
+**Locations**: list_locations, create_location
+**Planning**: run_order_plan, run_forecast
+**BOM**: list_boms, create_bom
+
+### Workflow Tools (High-Level Operations)
+Intent-based tools that combine multiple operations:
+
+**Forecast Management**:
+- manage_forecast_group: Manage forecast groupings (API limitation note included)
+- update_forecast_settings: Update product forecast parameters (lead time, safety stock, service level)
+- forecasts_update_and_monitor: Trigger forecast recalculation with progress monitoring
+- forecasts_get_for_products: Query forecast data with markdown reports
+
+**Urgent Order Management**:
+- review_urgent_order_requirements: Identify items approaching stockout, grouped by supplier
+- generate_purchase_orders_from_urgent_items: Auto-generate draft POs from order plan
+
+**Product Configuration**:
+- configure_product: Update product settings (discontinue status, forecast configuration)
+
+**Supplier Onboarding**:
+- create_supplier_with_products: Onboard new supplier with product mappings in one operation
+
+## Common Workflows
+
+### 1. Inventory Reordering
+**Goal**: Identify and reorder low-stock items
+
+**Approach A - Automated (Recommended)**:
+1. review_urgent_order_requirements(days_threshold=30) → Get items grouped by supplier
+2. Review the suggested items and quantities
+3. generate_purchase_orders_from_urgent_items(supplier_codes=[...]) → Create draft POs
+4. Review draft POs in StockTrim UI before approving
+
+**Approach B - Manual**:
+1. list_products → Get all products
+2. get_inventory → Check stock levels
+3. For low-stock items: create_purchase_order with appropriate quantities
+
+### 2. Forecast Management
+**Goal**: Update forecasts and review predictions
+
+**Steps**:
+1. forecasts_update_and_monitor(wait_for_completion=True) → Trigger calculation
+2. Wait for completion (tool monitors progress automatically)
+3. forecasts_get_for_products(category="Widgets", max_results=20) → Review forecasts
+4. For products with unexpected forecasts: update_forecast_settings to adjust parameters
+
+### 3. New Supplier Onboarding
+**Goal**: Add supplier and map their products
+
+**Approach A - Workflow Tool**:
+1. create_supplier_with_products({
+     supplier_code: "SUP-NEW",
+     supplier_name: "New Supplier Inc",
+     product_mappings: [{product_code: "WIDGET-001", supplier_product_code: "SUP-SKU-001", cost_price: 15.50}]
+   })
+
+**Approach B - Step by Step**:
+1. create_suppliers([{code: "SUP-NEW", name: "New Supplier Inc"}])
+2. For each product: Update product with supplier mapping
+
+### 4. Product Configuration
+**Goal**: Discontinue product or adjust forecast settings
+
+**Steps**:
+1. configure_product({
+     product_code: "WIDGET-001",
+     discontinue: True,
+     configure_forecast: False  # Disable forecasting for discontinued product
+   })
+
+### 5. Customer Order Fulfillment
+**Goal**: Process customer order and update inventory
+
+**Steps**:
+1. get_customer("CUST-001") → Verify customer exists
+2. get_product("WIDGET-001") → Verify product exists and get details
+3. get_inventory → Check if sufficient stock available
+4. If in stock: create_sales_order({...})
+5. After order ships: set_inventory to deduct stock
+
+## Best Practices
+
+### When to Use Workflow Tools vs Foundation Tools
+
+**Use Workflow Tools When**:
+- You need to accomplish a business goal (reorder stock, onboard supplier, configure forecasts)
+- You want to combine multiple operations atomically
+- You need formatted reports or progress monitoring
+- You're working with forecast data or urgent reordering
+
+**Use Foundation Tools When**:
+- You need direct CRUD access to specific entities
+- You're building custom workflows not covered by workflow tools
+- You need maximum flexibility and control
+- You're integrating with external systems
+
+### Error Handling Patterns
+
+**None Returns**:
+- get_product, get_customer, get_supplier return None when not found
+- This is NOT an error - check for None before proceeding
+- Example: `if product is None: # handle not found`
+
+**Exceptions**:
+- ValueError: Invalid input (empty codes, negative quantities)
+- Exception: API failures, authentication errors, network issues
+- Always wrap operations in try/catch for production use
+
+**Validation**:
+- Pydantic validates all inputs automatically
+- Required fields will fail with clear error messages
+- Type coercion happens automatically where safe
+
+### Data Flow Patterns
+
+**1. Verify Before Operate**:
+```
+product = get_product("WIDGET-001")
+if product:
+    set_inventory({product_id: product.id, quantity: 100})
+else:
+    # create product first
+```
+
+**2. Search Before Get**:
+```
+# When unsure of exact code
+results = search_products("WIDG")
+# Then get specific product
+product = get_product(results[0].code)
+```
+
+**3. Workflow Tool Composition**:
+```
+# Update forecasts, then review urgent items
+forecasts_update_and_monitor(wait_for_completion=True)
+urgent_items = review_urgent_order_requirements(days_threshold=14)
+# Review and generate POs for specific suppliers
+generate_purchase_orders_from_urgent_items(supplier_codes=["SUP-001"])
+```
+
+## Observability
+
+All tools are automatically instrumented with structured logging:
+- Tool invocations logged with parameters
+- Execution time tracked (duration_ms)
+- Success/failure status recorded
+- Errors logged with full context
+
+Set LOG_FORMAT=json for machine-readable logs in production.
+Set LOG_LEVEL=DEBUG to see service-layer operations.
+
+## Rate Limiting & Performance
+
+- List operations return limited results - check total_count in responses
+- Batch operations (create_products, create_customers) are more efficient than loops
+- Forecast calculations can take minutes - use forecasts_update_and_monitor for progress
+- Order plan queries are cached - re-run forecasts if data seems stale
+
+## Data Validation
+
+All request models use Pydantic validation:
+- Type safety enforced
+- Required fields validated
+- Ranges checked (e.g., quantity > 0)
+- Date formats validated (ISO 8601)
+
+See individual tool documentation for specific field requirements.
+
+## Need Help?
+
+- Tool Documentation: See docs/mcp-server/tools.md for detailed tool reference
+- Logging Guide: See docs/mcp-server/logging.md for observability features
+- Examples: See docs/mcp-server/examples.md for complete workflow examples
+- Issues: Report bugs at https://github.com/dougborg/stocktrim-openapi-client/issues
     """,
 )
 

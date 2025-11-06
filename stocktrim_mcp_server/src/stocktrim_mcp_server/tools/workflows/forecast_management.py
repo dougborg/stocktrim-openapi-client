@@ -16,6 +16,7 @@ from pydantic import BaseModel, Field
 from stocktrim_mcp_server.dependencies import get_services
 from stocktrim_mcp_server.logging_config import get_logger
 from stocktrim_mcp_server.observability import observe_tool
+from stocktrim_mcp_server.templates import format_template, load_template
 from stocktrim_public_api_client.client_types import UNSET
 from stocktrim_public_api_client.generated.models.order_plan_filter_criteria import (
     OrderPlanFilterCriteria,
@@ -395,14 +396,7 @@ async def forecasts_update_and_monitor(
         await client.forecasting.run_calculations()
 
         if not request.wait_for_completion:
-            return (
-                "# Forecast Update Status\n\n"
-                "**Status**: Triggered\n\n"
-                "Forecast calculation started in the background.\n\n"
-                "## Next Steps\n"
-                "- Use this tool again with wait_for_completion=true to monitor progress\n"
-                "- Check back in a few minutes for updated forecasts\n"
-            )
+            return load_template("forecast_triggered")
 
         # Monitor progress
         start_time = time.time()
@@ -434,16 +428,10 @@ async def forecasts_update_and_monitor(
                     elapsed_seconds=round(elapsed, 1),
                     final_message=status.status_message,
                 )
-                return (
-                    f"# Forecast Update Status\n\n"
-                    f"**Status**: ✅ Complete\n\n"
-                    f"**Time Elapsed**: {elapsed:.1f} seconds\n\n"
-                    f"**Progress**: 100%\n\n"
-                    f"{status.status_message}\n\n"
-                    f"## Next Steps\n"
-                    f"- Use `forecasts_get_for_products` to review updated forecasts\n"
-                    f"- Use `review_urgent_order_requirements` to generate purchase orders\n"
-                    f"- Check specific products or categories for forecast accuracy\n"
+                return format_template(
+                    "forecast_complete",
+                    elapsed=elapsed,
+                    status_message=status.status_message or "Calculation complete",
                 )
 
             # Check timeout
@@ -453,18 +441,12 @@ async def forecasts_update_and_monitor(
                     elapsed_seconds=round(elapsed, 1),
                     last_percentage=current_percentage,
                 )
-                return (
-                    f"# Forecast Update Status\n\n"
-                    f"**Status**: ⚠️ Timeout\n\n"
-                    f"**Time Elapsed**: {elapsed:.1f} seconds\n\n"
-                    f"**Progress**: {current_percentage}%\n\n"
-                    f"The forecast calculation did not complete within {request.timeout_seconds} seconds.\n"
-                    f"The calculation is still running in the background.\n\n"
-                    f"**Last Status**: {status.status_message}\n\n"
-                    f"## Next Steps\n"
-                    f"- Wait a few minutes and check again with wait_for_completion=false\n"
-                    f"- Use `forecasts_get_for_products` to see if any forecasts were updated\n"
-                    f"- Consider increasing timeout_seconds for future operations\n"
+                return format_template(
+                    "forecast_timeout",
+                    elapsed=elapsed,
+                    current_percentage=current_percentage,
+                    timeout_seconds=request.timeout_seconds,
+                    status_message=status.status_message or "Processing...",
                 )
 
             # Wait before next poll
@@ -474,16 +456,7 @@ async def forecasts_update_and_monitor(
         logger.error(
             "forecast_update_failed", error=str(e), error_type=type(e).__name__
         )
-        return (
-            f"# Forecast Update Status\n\n"
-            f"**Status**: ❌ Failed\n\n"
-            f"**Error**: {e}\n\n"
-            f"## Troubleshooting\n"
-            f"- Verify API credentials are valid\n"
-            f"- Check that products have sales history data\n"
-            f"- Ensure no other forecast calculations are running\n"
-            f"- Try again in a few minutes\n"
-        )
+        return format_template("forecast_failed", error=str(e))
 
 
 # ============================================================================
@@ -628,13 +601,7 @@ async def forecasts_get_for_products(
         report_lines.append(f"**Sorted by**: {request.sort_by}\n")
 
         if not limited_items:
-            report_lines.append(
-                "\nNo forecast data found matching your criteria.\n\n"
-                "## Troubleshooting\n"
-                "- Try different filters or remove some filters\n"
-                "- Ensure products have sales history\n"
-                "- Run `forecasts_update_and_monitor` to calculate new forecasts\n"
-            )
+            report_lines.append(load_template("forecast_query_empty"))
             return "\n".join(report_lines)
 
         # Add summary statistics
@@ -737,15 +704,7 @@ async def forecasts_get_for_products(
 
     except Exception as e:
         logger.error("forecast_query_failed", error=str(e), error_type=type(e).__name__)
-        return (
-            f"# Forecast Data Query Failed\n\n"
-            f"**Error**: {e}\n\n"
-            f"## Troubleshooting\n"
-            f"- Verify filters are valid (location codes, supplier codes, categories)\n"
-            f"- Check that forecasts have been calculated recently\n"
-            f"- Run `forecasts_update_and_monitor` to ensure forecasts are current\n"
-            f"- Try querying without filters to see if any data exists\n"
-        )
+        return format_template("forecast_query_failed", error=str(e))
 
 
 # ============================================================================
