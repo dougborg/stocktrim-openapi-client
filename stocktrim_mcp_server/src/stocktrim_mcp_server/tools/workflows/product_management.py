@@ -6,18 +6,18 @@ such as discontinuing products and updating forecast configurations.
 
 from __future__ import annotations
 
-import logging
-
 from fastmcp import Context, FastMCP
 from pydantic import BaseModel, Field
 
 from stocktrim_mcp_server.dependencies import get_services
+from stocktrim_mcp_server.logging_config import get_logger
+from stocktrim_mcp_server.observability import observe_tool
 from stocktrim_public_api_client.client_types import UNSET
 from stocktrim_public_api_client.generated.models.products_request_dto import (
     ProductsRequestDto,
 )
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 # ============================================================================
 # Tool: configure_product
@@ -115,8 +115,9 @@ async def _configure_product_impl(
         raise
 
 
+@observe_tool
 async def configure_product(
-    request: ConfigureProductRequest, context: Context
+    request: ConfigureProductRequest, ctx: Context
 ) -> ConfigureProductResponse:
     """Configure product settings such as discontinue status and forecast configuration.
 
@@ -146,7 +147,7 @@ async def configure_product(
             "message": "Successfully configured product WIDGET-001"
         }
     """
-    return await _configure_product_impl(request, context)
+    return await _configure_product_impl(request, ctx)
 
 
 # ============================================================================

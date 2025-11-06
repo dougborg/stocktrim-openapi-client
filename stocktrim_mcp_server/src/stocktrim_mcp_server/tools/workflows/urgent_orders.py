@@ -6,19 +6,20 @@ based on forecast data and automatically generating purchase orders.
 
 from __future__ import annotations
 
-import logging
 from collections import defaultdict
 
 from fastmcp import Context, FastMCP
 from pydantic import BaseModel, Field
 
 from stocktrim_mcp_server.dependencies import get_services
+from stocktrim_mcp_server.logging_config import get_logger
+from stocktrim_mcp_server.observability import observe_tool
 from stocktrim_public_api_client.client_types import UNSET
 from stocktrim_public_api_client.generated.models.order_plan_filter_criteria_dto import (
     OrderPlanFilterCriteriaDto,
 )
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 # ============================================================================
 # Tool 1: review_urgent_order_requirements
@@ -264,8 +265,9 @@ async def _review_urgent_order_requirements_impl(
         raise
 
 
+@observe_tool
 async def review_urgent_order_requirements(
-    request: ReviewUrgentOrdersRequest, context: Context
+    request: ReviewUrgentOrdersRequest, ctx: Context
 ) -> ReviewUrgentOrdersResponse:
     """Review items that need urgent reordering based on forecast data.
 
@@ -302,7 +304,7 @@ async def review_urgent_order_requirements(
             "total_estimated_cost": 1250.00
         }
     """
-    return await _review_urgent_order_requirements_impl(request, context)
+    return await _review_urgent_order_requirements_impl(request, ctx)
 
 
 # ============================================================================
@@ -428,8 +430,9 @@ async def _generate_purchase_orders_from_urgent_items_impl(
         raise
 
 
+@observe_tool
 async def generate_purchase_orders_from_urgent_items(
-    request: GeneratePurchaseOrdersRequest, context: Context
+    request: GeneratePurchaseOrdersRequest, ctx: Context
 ) -> GeneratePurchaseOrdersResponse:
     """Generate draft purchase orders for urgent items based on forecast recommendations.
 
@@ -473,7 +476,7 @@ async def generate_purchase_orders_from_urgent_items(
             "total_count": 1
         }
     """
-    return await _generate_purchase_orders_from_urgent_items_impl(request, context)
+    return await _generate_purchase_orders_from_urgent_items_impl(request, ctx)
 
 
 # ============================================================================
