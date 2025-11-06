@@ -59,10 +59,14 @@ class SalesOrders(Base):
         """Create a new sales order using the idempotent bulk endpoint.
 
         This method uses PUT /SalesOrdersBulk which is idempotent and safer for retries.
-        It performs a create or update based on ExternalReferenceId.
+        It performs a create or update based on the `external_reference_id` field of
+        the line item (`SalesOrderRequestDto`). The bulk request does not include an
+        external reference ID at the header level; the API uses the value from the
+        line item to determine whether to create or update.
 
         Args:
-            order: Sales order data to create.
+            order: Sales order data to create. Include `external_reference_id` for
+                idempotent behavior.
 
         Returns:
             Created SalesOrderResponseDto object.

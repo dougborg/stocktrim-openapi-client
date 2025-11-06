@@ -119,7 +119,7 @@ from datetime import datetime
 from stocktrim_public_api_client.generated.models import SalesOrderRequestDto
 
 async with StockTrimClient() as client:
-    # Using the helper method (recommended - uses idempotent bulk endpoint)
+    # Using the helper method (recommended - uses idempotent bulk endpoint).
     order = SalesOrderRequestDto(
         product_id="WIDGET-001",
         order_date=datetime.now(),
