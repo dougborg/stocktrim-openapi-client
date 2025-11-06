@@ -1,7 +1,7 @@
 """Tests for observability decorators."""
 
-import time
-from unittest.mock import AsyncMock, Mock
+import asyncio
+from unittest.mock import Mock
 
 import pytest
 
@@ -40,8 +40,7 @@ class TestObserveTool:
 
         @observe_tool
         async def slow_tool(duration: float, ctx: Mock) -> str:
-            await AsyncMock(return_value=None)()
-            time.sleep(duration)
+            await asyncio.sleep(duration)
             return "done"
 
         result = await slow_tool(0.01, ctx=Mock())
@@ -137,8 +136,7 @@ class TestObserveService:
         class TestService:
             @observe_service("slow_operation")
             async def slow_operation(self, duration: float) -> str:
-                await AsyncMock(return_value=None)()
-                time.sleep(duration)
+                await asyncio.sleep(duration)
                 return "completed"
 
         service = TestService()
