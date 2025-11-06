@@ -17,15 +17,26 @@ from stocktrim_public_api_client.generated.models.products_response_dto import (
 )
 
 
+@pytest.fixture
+def mock_supplier_onboarding_context(mock_context):
+    """Extend mock_context with suppliers, products services and client."""
+    services = mock_context.request_context.lifespan_context
+    services.suppliers = AsyncMock()
+    services.products = AsyncMock()
+    services.client = AsyncMock()
+    services.client.products = AsyncMock()
+    return mock_context
+
+
 @pytest.mark.asyncio
 async def test_create_supplier_with_products_success(
-    mock_context, sample_product, sample_supplier
+    mock_supplier_onboarding_context, sample_product, sample_supplier
 ):
     """Test successfully creating a supplier with product mappings."""
     # Setup
-    mock_client = mock_context.request_context.lifespan_context.client
-    mock_client.suppliers.create_one.return_value = sample_supplier
-    mock_client.products.find_by_code.return_value = sample_product
+    services = mock_supplier_onboarding_context.request_context.lifespan_context
+    services.suppliers.create.return_value = sample_supplier
+    services.products.get_by_code.return_value = sample_product
 
     updated_product = ProductsResponseDto(
         product_id=sample_product.product_id,
@@ -39,7 +50,7 @@ async def test_create_supplier_with_products_success(
             )
         ],
     )
-    mock_client.products.create.return_value = updated_product
+    services.client.products.create.return_value = updated_product
 
     # Execute
     request = CreateSupplierWithProductsRequest(
@@ -54,31 +65,33 @@ async def test_create_supplier_with_products_success(
             )
         ],
     )
-    response = await create_supplier_with_products(request, mock_context)
+    response = await create_supplier_with_products(
+        request, mock_supplier_onboarding_context
+    )
 
     # Verify
     assert response.supplier_code == "SUP-001"
     assert response.supplier_name == "Test Supplier"
-    assert response.supplier_id == "sup-456"
+    assert response.supplier_id == "456"  # sample_supplier has id=456
     assert response.mappings_attempted == 1
     assert response.mappings_successful == 1
     assert len(response.mapping_details) == 1
     assert response.mapping_details[0].success is True
     assert "created successfully" in response.message
 
-    mock_client.suppliers.create_one.assert_called_once()
-    mock_client.products.find_by_code.assert_called_once_with("WIDGET-001")
-    mock_client.products.create.assert_called_once()
+    services.suppliers.create.assert_called_once()
+    services.products.get_by_code.assert_called_once_with("WIDGET-001")
+    services.client.products.create.assert_called_once()
 
 
 @pytest.mark.asyncio
 async def test_create_supplier_with_products_multiple_mappings(
-    mock_context, sample_supplier
+    mock_supplier_onboarding_context, sample_supplier
 ):
     """Test creating supplier with multiple product mappings."""
     # Setup
-    mock_client = mock_context.request_context.lifespan_context.client
-    mock_client.suppliers.create_one.return_value = sample_supplier
+    services = mock_supplier_onboarding_context.request_context.lifespan_context
+    services.suppliers.create.return_value = sample_supplier
 
     # Create two different products
     product1 = ProductsResponseDto(
@@ -92,16 +105,16 @@ async def test_create_supplier_with_products_multiple_mappings(
         suppliers=[],
     )
 
-    # Mock find_by_code to return different products
-    async def mock_find_by_code(code):
+    # Mock get_by_code to return different products
+    async def mock_get_by_code(code):
         if code == "WIDGET-001":
             return product1
         elif code == "WIDGET-002":
             return product2
         return None
 
-    mock_client.products.find_by_code = AsyncMock(side_effect=mock_find_by_code)
-    mock_client.products.create.return_value = ProductsResponseDto(
+    services.products.get_by_code = AsyncMock(side_effect=mock_get_by_code)
+    services.client.products.create.return_value = ProductsResponseDto(
         product_id="prod-123", product_code_readable="WIDGET-001"
     )
 
@@ -122,7 +135,9 @@ async def test_create_supplier_with_products_multiple_mappings(
             ),
         ],
     )
-    response = await create_supplier_with_products(request, mock_context)
+    response = await create_supplier_with_products(
+        request, mock_supplier_onboarding_context
+    )
 
     # Verify
     assert response.mappings_attempted == 2
@@ -132,12 +147,12 @@ async def test_create_supplier_with_products_multiple_mappings(
 
 @pytest.mark.asyncio
 async def test_create_supplier_with_products_partial_failure(
-    mock_context, sample_supplier
+    mock_supplier_onboarding_context, sample_supplier
 ):
     """Test handling when some product mappings fail."""
     # Setup
-    mock_client = mock_context.request_context.lifespan_context.client
-    mock_client.suppliers.create_one.return_value = sample_supplier
+    services = mock_supplier_onboarding_context.request_context.lifespan_context
+    services.suppliers.create.return_value = sample_supplier
 
     # One product exists, one doesn't
     product1 = ProductsResponseDto(
@@ -146,13 +161,13 @@ async def test_create_supplier_with_products_partial_failure(
         suppliers=[],
     )
 
-    async def mock_find_by_code(code):
+    async def mock_get_by_code(code):
         if code == "WIDGET-001":
             return product1
         return None  # WIDGET-999 doesn't exist
 
-    mock_client.products.find_by_code = AsyncMock(side_effect=mock_find_by_code)
-    mock_client.products.create.return_value = product1
+    services.products.get_by_code = AsyncMock(side_effect=mock_get_by_code)
+    services.client.products.create.return_value = product1
 
     # Execute
     request = CreateSupplierWithProductsRequest(
@@ -163,7 +178,9 @@ async def test_create_supplier_with_products_partial_failure(
             SupplierProductMapping(product_code="WIDGET-999"),  # Doesn't exist
         ],
     )
-    response = await create_supplier_with_products(request, mock_context)
+    response = await create_supplier_with_products(
+        request, mock_supplier_onboarding_context
+    )
 
     # Verify
     assert response.mappings_attempted == 2
@@ -176,11 +193,13 @@ async def test_create_supplier_with_products_partial_failure(
 
 
 @pytest.mark.asyncio
-async def test_create_supplier_with_products_supplier_creation_fails(mock_context):
+async def test_create_supplier_with_products_supplier_creation_fails(
+    mock_supplier_onboarding_context,
+):
     """Test that product mappings are not attempted if supplier creation fails."""
     # Setup
-    mock_client = mock_context.request_context.lifespan_context.client
-    mock_client.suppliers.create_one.return_value = None  # Supplier creation failed
+    services = mock_supplier_onboarding_context.request_context.lifespan_context
+    services.suppliers.create.return_value = None  # Supplier creation failed
 
     # Execute & Verify
     request = CreateSupplierWithProductsRequest(
@@ -192,19 +211,21 @@ async def test_create_supplier_with_products_supplier_creation_fails(mock_contex
     )
 
     with pytest.raises(ValueError, match="Failed to create supplier"):
-        await create_supplier_with_products(request, mock_context)
+        await create_supplier_with_products(request, mock_supplier_onboarding_context)
 
     # Verify product operations were not attempted
-    mock_client.products.find_by_code.assert_not_called()
-    mock_client.products.create.assert_not_called()
+    services.products.get_by_code.assert_not_called()
+    services.client.products.create.assert_not_called()
 
 
 @pytest.mark.asyncio
-async def test_create_supplier_with_products_no_mappings(mock_context, sample_supplier):
+async def test_create_supplier_with_products_no_mappings(
+    mock_supplier_onboarding_context, sample_supplier
+):
     """Test creating supplier with no product mappings."""
     # Setup
-    mock_client = mock_context.request_context.lifespan_context.client
-    mock_client.suppliers.create_one.return_value = sample_supplier
+    services = mock_supplier_onboarding_context.request_context.lifespan_context
+    services.suppliers.create.return_value = sample_supplier
 
     # Execute
     request = CreateSupplierWithProductsRequest(
@@ -212,7 +233,9 @@ async def test_create_supplier_with_products_no_mappings(mock_context, sample_su
         supplier_name="Test Supplier",
         product_mappings=[],
     )
-    response = await create_supplier_with_products(request, mock_context)
+    response = await create_supplier_with_products(
+        request, mock_supplier_onboarding_context
+    )
 
     # Verify
     assert response.supplier_code == "SUP-001"
@@ -223,12 +246,12 @@ async def test_create_supplier_with_products_no_mappings(mock_context, sample_su
 
 @pytest.mark.asyncio
 async def test_create_supplier_with_products_existing_suppliers(
-    mock_context, sample_supplier
+    mock_supplier_onboarding_context, sample_supplier
 ):
     """Test that new supplier is added to existing suppliers list."""
     # Setup
-    mock_client = mock_context.request_context.lifespan_context.client
-    mock_client.suppliers.create_one.return_value = sample_supplier
+    services = mock_supplier_onboarding_context.request_context.lifespan_context
+    services.suppliers.create.return_value = sample_supplier
 
     # Product already has one supplier
     existing_supplier = ProductSupplier(
@@ -240,21 +263,21 @@ async def test_create_supplier_with_products_existing_suppliers(
         product_code_readable="WIDGET-001",
         suppliers=[existing_supplier],
     )
-    mock_client.products.find_by_code.return_value = product_with_supplier
+    services.products.get_by_code.return_value = product_with_supplier
 
     # Verify that create is called with both suppliers
     async def verify_create_call(update_data):
         # Should have both old and new supplier
         assert len(update_data.suppliers) == 2
         assert update_data.suppliers[0] == existing_supplier
-        assert update_data.suppliers[1].supplier_id == "sup-456"
+        assert update_data.suppliers[1].supplier_id == 456  # sample_supplier has id=456
         return ProductsResponseDto(
             product_id="prod-123",
             product_code_readable="WIDGET-001",
             suppliers=update_data.suppliers,
         )
 
-    mock_client.products.create = AsyncMock(side_effect=verify_create_call)
+    services.client.products.create = AsyncMock(side_effect=verify_create_call)
 
     # Execute
     request = CreateSupplierWithProductsRequest(
@@ -264,7 +287,9 @@ async def test_create_supplier_with_products_existing_suppliers(
             SupplierProductMapping(product_code="WIDGET-001"),
         ],
     )
-    response = await create_supplier_with_products(request, mock_context)
+    response = await create_supplier_with_products(
+        request, mock_supplier_onboarding_context
+    )
 
     # Verify
     assert response.mappings_successful == 1
@@ -272,20 +297,20 @@ async def test_create_supplier_with_products_existing_suppliers(
 
 @pytest.mark.asyncio
 async def test_create_supplier_with_products_mapping_api_error(
-    mock_context, sample_supplier
+    mock_supplier_onboarding_context, sample_supplier
 ):
     """Test handling when individual mapping API call fails."""
     # Setup
-    mock_client = mock_context.request_context.lifespan_context.client
-    mock_client.suppliers.create_one.return_value = sample_supplier
+    services = mock_supplier_onboarding_context.request_context.lifespan_context
+    services.suppliers.create.return_value = sample_supplier
 
     product = ProductsResponseDto(
         product_id="prod-123",
         product_code_readable="WIDGET-001",
         suppliers=[],
     )
-    mock_client.products.find_by_code.return_value = product
-    mock_client.products.create.side_effect = Exception("API Error")
+    services.products.get_by_code.return_value = product
+    services.client.products.create.side_effect = Exception("API Error")
 
     # Execute
     request = CreateSupplierWithProductsRequest(
@@ -295,7 +320,9 @@ async def test_create_supplier_with_products_mapping_api_error(
             SupplierProductMapping(product_code="WIDGET-001"),
         ],
     )
-    response = await create_supplier_with_products(request, mock_context)
+    response = await create_supplier_with_products(
+        request, mock_supplier_onboarding_context
+    )
 
     # Verify - supplier created but mapping failed
     assert response.mappings_attempted == 1

@@ -106,7 +106,7 @@ async def test_list_suppliers_returns_list(supplier_service, mock_client):
     )
     mock_client.suppliers.get_all.return_value = [supplier1, supplier2]
 
-    result = await supplier_service.list_suppliers()
+    result = await supplier_service.list_all()
 
     assert len(result) == 2
     assert result[0].supplier_code == "SUP-001"
@@ -124,7 +124,7 @@ async def test_list_suppliers_single_object_response(supplier_service, mock_clie
     )
     mock_client.suppliers.get_all.return_value = single_supplier
 
-    result = await supplier_service.list_suppliers()
+    result = await supplier_service.list_all()
 
     assert len(result) == 1
     assert result[0].supplier_code == "SUP-001"
@@ -135,7 +135,7 @@ async def test_list_suppliers_empty_list(supplier_service, mock_client):
     """Test listing when no suppliers exist."""
     mock_client.suppliers.get_all.return_value = []
 
-    result = await supplier_service.list_suppliers()
+    result = await supplier_service.list_all()
 
     assert len(result) == 0
 
@@ -160,11 +160,11 @@ async def test_list_suppliers_active_only_parameter(supplier_service, mock_clien
     mock_client.suppliers.get_all.return_value = [supplier1, supplier2]
 
     # Test with active_only=True
-    result_true = await supplier_service.list_suppliers(active_only=True)
+    result_true = await supplier_service.list_all(active_only=True)
     assert len(result_true) == 2  # No filtering occurs
 
     # Test with active_only=False
-    result_false = await supplier_service.list_suppliers(active_only=False)
+    result_false = await supplier_service.list_all(active_only=False)
     assert len(result_false) == 2  # No filtering occurs
 
     # Verify both return the same results since filtering is not implemented
