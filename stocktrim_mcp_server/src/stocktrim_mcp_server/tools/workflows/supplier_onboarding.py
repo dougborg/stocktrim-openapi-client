@@ -6,12 +6,12 @@ with their associated product mappings.
 
 from __future__ import annotations
 
-import logging
-
 from fastmcp import Context, FastMCP
 from pydantic import BaseModel, Field
 
 from stocktrim_mcp_server.dependencies import get_services
+from stocktrim_mcp_server.logging_config import get_logger
+from stocktrim_mcp_server.observability import observe_tool
 from stocktrim_public_api_client.client_types import UNSET
 from stocktrim_public_api_client.generated.models.product_supplier import (
     ProductSupplier,
@@ -20,7 +20,7 @@ from stocktrim_public_api_client.generated.models.products_request_dto import (
     ProductsRequestDto,
 )
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 # ============================================================================
 # Tool: create_supplier_with_products
@@ -227,8 +227,9 @@ async def _create_supplier_with_products_impl(
         raise
 
 
+@observe_tool
 async def create_supplier_with_products(
-    request: CreateSupplierWithProductsRequest, context: Context
+    request: CreateSupplierWithProductsRequest, ctx: Context
 ) -> CreateSupplierWithProductsResponse:
     """Onboard a new supplier with product mappings.
 
@@ -281,7 +282,7 @@ async def create_supplier_with_products(
             "message": "Supplier 'SUP-NEW' created successfully. 2/2 product mappings completed."
         }
     """
-    return await _create_supplier_with_products_impl(request, context)
+    return await _create_supplier_with_products_impl(request, ctx)
 
 
 # ============================================================================
