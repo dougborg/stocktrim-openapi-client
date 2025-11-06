@@ -8,13 +8,18 @@ from stocktrim_public_api_client.client_types import UNSET, Unset
 from stocktrim_public_api_client.generated.api.sales_orders import (
     delete_api_sales_orders,
     get_api_sales_orders,
-    post_api_sales_orders,
+)
+from stocktrim_public_api_client.generated.api.sales_orders_bulk import (
+    put_api_sales_orders_bulk,
 )
 from stocktrim_public_api_client.generated.models.sales_order_request_dto import (
     SalesOrderRequestDto,
 )
 from stocktrim_public_api_client.generated.models.sales_order_response_dto import (
     SalesOrderResponseDto,
+)
+from stocktrim_public_api_client.generated.models.sales_order_with_line_items_request_dto import (
+    SalesOrderWithLineItemsRequestDto,
 )
 from stocktrim_public_api_client.helpers.base import Base
 from stocktrim_public_api_client.utils import unwrap
@@ -51,7 +56,10 @@ class SalesOrders(Base):
         return result if isinstance(result, list) else []  # type: ignore[return-value]
 
     async def create(self, order: SalesOrderRequestDto) -> SalesOrderResponseDto:
-        """Create a new sales order.
+        """Create a new sales order using the idempotent bulk endpoint.
+
+        This method uses PUT /SalesOrdersBulk which is idempotent and safer for retries.
+        It performs a create or update based on ExternalReferenceId.
 
         Args:
             order: Sales order data to create.
@@ -67,9 +75,18 @@ class SalesOrders(Base):
             ...     SalesOrderRequestDto(order_number="SO-001", ...)
             ... )
         """
-        response = await post_api_sales_orders.asyncio_detailed(
+        # Convert single order to bulk request with one line item
+        bulk_request = SalesOrderWithLineItemsRequestDto(
+            order_date=order.order_date,
+            location_code=order.location_code,
+            location_name=order.location_name,
+            customer_code=order.customer_code,
+            customer_name=order.customer_name,
+            sale_order_line_items=[order],
+        )
+        response = await put_api_sales_orders_bulk.asyncio_detailed(
             client=self._client,
-            body=order,
+            body=bulk_request,
         )
         return cast(SalesOrderResponseDto, unwrap(response))
 
