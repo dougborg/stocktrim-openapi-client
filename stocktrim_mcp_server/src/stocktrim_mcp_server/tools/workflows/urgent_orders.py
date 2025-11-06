@@ -13,6 +13,7 @@ from fastmcp import Context, FastMCP
 from pydantic import BaseModel, Field
 
 from stocktrim_mcp_server.dependencies import get_services
+from stocktrim_mcp_server.utils import get_status_name
 from stocktrim_public_api_client.client_types import UNSET
 from stocktrim_public_api_client.generated.models.order_plan_filter_criteria_dto import (
     OrderPlanFilterCriteriaDto,
@@ -411,7 +412,7 @@ async def _generate_purchase_orders_from_urgent_items_impl(
                 item_count=len(po.purchase_order_line_items)
                 if po.purchase_order_line_items
                 else 0,
-                status=po.status.name if po.status not in (None, UNSET) else None,
+                status=get_status_name(po.status),
             )
             po_infos.append(po_info)
 

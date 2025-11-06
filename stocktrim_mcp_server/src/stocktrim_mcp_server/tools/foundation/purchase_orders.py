@@ -9,7 +9,7 @@ from fastmcp import Context, FastMCP
 from pydantic import BaseModel, Field
 
 from stocktrim_mcp_server.dependencies import get_services
-from stocktrim_public_api_client.client_types import UNSET
+from stocktrim_mcp_server.utils import get_status_name
 
 logger = logging.getLogger(__name__)
 
@@ -70,7 +70,7 @@ async def _get_purchase_order_impl(
         reference_number=po.reference_number or "",
         supplier_code=po.supplier.supplier_code if po.supplier else None,
         supplier_name=po.supplier.supplier_name if po.supplier else None,
-        status=po.status.name if po.status not in (None, UNSET) else None,
+        status=get_status_name(po.status),
         total_cost=total_cost,
         line_items_count=(
             len(po.purchase_order_line_items) if po.purchase_order_line_items else 0
@@ -156,7 +156,7 @@ async def _list_purchase_orders_impl(
                 reference_number=po.reference_number or "",
                 supplier_code=po.supplier.supplier_code if po.supplier else None,
                 supplier_name=po.supplier.supplier_name if po.supplier else None,
-                status=po.status.name if po.status not in (None, UNSET) else None,
+                status=get_status_name(po.status),
                 total_cost=total_cost,
                 line_items_count=(
                     len(po.purchase_order_line_items)
@@ -300,9 +300,7 @@ async def _create_purchase_order_impl(
         supplier_name=(
             created_po.supplier.supplier_name if created_po.supplier else None
         ),
-        status=created_po.status.name
-        if created_po.status not in (None, UNSET)
-        else None,
+        status=get_status_name(created_po.status),
         total_cost=total_cost,
         line_items_count=(
             len(created_po.purchase_order_line_items)
