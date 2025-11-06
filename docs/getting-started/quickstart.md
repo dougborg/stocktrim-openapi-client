@@ -115,20 +115,23 @@ async with StockTrimClient() as client:
 ### Create a Sales Order
 
 ```python
-from stocktrim_public_api_client.generated.api.sales_orders import post_api_sales_orders
+from datetime import datetime
 from stocktrim_public_api_client.generated.models import SalesOrderRequestDto
 
 async with StockTrimClient() as client:
+    # Using the helper method (recommended - uses idempotent bulk endpoint).
     order = SalesOrderRequestDto(
-        order_number="SO-001",
+        product_id="WIDGET-001",
+        order_date=datetime.now(),
+        quantity=10.0,
+        external_reference_id="SO-001",
         customer_code="CUST-001",
-        # ... other fields
+        customer_name="Customer Name",
     )
 
-    response = await post_api_sales_orders.asyncio_detailed(
-        client=client,
-        body=[order]
-    )
+    # The helper automatically uses the idempotent PUT /SalesOrdersBulk endpoint
+    created_order = await client.sales_orders.create(order)
+    print(f"Created order: {created_order.id}")
 ```
 
 ## Error Handling
