@@ -2,6 +2,211 @@
 
 <!-- version list -->
 
+## v0.9.0 (2025-11-06)
+
+### Chores
+
+- **release**: Mcp v0.5.0
+  ([`c2e0ec2`](https://github.com/dougborg/stocktrim-openapi-client/commit/c2e0ec2767d652d0d323cb2284069da76b9a56c9))
+
+- **release**: Mcp v0.6.0
+  ([`ccb4fce`](https://github.com/dougborg/stocktrim-openapi-client/commit/ccb4fce81f150e9bd39bf2ba576c7c6d519d4961))
+
+- **release**: Mcp v0.7.0
+  ([`cc99585`](https://github.com/dougborg/stocktrim-openapi-client/commit/cc995853f59c149465cb708c8f14ab57f05343c6))
+
+### Features
+
+- Migrate to PUT /SalesOrdersBulk endpoint for idempotent operations
+  ([#71](https://github.com/dougborg/stocktrim-openapi-client/pull/71),
+  [`8e458ba`](https://github.com/dougborg/stocktrim-openapi-client/commit/8e458bae815932285869fc028f4cba606becc0a8))
+
+- **mcp**: Migrate customers tool to service layer pattern
+  ([#62](https://github.com/dougborg/stocktrim-openapi-client/pull/62),
+  [`4ed5d64`](https://github.com/dougborg/stocktrim-openapi-client/commit/4ed5d6486d4f3561106d14fe95b1c5bd30d6df6a))
+
+feat: migrate customers tool to service layer (#57)
+
+Implements service layer pattern for customers tool, separating business logic from tool
+layer.
+
+## Changes
+
+**New Service Layer** - Add `stocktrim_mcp_server/services/customers.py`: -
+`CustomerService` class extending `BaseService` - `get_by_code()` - Get customer by code
+\- `list_all()` - List all customers - `ensure_exists()` - Ensure customer exists (get or
+create) - Comprehensive logging at INFO level for all operations - Proper validation
+using BaseService helpers
+
+**Updated Tool Layer** - Refactor `stocktrim_mcp_server/tools/foundation/customers.py`:
+\- Convert to thin wrappers calling service methods - Use `get_services()` for dependency
+injection - Keep view concerns (response formatting) in tool layer
+
+**Server Integration** - Update `stocktrim_mcp_server/context.py`: - Add
+`CustomerService` initialization - Inject via `ServerContext`
+
+**Testing** - All tests passing - Type checking passing - Pre-commit hooks passing
+
+This migration improves code organization, testability, and maintainability by
+separating business logic from presentation concerns.
+
+Closes #57 Part of #46
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+Co-Authored-By: copilot-swe-agent <noreply@github.com>
+
+- **mcp**: Migrate inventory tool to service layer pattern
+  ([#63](https://github.com/dougborg/stocktrim-openapi-client/pull/63),
+  [`71a6ecf`](https://github.com/dougborg/stocktrim-openapi-client/commit/71a6ecfa51b8bcc7eaddc18919a24a673ecf13d4))
+
+feat: migrate inventory tool to service layer (#58)
+
+Implements service layer pattern for inventory tool, separating business logic from tool
+layer.
+
+## Changes
+
+**New Service Layer** - Add `stocktrim_mcp_server/services/inventory.py`: -
+`InventoryService` class extending `BaseService` - `get_stock_level()` - Get current
+stock level for a product at a location - `set_stock_level()` - Set stock level for a
+product at a location - Comprehensive logging at INFO level for all operations - Proper
+validation using BaseService helpers - Error handling with try-catch and re-raise
+pattern
+
+**Updated Tool Layer** - Refactor `stocktrim_mcp_server/tools/foundation/inventory.py`:
+\- Convert to thin wrappers calling service methods - Use `get_services()` for dependency
+injection - Keep view concerns (response formatting) in tool layer
+
+**Server Integration** - Update `stocktrim_mcp_server/context.py`: - Add
+`InventoryService` initialization - Inject via `ServerContext`
+
+**Testing** - Add comprehensive test suite for `InventoryService` - All tests passing -
+Type checking passing - Pre-commit hooks passing
+
+This migration improves code organization, testability, and maintainability by
+separating business logic from presentation concerns.
+
+Closes #58 Part of #46
+
+- **mcp**: Migrate suppliers tool to service layer pattern
+  ([#61](https://github.com/dougborg/stocktrim-openapi-client/pull/61),
+  [`a7b3b94`](https://github.com/dougborg/stocktrim-openapi-client/commit/a7b3b94f2efabeb2917e764a1b589a0cf6c03a0f))
+
+feat(mcp): migrate suppliers tool to service layer pattern
+
+Migrates the Suppliers tool to use the service layer pattern following the Products
+service example from PR #51.
+
+## Changes
+
+### New Service Layer - Created `SupplierService` with methods: - `get_by_code()`: Get supplier by
+
+code - `list_suppliers()`: List all suppliers - `create()`: Create new supplier -
+`delete()`: Delete supplier by code
+
+### Updated Tool Layer - Refactored suppliers tools to thin wrappers using `get_services()` - Fixed
+
+field mapping to use correct DTO fields (supplier_code, supplier_name, email_address,
+primary_contact_name) - Removed non-existent fields (phone, is_active) from SupplierInfo
+model
+
+### Server Integration - Updated ServerContext to include SupplierService - Updated
+
+services/__init__.py to export SupplierService
+
+### Testing - Added comprehensive test coverage (18 tests) - All tests passing, type checking clean,
+
+linting passes
+
+Closes #56 Part of #46
+
+### Refactoring
+
+- Align service layer patterns for consistency
+  ([#68](https://github.com/dougborg/stocktrim-openapi-client/pull/68),
+  [`8750df4`](https://github.com/dougborg/stocktrim-openapi-client/commit/8750df421860d3933820662a43a763e55e230d05))
+
+Standardizes patterns across all service layer implementations to ensure consistent
+behavior and maintainability.
+
+## Changes
+
+**CustomerService:** - Change get_by_code() from try/except NotFoundError to truthy
+check pattern - Remove unused NotFoundError import - Now consistent with Products,
+Suppliers, and Purchase Orders services
+
+**SupplierService:** - Rename list_suppliers() to list_all() for consistency - Fix
+isinstance() logic to match other services (was inverted) - Update corresponding tool to
+call list_all()
+
+**SalesOrderService:** - Add existence check to delete_for_product() before deletion -
+Return (False, message) if no orders found, matching delete pattern in other services -
+Prevents unnecessary API calls for non-existent resources
+
+**Context:** - Auto-sorted imports (ruff fix)
+
+## Pattern Alignment
+
+All services now follow these consistent patterns:
+
+1. **Get Operations:** Truthy check for not-found (no exceptions) 2. **List
+   Operations:** Consistent isinstance() handling for API quirks 3. **Delete
+   Operations:** Existence check before deletion 4. **Method Naming:** list_all() for
+   listing all entities 5. **Return Types:** Consistent across all services
+
+## Testing - ✅ All 71 tests passing - ✅ Linting clean (ruff, mypy, yamllint) - ✅ No breaking changes
+
+to tool interfaces
+
+This improves code maintainability by ensuring all services follow the same patterns
+established in the Products service (reference implementation).
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+Co-authored-by: Doug Borg <dougborg@apple.com>
+
+Co-authored-by: Claude <noreply@anthropic.com>
+
+- Migrate workflow tools to use service layer
+  ([#69](https://github.com/dougborg/stocktrim-openapi-client/pull/69),
+  [`ca597b1`](https://github.com/dougborg/stocktrim-openapi-client/commit/ca597b12ae6f862ea444362f2591bc7c67d852d7))
+
+refactor: migrate workflow tools to use service layer
+
+Migrate all 4 workflow tools to use the service layer pattern instead of accessing the
+client directly. This completes Issue #48 and aligns workflow tools with the established
+service layer architecture.
+
+## Changes
+
+- **forecast_management.py**: Updated to use ProductService - **product_management.py**:
+  Updated to use ProductService - **supplier_onboarding.py**: Updated to use
+  SupplierService and ProductService
+  - **urgent_orders.py**: Updated to use ProductService (order_plan/PO v2 remain on
+    client)
+
+## Implementation Notes
+
+- All tools now use `get_services(context)` instead of accessing client directly -
+  Complex operations (product updates with DTOs) use `services.client` when needed -
+  Order plan and PO v2 operations still use client as they're not yet in service layer -
+  All 71 tests pass - Removed unused SupplierRequestDto import from
+  supplier_onboarding.py - Added missing `list_all()` method to ProductService -
+  Replaced `services._client` with public `services.client` for proper encapsulation
+
+## Impact
+
+- Improved consistency across codebase - Better separation of concerns - Easier to test
+  and maintain
+  - Sets pattern for future workflow tools
+
+Closes #48
+
+Co-authored-by: Doug Borg <dougborg@apple.com>
+
+Co-authored-by: Claude <noreply@anthropic.com>
+
 ## v0.8.0 (2025-11-05)
 
 ### Chores
