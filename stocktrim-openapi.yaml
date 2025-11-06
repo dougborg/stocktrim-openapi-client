@@ -1891,7 +1891,6 @@ components:
       - Sent
       - Received
       type: string
-      description: Purchase order status
     PurchaseOrderSupplier:
       type: object
       properties:

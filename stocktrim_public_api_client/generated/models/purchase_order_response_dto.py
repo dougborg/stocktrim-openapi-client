@@ -34,7 +34,7 @@ class PurchaseOrderResponseDto:
         reference_number (None | str | Unset):
         client_reference_number (None | str | Unset):
         location (None | PurchaseOrderLocation | Unset):
-        status (PurchaseOrderStatusDto | Unset): Purchase order status (0=Draft, 1=Approved, 2=Sent, 3=Received)
+        status (PurchaseOrderStatusDto | Unset):
     """
 
     supplier: PurchaseOrderSupplier
@@ -120,7 +120,7 @@ class PurchaseOrderResponseDto:
         else:
             location = self.location
 
-        status: int | Unset = UNSET
+        status: str | Unset = UNSET
         if not isinstance(self.status, Unset):
             status = self.status.value
 
