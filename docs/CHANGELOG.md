@@ -2,6 +2,26 @@
 
 <!-- version list -->
 
+## v0.9.2 (2025-11-06)
+
+### Bug Fixes
+
+- Update test assertions for title-case status enum values
+  ([`7840974`](https://github.com/dougborg/stocktrim-openapi-client/commit/784097493676a0c630ef0e1f09ab2471316dca7c))
+
+After PR #74 fixed PurchaseOrderStatusDto to use proper string enum with title-case
+values ("Draft", "Approved", etc.) instead of incorrect IntEnum, updated 3 test
+assertions that were expecting uppercase values.
+
+Changes: - test_purchase_orders.py: "DRAFT" → "Draft" (2 tests) - test_urgent_orders.py:
+"DRAFT" → "Draft" (1 test)
+
+All 197 tests now passing.
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+
 ## v0.9.1 (2025-11-06)
 
 ### Bug Fixes

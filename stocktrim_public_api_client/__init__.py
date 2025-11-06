@@ -5,7 +5,7 @@ A modern, pythonic StockTrim Inventory Management API client with automatic
 retries and custom authentication.
 """
 
-__version__ = "0.9.1"
+__version__ = "0.9.2"
 
 from .stocktrim_client import StockTrimClient
 from .utils import (
