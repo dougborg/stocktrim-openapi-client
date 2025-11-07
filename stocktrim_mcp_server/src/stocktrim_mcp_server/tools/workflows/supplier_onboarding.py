@@ -45,8 +45,18 @@ class CreateSupplierWithProductsRequest(BaseModel):
     supplier_code: str = Field(description="Unique supplier code")
     supplier_name: str = Field(description="Supplier name")
     is_active: bool = Field(default=True, description="Whether supplier is active")
+    email_address: str | None = Field(default=None, description="Contact email")
+    primary_contact_name: str | None = Field(default=None, description="Contact person")
+    default_lead_time: int | None = Field(
+        default=None, description="Default lead time in days"
+    )
+    street_address: str | None = Field(default=None, description="Street address")
+    city: str | None = Field(default=None, description="City")
+    state: str | None = Field(default=None, description="State/province")
+    country: str | None = Field(default=None, description="Country")
+    post_code: str | None = Field(default=None, description="Postal code")
     product_mappings: list[SupplierProductMapping] = Field(
-        description="List of products to map to this supplier"
+        default_factory=list, description="List of products to map to this supplier"
     )
 
 
@@ -76,7 +86,7 @@ class CreateSupplierWithProductsResponse(BaseModel):
 
 async def _create_supplier_with_products_impl(
     request: CreateSupplierWithProductsRequest, context: Context
-) -> CreateSupplierWithProductsResponse:
+) -> str:
     """Implementation of create_supplier_with_products tool.
 
     Args:
@@ -84,7 +94,7 @@ async def _create_supplier_with_products_impl(
         context: Server context with StockTrimClient
 
     Returns:
-        CreateSupplierWithProductsResponse with creation results
+        Markdown formatted report with creation results
 
     Raises:
         Exception: If supplier creation fails
@@ -95,10 +105,18 @@ async def _create_supplier_with_products_impl(
         # Get services from context
         services = get_services(context)
 
-        # Step 1: Create the supplier first
+        # Step 1: Create the supplier first with all fields
         created_supplier = await services.suppliers.create(
             code=request.supplier_code,
             name=request.supplier_name,
+            email=request.email_address,
+            primary_contact=request.primary_contact_name,
+            default_lead_time=request.default_lead_time,
+            street_address=request.street_address,
+            address_line_1=request.city,  # Using city as address_line_1
+            state=request.state,
+            country=request.country,
+            post_code=request.post_code,
         )
 
         if not created_supplier:
@@ -202,25 +220,99 @@ async def _create_supplier_with_products_impl(
                     f"Failed to create mapping for {mapping.product_code}: {e}"
                 )
 
-        # Build response
-        response = CreateSupplierWithProductsResponse(
-            supplier_code=request.supplier_code,
-            supplier_name=request.supplier_name,
-            supplier_id=str(created_supplier.id)
-            if created_supplier.id not in (None, UNSET)
-            else None,
-            mappings_attempted=len(request.product_mappings),
-            mappings_successful=successful_mappings,
-            mapping_details=mapping_details,
-            message=f"Supplier '{request.supplier_code}' created successfully. "
-            f"{successful_mappings}/{len(request.product_mappings)} product mappings completed.",
+        # Build markdown report
+        report_lines = [
+            "# Supplier Onboarding Complete",
+            "",
+            f"## Supplier: {request.supplier_name} ({request.supplier_code})",
+            "",
+            "**Status**: ✅ Created successfully",
+            "",
+        ]
+
+        # Add supplier details
+        if created_supplier.id not in (None, UNSET):
+            report_lines.append(f"**Supplier ID**: {created_supplier.id}")
+
+        if request.email_address:
+            report_lines.append(f"**Email**: {request.email_address}")
+
+        if request.primary_contact_name:
+            report_lines.append(f"**Primary Contact**: {request.primary_contact_name}")
+
+        if request.default_lead_time:
+            report_lines.append(
+                f"**Default Lead Time**: {request.default_lead_time} days"
+            )
+
+        # Add address if provided
+        address_parts = []
+        if request.street_address:
+            address_parts.append(request.street_address)
+        if request.city:
+            address_parts.append(request.city)
+        if request.state:
+            address_parts.append(request.state)
+        if request.post_code:
+            address_parts.append(request.post_code)
+        if request.country:
+            address_parts.append(request.country)
+
+        if address_parts:
+            report_lines.extend(["", "**Address**:", ", ".join(address_parts)])
+
+        # Add product mappings section
+        if request.product_mappings:
+            report_lines.extend(
+                [
+                    "",
+                    f"## Product Mappings: {successful_mappings}/{len(request.product_mappings)} successful",
+                    "",
+                ]
+            )
+
+            # Group by success/failure
+            successful = [m for m in mapping_details if m.success]
+            failed = [m for m in mapping_details if not m.success]
+
+            if successful:
+                report_lines.append("### ✅ Successfully Mapped:")
+                for mapping in successful:
+                    report_lines.append(f"- {mapping.product_code}")
+
+            if failed:
+                report_lines.extend(["", "### ❌ Failed Mappings:"])
+                for mapping in failed:
+                    report_lines.append(f"- {mapping.product_code}: {mapping.error}")
+
+        # Add next steps
+        report_lines.extend(
+            [
+                "",
+                "## Next Steps",
+                "",
+                "- Review and verify supplier contact information",
+            ]
         )
+
+        if successful_mappings > 0:
+            report_lines.append("- Review product cost prices and lead times")
+            report_lines.append(
+                "- Use `review_urgent_order_requirements` to check reorder needs"
+            )
+        else:
+            report_lines.append(
+                "- Use `create_products` to add products for this supplier"
+            )
+            report_lines.append("- Link existing products using product update tools")
+
+        report = "\n".join(report_lines)
 
         logger.info(
             f"Supplier onboarding complete: {request.supplier_code} "
             f"({successful_mappings}/{len(request.product_mappings)} mappings)"
         )
-        return response
+        return report
 
     except Exception as e:
         logger.error(f"Failed to create supplier {request.supplier_code}: {e}")
@@ -230,97 +322,90 @@ async def _create_supplier_with_products_impl(
 @observe_tool
 async def create_supplier_with_products(
     request: CreateSupplierWithProductsRequest, ctx: Context
-) -> CreateSupplierWithProductsResponse:
-    """Onboard a new supplier with product mappings in a single atomic operation.
+) -> str:
+    """Onboard a new supplier with complete configuration and product mappings.
 
-    This workflow tool creates a new supplier and establishes mappings between
-    the supplier and specified products, reducing complexity and API calls compared
-    to manual step-by-step onboarding.
+    This workflow tool creates a new supplier with full contact and address details,
+    then establishes mappings between the supplier and specified products. The
+    operation follows a transactional approach:
+
+    1. Create the supplier with all configuration details
+    2. If supplier creation succeeds, create product-supplier mappings
+    3. If supplier creation fails, no mappings are attempted
+
+    Individual mapping failures are logged but don't fail the entire operation,
+    allowing partial success when some products don't exist or have issues.
 
     ## How It Works
 
-    1. Creates the supplier entity first
-    2. If supplier creation succeeds, creates product-supplier mappings
-    3. If supplier creation fails, no mappings are attempted (atomic transaction)
-    4. Individual mapping failures are logged but don't fail the entire operation
+    1. Creates supplier record with contact and address information
+    2. For each product mapping:
+       - Fetches existing product details
+       - Adds supplier to product's supplier list
+       - Updates cost price if provided
+    3. Returns markdown report with detailed results
 
-    This transactional approach ensures data consistency while allowing partial
-    success when some products don't exist or have issues.
+    ## Use Cases
 
-    ## Common Use Cases
+    - **Onboard new suppliers**: Complete setup with contact details and address
+    - **Supplier relationships**: Link suppliers to their product catalog
+    - **Cost management**: Set initial cost prices during onboarding
+    - **Lead time setup**: Configure default lead times for planning
 
-    - **New Vendor Onboarding**: Add a new supplier with their full product catalog
-    - **Alternative Suppliers**: Add secondary supplier for existing products
-    - **Supplier Consolidation**: Migrate products to a new consolidated supplier
-    - **Bulk Product Mapping**: Map multiple products to a supplier at once
+    ## Typical Workflow
 
-    ## Best Practices
-
-    1. **Verify Products First**: Ensure all products exist before mapping
-    2. **Use Supplier SKU Codes**: Include `supplier_product_code` for order accuracy
-    3. **Set Cost Prices**: Provide `cost_price` for accurate cost tracking
-    4. **Check Mapping Details**: Review `mapping_details` for any failures
-    5. **Handle Partial Failures**: Not all mappings need to succeed - check the response
+    1. Create supplier with contact and address details
+    2. Link to existing products or plan to add new products
+    3. Review product mappings and costs
+    4. Use `review_urgent_order_requirements` to check reorder needs
 
     ## Advantages Over Manual Approach
 
-    - ✅ Single API operation (vs 2+ separate calls)
-    - ✅ Atomic supplier creation (all-or-nothing)
-    - ✅ Detailed success/failure tracking per product
-    - ✅ Automatic error handling and rollback
-    - ✅ Reduced complexity and code
+    **Manual Approach** (5-10 API calls):
+    - Create supplier (1 API call)
+    - For each product: fetch product, update product with supplier (2 calls x N products)
+    - No validation or error handling
+    - Results scattered across multiple responses
+
+    **Workflow Tool** (1 call):
+    - All operations in single tool invocation
+    - Automatic error handling per product
+    - Success/failure summary
+    - Actionable markdown report with next steps
 
     Args:
-        request: Request with supplier and product mapping details
-        context: Server context with StockTrimClient
+        request: Request with supplier details and optional product mappings
+        ctx: Server context with StockTrimClient
 
     Returns:
-        CreateSupplierWithProductsResponse with detailed results, including:
-        - Supplier details (code, name, ID)
-        - Mapping success counts
-        - Detailed per-product results
-        - Summary message
+        Markdown report with supplier details and mapping results
 
     Example:
         Request: {
-            "supplier_code": "SUP-NEW-001",
-            "supplier_name": "NewTech Suppliers Ltd",
-            "is_active": true,
+            "supplier_code": "SUP-NEW",
+            "supplier_name": "New Supplier Inc",
+            "email_address": "orders@newsupplier.com",
+            "primary_contact_name": "Jane Smith",
+            "default_lead_time": 14,
+            "street_address": "123 Main St",
+            "city": "Portland",
+            "state": "OR",
+            "country": "USA",
+            "post_code": "97201",
             "product_mappings": [
                 {
                     "product_code": "WIDGET-001",
-                    "supplier_product_code": "NT-WID-001",
-                    "cost_price": 14.50
-                },
-                {
-                    "product_code": "WIDGET-002",
-                    "supplier_product_code": "NT-WID-002",
-                    "cost_price": 11.00
-                },
-                {
-                    "product_code": "GADGET-001",
-                    "supplier_product_code": "NT-GAD-001",
-                    "cost_price": 24.00
+                    "supplier_product_code": "NS-WIDGET-001",
+                    "cost_price": 15.50
                 }
             ]
         }
-        Returns: {
-            "supplier_code": "SUP-NEW-001",
-            "supplier_name": "NewTech Suppliers Ltd",
-            "supplier_id": "12345",
-            "mappings_attempted": 3,
-            "mappings_successful": 3,
-            "mapping_details": [
-                {"product_code": "WIDGET-001", "success": true, "error": null},
-                {"product_code": "WIDGET-002", "success": true, "error": null},
-                {"product_code": "GADGET-001", "success": true, "error": null}
-            ],
-            "message": "Supplier 'SUP-NEW-001' created successfully. 3/3 product mappings completed."
-        }
 
     See Also:
-        - Complete workflow: docs/mcp-server/examples.md#workflow-3-new-supplier-onboarding
-        - Foundation tools: `create_suppliers`, `get_product` for manual approach
+        - `review_urgent_order_requirements`: Check reorder needs by supplier
+        - `generate_purchase_orders_from_urgent_items`: Generate POs for supplier
+        - `list_suppliers`: View all suppliers
+        - `get_supplier`: Get supplier details
     """
     return await _create_supplier_with_products_impl(request, ctx)
 

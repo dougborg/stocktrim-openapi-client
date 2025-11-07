@@ -1,5 +1,104 @@
 # CHANGELOG
 
+## v0.9.0 (2025-11-07)
+
+### Features
+
+- **mcp**: Complete Phase 2 workflow tools with lifecycle and enhanced supplier
+  onboarding ([#18](https://github.com/dougborg/stocktrim-openapi-client/pull/18),
+  [`c301f7f`](https://github.com/dougborg/stocktrim-openapi-client/commit/c301f7fb9e62880bf7098359db35445bf73ae030))
+
+## Changes
+
+### 1. Enhanced Supplier Service - Extended `SupplierService.create()` to support all
+
+SupplierRequestDto fields: - Contact info: email_address, primary_contact_name - Lead
+time: default_lead_time - Address: street_address, address_line_1, address_line_2,
+state, country, post_code - External ID: external_id
+
+### 2. Enhanced Supplier Onboarding Tool - Updated `create_supplier_with_products` to match
+
+`suppliers_add_and_configure` spec - Added all contact and address fields to request
+model - Changed return type from JSON to markdown report - Enhanced output with: -
+Structured supplier details (contact, lead time, address) - Success/failure tracking for
+product mappings - Actionable next steps based on mapping results
+
+### 3. New Product Lifecycle Management Tool - Implemented `products_configure_lifecycle` workflow
+
+tool - Supports 4 lifecycle actions: - `activate`: Enable product and forecasting -
+`deactivate`: Temporarily disable forecasting - `discontinue`: Mark as discontinued -
+`unstock`: Remove from inventory management - Features: - Impact analysis (current
+inventory, previous status) - Optional forecast recalculation - Before/after comparison
+in markdown report - Error handling with graceful forecast failure
+
+### 4. Comprehensive Test Coverage - Added 8 new unit tests for `products_configure_lifecycle` -
+
+Updated 7 supplier onboarding tests for markdown output - All 243 tests passing
+
+## Closes
+
+Completes #18 (Phase 2: High-Value Workflow Tools)
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+
+### Testing
+
+- Add comprehensive test coverage for forecast management tools
+  ([#77](https://github.com/dougborg/stocktrim-openapi-client/pull/77),
+  [`5fbf576`](https://github.com/dougborg/stocktrim-openapi-client/commit/5fbf576aaef0848df6a511540bca9a023615df62))
+
+* test(mcp): add comprehensive tests for structured logging
+
+Add test coverage for logging configuration and observability decorators.
+
+Tests added: - test_logging_config.py (10 tests): * Configuration with different formats
+(console, JSON) * Configuration with different log levels * Logger instance creation \*
+Environment variable handling * Invalid configuration handling
+
+- test_observability.py (15 tests): * @observe_tool decorator functionality \*
+  @observe_service decorator functionality * Success and failure scenarios * Timing
+  measurements * Parameter filtering * Function metadata preservation * Exception
+  propagation
+
+All 25 tests pass successfully.
+
+This provides coverage for the structured logging implementation added in commit
+925a19f.
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+
+- **mcp**: Add comprehensive tests for structured logging
+  ([#76](https://github.com/dougborg/stocktrim-openapi-client/pull/76),
+  [`cf1a415`](https://github.com/dougborg/stocktrim-openapi-client/commit/cf1a415a7ea9004118b22830a0cb6f5c32bf3be6))
+
+* test(mcp): add comprehensive tests for structured logging
+
+Add test coverage for logging configuration and observability decorators.
+
+Tests added: - test_logging_config.py (10 tests): * Configuration with different formats
+(console, JSON) * Configuration with different log levels * Logger instance creation \*
+Environment variable handling * Invalid configuration handling
+
+- test_observability.py (15 tests): * @observe_tool decorator functionality \*
+  @observe_service decorator functionality * Success and failure scenarios * Timing
+  measurements * Parameter filtering * Function metadata preservation * Exception
+  propagation
+
+All 25 tests pass successfully.
+
+This provides coverage for the structured logging implementation added in commit
+925a19f.
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+Co-authored-by: Doug Borg <dougborg@apple.com>
+
+Co-authored-by: Claude <noreply@anthropic.com>
+
 ## v0.8.0 (2025-11-06)
 
 ### Bug Fixes
@@ -107,6 +206,9 @@ Co-Authored-By: Claude <noreply@anthropic.com>
 
 - **release**: Client v0.9.2
   ([`42e3eba`](https://github.com/dougborg/stocktrim-openapi-client/commit/42e3eba3a0202c50f4d538adbffcdb1a5a6fe225))
+
+- **release**: Mcp v0.8.0
+  ([`c950b0e`](https://github.com/dougborg/stocktrim-openapi-client/commit/c950b0e329bdf848c6afbd1a8dbda3f7f5909839))
 
 ### Features
 

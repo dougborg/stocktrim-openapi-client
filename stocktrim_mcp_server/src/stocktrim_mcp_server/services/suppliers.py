@@ -74,6 +74,14 @@ class SupplierService(BaseService):
         name: str,
         email: str | None = None,
         primary_contact: str | None = None,
+        default_lead_time: int | None = None,
+        street_address: str | None = None,
+        address_line_1: str | None = None,
+        address_line_2: str | None = None,
+        state: str | None = None,
+        country: str | None = None,
+        post_code: str | None = None,
+        external_id: str | None = None,
     ) -> SupplierResponseDto:
         """Create a new supplier.
 
@@ -82,6 +90,14 @@ class SupplierService(BaseService):
             name: Supplier name
             email: Supplier email (optional)
             primary_contact: Primary contact name (optional)
+            default_lead_time: Default lead time in days (optional)
+            street_address: Street address (optional)
+            address_line_1: Address line 1 (optional)
+            address_line_2: Address line 2 (optional)
+            state: State/province (optional)
+            country: Country (optional)
+            post_code: Postal code (optional)
+            external_id: External system ID (optional)
 
         Returns:
             Created supplier details
@@ -98,12 +114,20 @@ class SupplierService(BaseService):
         # Import SupplierRequestDto from generated models
         from stocktrim_public_api_client.generated.models import SupplierRequestDto
 
-        # Create supplier DTO
+        # Create supplier DTO with all fields
         supplier_dto = SupplierRequestDto(
             supplier_code=code,
             supplier_name=name,
             email_address=email,
             primary_contact_name=primary_contact,
+            default_lead_time=default_lead_time,
+            street_address=street_address,
+            address_line_1=address_line_1,
+            address_line_2=address_line_2,
+            state=state,
+            country=country,
+            post_code=post_code,
+            external_id=external_id,
         )
 
         # Create supplier
