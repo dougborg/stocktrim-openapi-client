@@ -27,6 +27,12 @@ from stocktrim_public_api_client.generated.models.products_request_dto import (
 
 logger = get_logger(__name__)
 
+# Token budget and size estimation constants
+MAX_RESPONSE_SIZE_BYTES = 400_000  # Maximum response size to avoid context overflow
+ESTIMATED_CHARS_PER_FORECAST_ITEM = (
+    500  # Rough estimate of characters per forecast item
+)
+
 # ============================================================================
 # Tool: manage_forecast_group
 # ============================================================================
@@ -570,9 +576,9 @@ async def forecasts_get_for_products(
         # Limit results
         limited_items = all_items[: request.max_results]
 
-        # Check token budget (rough estimate: 500 chars per item)
-        estimated_size = len(limited_items) * 500
-        if estimated_size > 400_000:
+        # Check token budget
+        estimated_size = len(limited_items) * ESTIMATED_CHARS_PER_FORECAST_ITEM
+        if estimated_size > MAX_RESPONSE_SIZE_BYTES:
             logger.warning(
                 "forecast_result_too_large",
                 item_count=len(limited_items),
