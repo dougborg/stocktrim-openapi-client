@@ -635,7 +635,6 @@ async def test_forecasts_get_for_products_summary_stats(mock_context):
         ),
         SkuOptimizedResultsDto(
             product_code="WIDGET-002",
-            # product_description removed - "Widget 2",
             days_until_stock_out=15,
             stock_on_hand=50.0,
             order_quantity=200.0,

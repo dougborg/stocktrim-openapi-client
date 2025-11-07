@@ -33,6 +33,10 @@ ESTIMATED_CHARS_PER_FORECAST_ITEM = (
     500  # Rough estimate of characters per forecast item
 )
 
+# Priority threshold constants for stockout urgency
+HIGH_PRIORITY_THRESHOLD_DAYS = 7  # < 7 days = HIGH priority
+MEDIUM_PRIORITY_THRESHOLD_DAYS = 14  # < 14 days = MEDIUM priority
+
 # ============================================================================
 # Tool: manage_forecast_group
 # ============================================================================
@@ -665,9 +669,9 @@ async def forecasts_get_for_products(
             )
 
             # Priority indicator based on days until stockout
-            if days_until_stockout < 7:
+            if days_until_stockout < HIGH_PRIORITY_THRESHOLD_DAYS:
                 priority = "🔴 HIGH"
-            elif days_until_stockout < 14:
+            elif days_until_stockout < MEDIUM_PRIORITY_THRESHOLD_DAYS:
                 priority = "🟡 MEDIUM"
             else:
                 priority = "🟢 LOW"

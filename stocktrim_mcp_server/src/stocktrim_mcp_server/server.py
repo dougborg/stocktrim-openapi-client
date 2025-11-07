@@ -301,8 +301,8 @@ All tools are automatically instrumented with structured logging:
 - Success/failure status recorded
 - Errors logged with full context
 
-Set LOG_FORMAT=json for machine-readable logs in production.
-Set LOG_LEVEL=DEBUG to see service-layer operations.
+Set `LOG_FORMAT=json` for machine-readable logs in production.
+Set `LOG_LEVEL=DEBUG` to see service-layer operations.
 
 ## Rate Limiting & Performance
 
