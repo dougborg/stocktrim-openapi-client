@@ -1,6 +1,179 @@
 # Available MCP Tools
 
-The StockTrim MCP Server provides 20+ tools for interacting with the StockTrim API.
+The StockTrim MCP Server provides 20+ tools for interacting with the StockTrim API,
+organized into **Foundation Tools** (direct API access) and **Workflow Tools**
+(high-level business operations).
+
+## Tool Categories
+
+### Foundation Tools vs Workflow Tools
+
+**Foundation Tools** provide direct CRUD access to StockTrim entities:
+
+- Direct mapping to API endpoints
+- Maximum flexibility and control
+- Require multiple calls for complex operations
+- Best for custom workflows and integrations
+
+**Workflow Tools** combine multiple operations for common business tasks:
+
+- Intent-based, high-level operations
+- Reduce API calls and complexity
+- Built-in error handling and validation
+- Best for standard inventory management workflows
+
+**When to use which?**
+
+- Use **Workflow Tools** for standard operations (reordering, forecast updates, supplier
+  onboarding)
+- Use **Foundation Tools** for custom logic, specific entity access, or building new
+  workflows
+
+For complete workflow examples and best practices, see
+[Workflow Examples](./examples.md).
+
+______________________________________________________________________
+
+## Workflow Tools
+
+These high-level tools combine multiple API operations to accomplish common business
+goals.
+
+### Forecast Management
+
+#### `forecasts_update_and_monitor`
+
+Trigger forecast recalculation and monitor progress with real-time updates.
+
+**Parameters:**
+
+- `wait_for_completion` (boolean, default: true): Wait and report progress
+- `poll_interval_seconds` (integer, 1-60, default: 5): Status check interval
+- `timeout_seconds` (integer, 30-3600, default: 600): Maximum wait time
+
+**Returns:** Markdown-formatted status report with completion status, elapsed time, and
+next steps
+
+**Example:** See
+[Forecast Management Workflow](./examples.md#workflow-2-forecast-management-and-analysis)
+
+#### `forecasts_get_for_products`
+
+Query forecast data with filters and get formatted markdown reports.
+
+**Parameters:**
+
+- `product_codes` (array, optional): Specific products to query
+- `category` (string, optional): Product category filter
+- `supplier_code` (string, optional): Supplier filter
+- `location_code` (string, optional): Location filter
+- `sort_by` (string, default: "days_until_stockout"): Sort order (days_until_stockout,
+  recommended_quantity, product_code)
+- `max_results` (integer, 1-500, default: 50): Limit results
+
+**Returns:** Markdown report with forecast data, priority indicators, and
+recommendations
+
+**Example:** See
+[Forecast Management Workflow](./examples.md#workflow-2-forecast-management-and-analysis)
+
+#### `update_forecast_settings`
+
+Update forecast parameters for a product (lead time, safety stock, service level).
+
+**Parameters:**
+
+- `product_code` (string, required): Product code to update
+- `lead_time_days` (integer, optional): Lead time in days
+- `safety_stock_days` (integer, optional): Safety stock in days
+- `service_level` (float, 0-100, optional): Service level percentage
+- `minimum_order_quantity` (float, optional): Minimum order quantity
+
+**Returns:** Updated settings and success message
+
+**Example:** See
+[Forecast Management Workflow](./examples.md#workflow-2-forecast-management-and-analysis)
+
+### Urgent Order Management
+
+#### `review_urgent_order_requirements`
+
+Identify items approaching stockout, grouped by supplier for efficient purchasing.
+
+**Parameters:**
+
+- `days_threshold` (integer, default: 30): Days until stockout threshold
+- `location_codes` (array, optional): Filter by specific locations
+- `category` (string, optional): Filter by product category
+- `supplier_codes` (array, optional): Filter by specific suppliers
+
+**Returns:** Urgent items grouped by supplier with cost estimates and urgency indicators
+
+**Example:** See
+[Automated Inventory Reordering](./examples.md#workflow-1-automated-inventory-reordering)
+
+#### `generate_purchase_orders_from_urgent_items`
+
+Auto-generate draft purchase orders based on forecast recommendations.
+
+**Parameters:**
+
+- `days_threshold` (integer, default: 30): Days until stockout threshold (for API
+  consistency)
+- `location_codes` (array, optional): Filter by specific locations
+- `supplier_codes` (array, optional): Only generate POs for specific suppliers
+- `category` (string, optional): Filter by product category
+
+**Returns:** List of generated purchase orders with reference numbers and item counts
+
+**Note:** Generated POs are in Draft status by default. Review in StockTrim UI before
+approving.
+
+**Example:** See
+[Automated Inventory Reordering](./examples.md#workflow-1-automated-inventory-reordering)
+
+### Supplier Management
+
+#### `create_supplier_with_products`
+
+Onboard a new supplier and map their products in a single atomic operation.
+
+**Parameters:**
+
+- `supplier_code` (string, required): Unique supplier code
+- `supplier_name` (string, required): Supplier name
+- `is_active` (boolean, default: true): Whether supplier is active
+- `product_mappings` (array, required): List of product mappings
+  - `product_code` (string): Product code
+  - `supplier_product_code` (string, optional): Supplier's SKU code
+  - `cost_price` (float, optional): Cost price from this supplier
+
+**Returns:** Supplier details, mapping success/failure counts, and detailed results per
+product
+
+**Example:** See
+[New Supplier Onboarding](./examples.md#workflow-3-new-supplier-onboarding)
+
+### Product Management
+
+#### `configure_product`
+
+Configure product settings (discontinue status, forecast configuration).
+
+**Parameters:**
+
+- `product_code` (string, required): Product code to configure
+- `discontinue` (boolean, optional): Mark product as discontinued
+- `configure_forecast` (boolean, optional): Enable/disable forecast calculation
+
+**Returns:** Updated product configuration and success message
+
+**Example:** See
+[Product Lifecycle Management](./examples.md#workflow-4-product-lifecycle-management)
+
+______________________________________________________________________
+
+## Foundation Tools
 
 ## Product Tools
 
