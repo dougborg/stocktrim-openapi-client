@@ -6,6 +6,11 @@ import logging
 from datetime import datetime
 
 from fastmcp import Context, FastMCP
+from fastmcp.server.elicitation import (
+    AcceptedElicitation,
+    CancelledElicitation,
+    DeclinedElicitation,
+)
 from pydantic import BaseModel, Field
 
 from stocktrim_mcp_server.dependencies import get_services
@@ -282,47 +287,17 @@ class DeleteSalesOrdersResponse(BaseModel):
     message: str
 
 
-async def _delete_sales_orders_impl(
-    request: DeleteSalesOrdersRequest, context: Context
-) -> DeleteSalesOrdersResponse:
-    """Implementation of delete_sales_orders tool.
-
-    Args:
-        request: Request with optional product_id filter
-        context: Server context with StockTrimClient
-
-    Returns:
-        DeleteSalesOrdersResponse indicating success
-
-    Raises:
-        ValueError: If no filter provided (safety measure)
-        Exception: If API call fails
-    """
-    if not request.product_id:
-        # Safety measure: require a filter to avoid deleting all orders
-        raise ValueError(
-            "product_id is required for deletion to prevent accidental bulk deletion."
-        )
-
-    services = get_services(context)
-
-    # Delete sales orders via service
-    success, message = await services.sales_orders.delete_for_product(
-        request.product_id
-    )
-
-    return DeleteSalesOrdersResponse(
-        success=success,
-        message=message,
-    )
-
-
 async def delete_sales_orders(
     request: DeleteSalesOrdersRequest, context: Context
 ) -> DeleteSalesOrdersResponse:
     """Delete sales orders for a specific product.
 
-    This tool deletes all sales orders associated with a product.
+    🔴 HIGH-RISK OPERATION: This action permanently deletes sales order data
+    and cannot be undone. User confirmation is required via elicitation.
+
+    This tool deletes all sales orders associated with a product after obtaining
+    explicit user confirmation through the MCP elicitation protocol.
+
     For safety, product_id is required (cannot delete all orders without filter).
 
     Args:
@@ -330,17 +305,103 @@ async def delete_sales_orders(
         context: Server context with StockTrimClient
 
     Returns:
-        DeleteSalesOrdersResponse indicating success
+        DeleteSalesOrdersResponse indicating success or cancellation
 
     Example:
         Request: {"product_id": "WIDGET-001"}
         Returns: {
             "success": true,
-            "message": "Sales orders for product WIDGET-001 deleted successfully",
-            "deleted_count": 5
+            "message": "Sales orders for product WIDGET-001 deleted successfully"
         }
+        or {"success": false, "message": "Deletion cancelled by user"}
     """
-    return await _delete_sales_orders_impl(request, context)
+    if not request.product_id:
+        # Safety measure: require a filter to avoid deleting all orders
+        return DeleteSalesOrdersResponse(
+            success=False,
+            message="product_id is required for deletion to prevent accidental bulk deletion.",
+        )
+
+    services = get_services(context)
+
+    # Get sales orders for preview
+    orders_response = await _get_sales_orders_impl(
+        GetSalesOrdersRequest(product_id=request.product_id), context
+    )
+
+    if not orders_response.sales_orders:
+        return DeleteSalesOrdersResponse(
+            success=False,
+            message=f"No sales orders found for product: {request.product_id}",
+        )
+
+    # Build preview information
+    order_count = orders_response.total_count
+    total_quantity = sum(order.quantity for order in orders_response.sales_orders)
+
+    # Get unique customer names
+    customers = {
+        order.customer_name
+        for order in orders_response.sales_orders
+        if order.customer_name
+    }
+    customer_info = f"{len(customers)} customers" if customers else "No customer data"
+
+    # Calculate total revenue if prices available
+    total_revenue = sum(
+        (order.unit_price or 0.0) * order.quantity
+        for order in orders_response.sales_orders
+        if order.unit_price
+    )
+    revenue_info = f"${total_revenue:,.2f}" if total_revenue > 0 else "Unknown"
+
+    # Request user confirmation via elicitation
+    result = await context.elicit(
+        message=f"""⚠️ Delete {order_count} sales order{"s" if order_count != 1 else ""} for product {request.product_id}?
+
+**Orders to Delete**: {order_count}
+**Total Quantity**: {total_quantity:,.1f}
+**Customers Affected**: {customer_info}
+**Total Revenue**: {revenue_info}
+
+This action will permanently delete all sales orders for this product and cannot be undone.
+
+Proceed with deletion?""",
+        response_type=None,  # Simple yes/no approval
+    )
+
+    # Handle elicitation response
+    match result:
+        case AcceptedElicitation():
+            # User confirmed - proceed with deletion
+            success, message = await services.sales_orders.delete_for_product(
+                request.product_id
+            )
+            return DeleteSalesOrdersResponse(
+                success=success,
+                message=f"✅ {message}" if success else message,
+            )
+
+        case DeclinedElicitation():
+            # User declined
+            return DeleteSalesOrdersResponse(
+                success=False,
+                message=f"❌ Deletion of sales orders for product {request.product_id} declined by user",
+            )
+
+        case CancelledElicitation():
+            # User cancelled
+            return DeleteSalesOrdersResponse(
+                success=False,
+                message=f"❌ Deletion of sales orders for product {request.product_id} cancelled by user",
+            )
+
+        case _:
+            # Unexpected response type
+            return DeleteSalesOrdersResponse(
+                success=False,
+                message="Unexpected elicitation response for sales orders deletion",
+            )
 
 
 # ============================================================================

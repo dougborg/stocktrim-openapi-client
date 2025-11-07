@@ -5,6 +5,11 @@ from __future__ import annotations
 import logging
 
 from fastmcp import Context, FastMCP
+from fastmcp.server.elicitation import (
+    AcceptedElicitation,
+    CancelledElicitation,
+    DeclinedElicitation,
+)
 from pydantic import BaseModel, Field
 
 from stocktrim_mcp_server.dependencies import get_services
@@ -211,26 +216,84 @@ async def delete_product(
 ) -> DeleteProductResponse:
     """Delete a product by code.
 
-    This tool deletes a product from StockTrim inventory.
+    🔴 HIGH-RISK OPERATION: This action permanently deletes product data
+    and cannot be undone. User confirmation is required via elicitation.
+
+    This tool deletes a product from StockTrim inventory after obtaining
+    explicit user confirmation through the MCP elicitation protocol.
 
     Args:
         request: Request containing product code
         context: Server context with StockTrimClient
 
     Returns:
-        DeleteProductResponse indicating success
+        DeleteProductResponse indicating success or cancellation
 
     Example:
         Request: {"code": "WIDGET-001"}
         Returns: {"success": true, "message": "Product WIDGET-001 deleted successfully"}
+                 or {"success": false, "message": "Deletion cancelled by user"}
     """
     services = get_services(context)
-    success, message = await services.products.delete(request.code)
 
-    return DeleteProductResponse(
-        success=success,
-        message=message,
+    # Get product details for preview
+    product = await services.products.get_by_code(request.code)
+
+    if not product:
+        return DeleteProductResponse(
+            success=False,
+            message=f"Product not found: {request.code}",
+        )
+
+    # Build preview information
+    product_code = product.product_code_readable or product.product_id or request.code
+    product_name = product.name or "Unnamed Product"
+    status_emoji = "🔴" if product.discontinued else "🟢"
+    status_text = "Discontinued" if product.discontinued else "Active"
+
+    # Request user confirmation via elicitation
+    result = await context.elicit(
+        message=f"""⚠️ Delete product {product_code}?
+
+{status_emoji} **{product_name}**
+Status: {status_text}
+
+This action will permanently delete the product and cannot be undone.
+
+Proceed with deletion?""",
+        response_type=None,  # Simple yes/no approval
     )
+
+    # Handle elicitation response
+    match result:
+        case AcceptedElicitation():
+            # User confirmed - proceed with deletion
+            success, message = await services.products.delete(request.code)
+            return DeleteProductResponse(
+                success=success,
+                message=f"✅ {message}" if success else message,
+            )
+
+        case DeclinedElicitation():
+            # User declined
+            return DeleteProductResponse(
+                success=False,
+                message=f"❌ Deletion of product {product_code} declined by user",
+            )
+
+        case CancelledElicitation():
+            # User cancelled
+            return DeleteProductResponse(
+                success=False,
+                message=f"❌ Deletion of product {product_code} cancelled by user",
+            )
+
+        case _:
+            # Unexpected response type
+            return DeleteProductResponse(
+                success=False,
+                message=f"Unexpected elicitation response for product {product_code}",
+            )
 
 
 # ============================================================================

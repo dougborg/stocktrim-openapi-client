@@ -3,6 +3,11 @@
 from unittest.mock import AsyncMock
 
 import pytest
+from fastmcp.server.elicitation import (
+    AcceptedElicitation,
+    CancelledElicitation,
+    DeclinedElicitation,
+)
 
 from stocktrim_mcp_server.tools.foundation.products import (
     CreateProductRequest,
@@ -241,30 +246,8 @@ async def test_create_product_validation_error(mock_product_context):
 
 
 # ============================================================================
-# Test delete_product
+# Test delete_product (with elicitation)
 # ============================================================================
-
-
-@pytest.mark.asyncio
-async def test_delete_product_success(mock_product_context):
-    """Test successfully deleting a product."""
-    # Setup
-    services = mock_product_context.request_context.lifespan_context
-    services.products.delete.return_value = (
-        True,
-        "Product WIDGET-001 deleted successfully",
-    )
-
-    # Execute
-    request = DeleteProductRequest(code="WIDGET-001")
-    response = await delete_product(request, mock_product_context)
-
-    # Verify
-    assert response.success is True
-    assert "deleted successfully" in response.message
-    assert "WIDGET-001" in response.message
-
-    services.products.delete.assert_called_once_with("WIDGET-001")
 
 
 @pytest.mark.asyncio
@@ -272,7 +255,7 @@ async def test_delete_product_not_found(mock_product_context):
     """Test deleting a product that doesn't exist."""
     # Setup
     services = mock_product_context.request_context.lifespan_context
-    services.products.delete.return_value = (False, "Product MISSING not found")
+    services.products.get_by_code.return_value = None
 
     # Execute
     request = DeleteProductRequest(code="MISSING")
@@ -281,5 +264,108 @@ async def test_delete_product_not_found(mock_product_context):
     # Verify
     assert response.success is False
     assert "not found" in response.message
+    assert "MISSING" in response.message
 
-    services.products.delete.assert_called_once_with("MISSING")
+
+@pytest.mark.asyncio
+async def test_delete_product_accepted(mock_product_context, sample_product):
+    """Test deleting a product when user accepts confirmation."""
+    # Setup
+    services = mock_product_context.request_context.lifespan_context
+    services.products.get_by_code.return_value = sample_product
+    services.products.delete.return_value = (
+        True,
+        "Product WIDGET-001 deleted successfully",
+    )
+    mock_product_context.elicit = AsyncMock(return_value=AcceptedElicitation(data=None))
+
+    # Execute
+    request = DeleteProductRequest(code="WIDGET-001")
+    response = await delete_product(request, mock_product_context)
+
+    # Verify
+    assert response.success is True
+    assert "✅" in response.message
+    assert "deleted successfully" in response.message
+
+    # Verify elicitation was called with preview
+    mock_product_context.elicit.assert_called_once()
+    elicit_args = mock_product_context.elicit.call_args
+    assert "⚠️ Delete product" in elicit_args[1]["message"]
+    assert "Blue Widget" in elicit_args[1]["message"]
+    assert "Active" in elicit_args[1]["message"]
+
+    # Verify deletion was called
+    services.products.delete.assert_called_once_with("WIDGET-001")
+
+
+@pytest.mark.asyncio
+async def test_delete_product_declined(mock_product_context, sample_product):
+    """Test deleting a product when user declines confirmation."""
+    # Setup
+    services = mock_product_context.request_context.lifespan_context
+    services.products.get_by_code.return_value = sample_product
+    mock_product_context.elicit = AsyncMock(return_value=DeclinedElicitation(data=None))
+
+    # Execute
+    request = DeleteProductRequest(code="WIDGET-001")
+    response = await delete_product(request, mock_product_context)
+
+    # Verify
+    assert response.success is False
+    assert "❌" in response.message
+    assert "declined" in response.message
+    assert "WIDGET-001" in response.message
+
+    # Verify deletion was NOT called
+    services.products.delete.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_delete_product_cancelled(mock_product_context, sample_product):
+    """Test deleting a product when user cancels confirmation."""
+    # Setup
+    services = mock_product_context.request_context.lifespan_context
+    services.products.get_by_code.return_value = sample_product
+    mock_product_context.elicit = AsyncMock(
+        return_value=CancelledElicitation(data=None)
+    )
+
+    # Execute
+    request = DeleteProductRequest(code="WIDGET-001")
+    response = await delete_product(request, mock_product_context)
+
+    # Verify
+    assert response.success is False
+    assert "❌" in response.message
+    assert "cancelled" in response.message
+    assert "WIDGET-001" in response.message
+
+    # Verify deletion was NOT called
+    services.products.delete.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_delete_product_discontinued_preview(mock_product_context):
+    """Test that discontinued products show correct status in preview."""
+    # Setup
+    discontinued_product = ProductsResponseDto(
+        product_id="OLD-001",
+        product_code_readable="OLD-001",
+        name="Discontinued Item",
+        discontinued=True,
+        cost=UNSET,
+        price=UNSET,
+    )
+    services = mock_product_context.request_context.lifespan_context
+    services.products.get_by_code.return_value = discontinued_product
+    mock_product_context.elicit = AsyncMock(return_value=DeclinedElicitation(data=None))
+
+    # Execute
+    request = DeleteProductRequest(code="OLD-001")
+    await delete_product(request, mock_product_context)
+
+    # Verify elicitation preview shows discontinued status
+    elicit_args = mock_product_context.elicit.call_args
+    assert "🔴" in elicit_args[1]["message"]  # Red emoji for discontinued
+    assert "Discontinued" in elicit_args[1]["message"]
