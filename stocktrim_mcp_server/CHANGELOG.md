@@ -1,6 +1,223 @@
 # CHANGELOG
 
+## v0.10.0 (2025-11-07)
+
+### Documentation
+
+- **mcp**: Comprehensive documentation enhancements and template externalization (#5)
+  ([#78](https://github.com/dougborg/stocktrim-openapi-client/pull/78),
+  [`d5ee08d`](https://github.com/dougborg/stocktrim-openapi-client/commit/d5ee08d4666d41a5d228d05b67d01a5a62230955))
+
+* test(mcp): add comprehensive tests for structured logging
+
+Add test coverage for logging configuration and observability decorators.
+
+Tests added: - test_logging_config.py (10 tests): * Configuration with different formats
+(console, JSON) * Configuration with different log levels * Logger instance creation \*
+Environment variable handling * Invalid configuration handling
+
+- test_observability.py (15 tests): * @observe_tool decorator functionality \*
+  @observe_service decorator functionality * Success and failure scenarios * Timing
+  measurements * Parameter filtering * Function metadata preservation * Exception
+  propagation
+
+All 25 tests pass successfully.
+
+This provides coverage for the structured logging implementation added in commit
+925a19f.
+
+- fix(test): replace time.sleep with asyncio.sleep in async tests
+
+Address code review feedback: use asyncio.sleep() instead of time.sleep() in async test
+functions to properly test timing without blocking the event loop.
+
+Changes: - Replace time.sleep() with asyncio.sleep() in timing tests - Remove
+AsyncMock() calls that don't yield control - Import asyncio instead of time module
+
+Fixes PR review comments from Copilot.
+
+- test: add comprehensive tests for forecast management tools
+
+Add 13 new unit tests covering the two new forecast management workflow tools: -
+forecasts_update_and_monitor (5 tests) - forecasts_get_for_products (8 tests)
+
+Tests cover: - Trigger-only and wait-for-completion modes - Progress monitoring and
+timeout handling
+
+- Error scenarios and validation - Filtering, sorting, and priority indicators - Empty
+  results and summary statistics
+
+Also fix DTO field name issues in forecast_management.py: - Remove references to
+non-existent supplier_name field - Use correct field names (order_quantity,
+safety_stock_level) - Add pytest timeout marker for long-running test
+
+All 235 tests now passing.
+
+- fix: remove unused product_name assignment
+
+Address Copilot review comment - remove unnecessary product_name assignment that was
+immediately overwritten. Now correctly uses product_code as the display name since the
+DTO doesn't have a product_description field.
+
+- docs(mcp): enhance documentation and externalize markdown templates (#5)
+
+This commit addresses issue #5 by significantly improving MCP server documentation for
+AI agent success. Changes include:
+
+## Documentation Improvements
+
+1. **Comprehensive Server Instructions** (server.py) - Expanded FastMCP instructions
+   from 6 lines to 200+ lines - Added tool categorization (Foundation vs Workflow) -
+   Included 5 complete workflow examples: * Inventory Reordering (automated & manual
+   approaches) * Forecast Management (update, monitor, analyze) * Supplier Onboarding
+   (workflow vs step-by-step) * Product Configuration (lifecycle management) * Customer
+   Order Fulfillment (complete flow) - Added best practices for tool selection -
+   Documented error handling patterns - Included observability and performance notes
+
+1. **Complete Workflow Examples** (docs/mcp-server/examples.md) - Real-world scenarios
+   with full request/response flows - When-to-use guidance for each workflow - Trade-off
+   analysis for different approaches - Advanced patterns and troubleshooting - Error
+   handling best practices - Performance optimization tips
+
+## Code Quality Improvements
+
+3. **Externalized Markdown Templates** - Created templates/ directory for response
+   templates - Extracted 6 markdown templates from forecast_management.py - Added
+   template loader utility with format support - Cleaner code with better
+   maintainability - Templates can now be edited without touching Python code
+
+## Technical Details
+
+- Templates use Python .format() for variable substitution - Template loader provides
+  FileNotFoundError for missing templates - All existing tests pass without modification
+  \- Server imports successfully with new structure
+
+* docs(mcp): enhance workflow tool docstrings and complete tools.md (#5)
+
+This commit completes issue #5 by enhancing workflow tool documentation with
+comprehensive docstrings and updating tools.md to include workflow tools.
+
+## Enhanced Workflow Tool Docstrings
+
+Updated all 6 workflow tool docstrings with:
+
+1. **review_urgent_order_requirements** - How it works section - Common use cases
+   (weekly reorders, urgent restocking, etc.) - Typical workflow with step-by-step
+   guidance - Enhanced example with detailed response structure - See Also section
+   linking to examples.md
+
+1. **generate_purchase_orders_from_urgent_items** - How it works section - Common use
+   cases and best practices - Important notes about draft status and review requirements
+   \- Enhanced example showing multiple POs - See Also section with related tools
+
+1. **create_supplier_with_products** - How it works with transactional approach
+   explanation - Common use cases for supplier onboarding scenarios - Best practices for
+   verification and error handling - Advantages over manual approach comparison -
+   Enhanced example with 3 product mappings
+
+1. **configure_product** - How it works section - Common use cases (discontinuation,
+   seasonal activation, etc.) - Best practices for lifecycle management - Field mappings
+   explanation (discontinue -> discontinued) - Multiple examples (discontinuing and
+   activating products)
+
+## Updated tools.md
+
+Added comprehensive workflow tools section including: - Tool categories explanation
+(Foundation vs Workflow) - When to use which type of tool - Detailed documentation for
+all 7 workflow tools: * Forecast management tools (3) * Urgent order management tools
+(2) * Supplier management tools (1)
+
+- Product management tools (1) - Links to examples.md for complete workflows - Parameter
+  documentation with ranges and defaults
+
+## Documentation Structure
+
+Each enhanced docstring now includes: - Brief description - "How It Works" section -
+"Common Use Cases" section - "Best Practices" section (where applicable) - Enhanced
+examples with realistic data - "See Also" section with links to: * Complete workflows in
+examples.md * Related tools * Foundation tools for comparison
+
+This makes the tools self-documenting and provides clear guidance for AI agents on when
+and how to use each tool.
+
+- refactor: extract magic numbers to named constants
+
+Address Copilot review comments by defining: - MAX_RESPONSE_SIZE_BYTES = 400_000 -
+ESTIMATED_CHARS_PER_FORECAST_ITEM = 500
+
+This improves maintainability and makes token budget thresholds easy to adjust.
+
+- fix: address Copilot review comments
+
+* Extract priority threshold constants (HIGH=7, MEDIUM=14 days) - Remove unnecessary
+  comments from test file - Fix markdown formatting for environment variables
+
+______________________________________________________________________
+
+Co-authored-by: Doug Borg <dougborg@dougborg.org>
+
+Co-authored-by: Claude <noreply@anthropic.com>
+
+### Features
+
+- **mcp**: Implement Phase 3 MCP resources for discovery (#19)
+  ([#79](https://github.com/dougborg/stocktrim-openapi-client/pull/79),
+  [`ccaa05c`](https://github.com/dougborg/stocktrim-openapi-client/commit/ccaa05c92b7c69cc2a3c720541df1a993c3de162))
+
+* feat(mcp): implement Phase 3 MCP resources for discovery
+
+Add 9 MCP resources that enable AI agents to explore StockTrim data without making tool
+calls, improving context gathering and discovery.
+
+Resources Implemented:
+
+Foundation Resources (6): - stocktrim://products/{product_code} - Product details -
+stocktrim://products/catalog - Product catalog (50 item limit) -
+stocktrim://customers/{customer_code} - Customer details -
+stocktrim://suppliers/{supplier_code} - Supplier information -
+stocktrim://locations/{location_code} - Location details -
+stocktrim://inventory/{location_code}/{product_code} - Stock levels
+
+Report Resources (3): - stocktrim://reports/inventory-status?days_threshold=30 - Low
+stock items - stocktrim://reports/urgent-orders - Items needing reorder (< 7 days) -
+stocktrim://reports/supplier-directory - Supplier directory
+
+Key Implementation Details: - All resources return JSON for LLM consumption - Proper
+error handling with ResourceError for not found cases - Service layer reuse via
+dependency injection - UNSET handling for optional API fields - Token budget management
+(30-50 item limits on lists) - Client-side filtering for order plan queries (API
+limitation) - Inventory resource uses product-level stock (no GET endpoint)
+
+Testing: - 24 comprehensive unit tests for all resources - All 267 tests passing - Test
+coverage for success cases, not found errors, and edge cases
+
+Documentation: - Updated server.py instructions with resource documentation - Organized
+into Foundation and Report categories - Examples of resource usage in common workflows
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+
+- fix: address copilot review comments for resources
+
+* Remove default value from context parameter in inventory_status_report - Reorder
+  parameters to put context first (required param before optional) - Update docstring to
+  specify "50 items" limit in products catalog resource
+
+Addresses review comments from PR #79
+
+______________________________________________________________________
+
+Co-authored-by: Doug Borg <dougborg@apple.com>
+
+Co-authored-by: Claude <noreply@anthropic.com>
+
 ## v0.9.0 (2025-11-07)
+
+### Chores
+
+- **release**: Mcp v0.9.0
+  ([`1a2659e`](https://github.com/dougborg/stocktrim-openapi-client/commit/1a2659e5a4c2db310b05decef027b64a626e8d63))
 
 ### Features
 
