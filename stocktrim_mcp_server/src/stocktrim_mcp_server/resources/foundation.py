@@ -66,7 +66,7 @@ async def _get_product_resource(product_code: str, context: Context) -> dict:
 
 
 async def _get_products_catalog_resource(context: Context) -> dict:
-    """Get catalog of all products (limited for token budget).
+    """Get catalog of all products (limited to 50 items for token budget).
 
     Args:
         context: Request context with services

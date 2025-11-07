@@ -277,7 +277,7 @@ def register_report_resources(mcp: FastMCP) -> None:
         mime_type="application/json",
     )
     async def get_inventory_status_report(
-        days_threshold: int = 30, context: Context = None
+        context: Context, days_threshold: int = 30
     ) -> dict:
         """Get inventory status report."""
         return await _get_inventory_status_report(days_threshold, context)
