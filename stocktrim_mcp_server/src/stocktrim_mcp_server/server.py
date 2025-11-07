@@ -173,6 +173,33 @@ Intent-based tools that combine multiple operations:
 **Supplier Onboarding**:
 - create_supplier_with_products: Onboard new supplier with product mappings in one operation
 
+## Resources (Discovery & Context)
+
+Resources provide read-only access to StockTrim data for AI agents to explore and gather context
+without making tool calls. Resources are automatically available and can be browsed to understand
+the data landscape before taking actions.
+
+### Foundation Resources
+Core entity resources for discovering and understanding StockTrim data:
+
+- **stocktrim://products/{product_code}**: Detailed product information (pricing, inventory, suppliers)
+- **stocktrim://products/catalog**: Browse product catalog (limited to 50 items)
+- **stocktrim://customers/{customer_code}**: Customer details with contact information
+- **stocktrim://suppliers/{supplier_code}**: Supplier information with lead times and contacts
+- **stocktrim://locations/{location_code}**: Warehouse and location details
+- **stocktrim://inventory/{location_code}/{product_code}**: Stock levels at specific locations
+
+### Report Resources
+Aggregated business intelligence reports:
+
+- **stocktrim://reports/inventory-status?days_threshold=30**: Items approaching stockout
+- **stocktrim://reports/urgent-orders**: Items needing immediate reorder (< 7 days)
+- **stocktrim://reports/supplier-directory**: All suppliers with contact information
+
+Resources complement tools by enabling discovery and context gathering before taking actions.
+For example, browse the supplier directory resource before deciding which suppliers to include
+in a purchase order workflow.
+
 ## Common Workflows
 
 ### 1. Inventory Reordering
@@ -332,9 +359,11 @@ See individual tool documentation for specific field requirements.
 
 # Register all tools, resources, and prompts with the mcp instance
 # This must come after mcp initialization
+from stocktrim_mcp_server.resources import register_all_resources  # noqa: E402
 from stocktrim_mcp_server.tools import register_all_tools  # noqa: E402
 
 register_all_tools(mcp)
+register_all_resources(mcp)
 
 
 def main(**kwargs: Any) -> None:
