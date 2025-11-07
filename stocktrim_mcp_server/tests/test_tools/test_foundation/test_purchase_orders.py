@@ -4,6 +4,11 @@ from datetime import datetime
 from unittest.mock import AsyncMock
 
 import pytest
+from fastmcp.server.elicitation import (
+    AcceptedElicitation,
+    CancelledElicitation,
+    DeclinedElicitation,
+)
 
 from stocktrim_mcp_server.tools.foundation.purchase_orders import (
     CreatePurchaseOrderRequest,
@@ -341,36 +346,11 @@ async def test_create_purchase_order_with_different_statuses(
 
 
 @pytest.mark.asyncio
-async def test_delete_purchase_order_success(mock_po_context, sample_purchase_order):
-    """Test successfully deleting a purchase order."""
-    # Setup
-    services = mock_po_context.request_context.lifespan_context
-    services.purchase_orders.delete.return_value = (
-        True,
-        "Purchase order PO-2024-001 deleted successfully",
-    )
-
-    # Execute
-    request = DeletePurchaseOrderRequest(reference_number="PO-2024-001")
-    response = await delete_purchase_order(request, mock_po_context)
-
-    # Verify
-    assert response.success is True
-    assert "deleted successfully" in response.message
-    assert "PO-2024-001" in response.message
-
-    services.purchase_orders.delete.assert_called_once_with("PO-2024-001")
-
-
-@pytest.mark.asyncio
 async def test_delete_purchase_order_not_found(mock_po_context):
     """Test deleting a purchase order that doesn't exist."""
     # Setup
     services = mock_po_context.request_context.lifespan_context
-    services.purchase_orders.delete.return_value = (
-        False,
-        "Purchase order PO-MISSING not found",
-    )
+    services.purchase_orders.get_by_reference.return_value = None
 
     # Execute
     request = DeletePurchaseOrderRequest(reference_number="PO-MISSING")
@@ -381,19 +361,77 @@ async def test_delete_purchase_order_not_found(mock_po_context):
     assert "not found" in response.message
     assert "PO-MISSING" in response.message
 
-    services.purchase_orders.delete.assert_called_once_with("PO-MISSING")
+
+@pytest.mark.asyncio
+async def test_delete_purchase_order_accepted(mock_po_context, sample_purchase_order):
+    """Test deleting a purchase order when user accepts confirmation."""
+    # Setup
+    services = mock_po_context.request_context.lifespan_context
+    services.purchase_orders.get_by_reference.return_value = sample_purchase_order
+    services.purchase_orders.delete.return_value = (
+        True,
+        "Purchase order PO-2024-001 deleted successfully",
+    )
+    mock_po_context.elicit = AsyncMock(return_value=AcceptedElicitation(data=None))
+
+    # Execute
+    request = DeletePurchaseOrderRequest(reference_number="PO-2024-001")
+    response = await delete_purchase_order(request, mock_po_context)
+
+    # Verify
+    assert response.success is True
+    assert "✅" in response.message
+    assert "deleted successfully" in response.message
+
+    # Verify elicitation was called with preview
+    mock_po_context.elicit.assert_called_once()
+    elicit_args = mock_po_context.elicit.call_args
+    assert "⚠️ Delete purchase order" in elicit_args[1]["message"]
+    assert "Test Supplier" in elicit_args[1]["message"]
+
+    # Verify deletion was called
+    services.purchase_orders.delete.assert_called_once_with("PO-2024-001")
 
 
 @pytest.mark.asyncio
-async def test_delete_purchase_order_empty_reference(mock_po_context):
-    """Test deleting a purchase order with empty reference number."""
-    # Setup - mock service to raise ValueError for empty reference
+async def test_delete_purchase_order_declined(mock_po_context, sample_purchase_order):
+    """Test deleting a purchase order when user declines confirmation."""
+    # Setup
     services = mock_po_context.request_context.lifespan_context
-    services.purchase_orders.delete.side_effect = ValueError(
-        "Reference number cannot be empty"
-    )
+    services.purchase_orders.get_by_reference.return_value = sample_purchase_order
+    mock_po_context.elicit = AsyncMock(return_value=DeclinedElicitation(data=None))
 
-    # Execute & Verify
-    request = DeletePurchaseOrderRequest(reference_number="")
-    with pytest.raises(ValueError, match="Reference number cannot be empty"):
-        await delete_purchase_order(request, mock_po_context)
+    # Execute
+    request = DeletePurchaseOrderRequest(reference_number="PO-2024-001")
+    response = await delete_purchase_order(request, mock_po_context)
+
+    # Verify
+    assert response.success is False
+    assert "❌" in response.message
+    assert "declined" in response.message
+    assert "PO-2024-001" in response.message
+
+    # Verify deletion was NOT called
+    services.purchase_orders.delete.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_delete_purchase_order_cancelled(mock_po_context, sample_purchase_order):
+    """Test deleting a purchase order when user cancels confirmation."""
+    # Setup
+    services = mock_po_context.request_context.lifespan_context
+    services.purchase_orders.get_by_reference.return_value = sample_purchase_order
+    mock_po_context.elicit = AsyncMock(return_value=CancelledElicitation(data=None))
+
+    # Execute
+    request = DeletePurchaseOrderRequest(reference_number="PO-2024-001")
+    response = await delete_purchase_order(request, mock_po_context)
+
+    # Verify
+    assert response.success is False
+    assert "❌" in response.message
+    assert "cancelled" in response.message
+    assert "PO-2024-001" in response.message
+
+    # Verify deletion was NOT called
+    services.purchase_orders.delete.assert_not_called()
