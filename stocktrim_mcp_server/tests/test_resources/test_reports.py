@@ -289,7 +289,7 @@ async def test_get_supplier_directory_success(mock_reports_context):
             default_lead_time=21,
         ),
     ]
-    services.suppliers.list_suppliers.return_value = suppliers
+    services.suppliers.list_all.return_value = suppliers
 
     # Execute
     result = await _get_supplier_directory_report(mock_reports_context)
@@ -305,7 +305,7 @@ async def test_get_supplier_directory_success(mock_reports_context):
 
     assert result["suppliers"][1]["supplier_code"] == "SUP-002"
 
-    services.suppliers.list_suppliers.assert_called_once_with(active_only=False)
+    services.suppliers.list_all.assert_called_once_with(active_only=False)
 
 
 @pytest.mark.asyncio
@@ -320,7 +320,7 @@ async def test_get_supplier_directory_limits_to_50(mock_reports_context):
         )
         for i in range(1, 101)  # 100 suppliers
     ]
-    services.suppliers.list_suppliers.return_value = suppliers
+    services.suppliers.list_all.return_value = suppliers
 
     # Execute
     result = await _get_supplier_directory_report(mock_reports_context)
@@ -340,7 +340,7 @@ async def test_get_supplier_directory_handles_single_object(mock_reports_context
         supplier_code="SUP-001",
         supplier_name="Supplier One",
     )
-    services.suppliers.list_suppliers.return_value = supplier
+    services.suppliers.list_all.return_value = supplier
 
     # Execute
     result = await _get_supplier_directory_report(mock_reports_context)
@@ -356,7 +356,7 @@ async def test_get_supplier_directory_handles_error(mock_reports_context):
     """Test that supplier directory handles errors gracefully."""
     # Setup
     services = mock_reports_context.request_context.lifespan_context
-    services.suppliers.list_suppliers.side_effect = Exception("Database Error")
+    services.suppliers.list_all.side_effect = Exception("Database Error")
 
     # Execute
     result = await _get_supplier_directory_report(mock_reports_context)

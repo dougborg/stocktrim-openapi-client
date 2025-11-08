@@ -212,7 +212,7 @@ async def _get_supplier_directory_report(context: Context) -> dict:
 
     try:
         # Get all suppliers
-        suppliers = await services.suppliers.list_suppliers(active_only=False)
+        suppliers = await services.suppliers.list_all(active_only=False)
 
         # Handle both list and single object responses
         if not isinstance(suppliers, list):
