@@ -10,6 +10,9 @@ from stocktrim_public_api_client.generated.api.suppliers import (
     get_api_suppliers,
     post_api_suppliers,
 )
+from stocktrim_public_api_client.generated.api.suppliers_bulk import (
+    get_api_suppliers_bulk,
+)
 from stocktrim_public_api_client.generated.models.supplier_request_dto import (
     SupplierRequestDto,
 )
@@ -32,24 +35,38 @@ class Suppliers(Base):
     ) -> SupplierResponseDto | list[SupplierResponseDto]:
         """Get suppliers, optionally filtered by code.
 
-        Note: The API returns a single object when filtered by code,
-        but this is inconsistent with other endpoints. We preserve
-        the API's behavior here.
+        When code is not provided, uses the bulk endpoint to return all suppliers.
+        When code is provided, uses the single supplier endpoint.
+
+        Note: The API has separate endpoints for these operations:
+        - /api/SuppliersBulk returns a list of all suppliers
+        - /api/Suppliers?code=X returns a single supplier
 
         Args:
             code: Optional supplier code filter.
 
         Returns:
-            SupplierResponseDto or list of SupplierResponseDto objects.
+            List of SupplierResponseDto when code is not provided,
+            or single SupplierResponseDto when code is provided.
 
         Example:
-            >>> suppliers = await client.suppliers.get_all()
-            >>> supplier = await client.suppliers.get_all(code="SUP-001")
+            >>> suppliers = await client.suppliers.get_all()  # Returns list
+            >>> supplier = await client.suppliers.get_all(
+            ...     code="SUP-001"
+            ... )  # Returns single object
         """
-        response = await get_api_suppliers.asyncio_detailed(
-            client=self._client,
-            code=code,
-        )
+        if isinstance(code, Unset):
+            # Use bulk endpoint to get all suppliers
+            response = await get_api_suppliers_bulk.asyncio_detailed(
+                client=self._client,
+            )
+        else:
+            # Use single supplier endpoint with code filter
+            response = await get_api_suppliers.asyncio_detailed(
+                client=self._client,
+                code=code,
+            )
+
         return cast(
             SupplierResponseDto | list[SupplierResponseDto],
             unwrap(response),
