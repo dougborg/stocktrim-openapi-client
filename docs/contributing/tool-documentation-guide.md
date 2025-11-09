@@ -13,7 +13,7 @@ documentation in the StockTrim MCP server.
 
 ```python
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Optional
 
 @dataclass
@@ -21,7 +21,7 @@ class DocstringSection:
     """Parsed section of a docstring."""
     name: str
     content: str
-    items: dict[str, str] = None  # For Args/Returns sections
+    items: dict[str, str] = field(default_factory=dict)  # For Args/Returns sections
 
 class DocstringParser:
     """Parse tool docstrings following Google-style format."""
@@ -152,7 +152,7 @@ ______________________________________________________________________
 ```python
 import inspect
 import json
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass, asdict, field
 from typing import Any, Callable, get_type_hints
 from pydantic import BaseModel
 
@@ -176,8 +176,8 @@ class ToolMetadata:
     parameters: list[ParameterMetadata]
     return_type: str
     risk_level: str  # 'low', 'medium', 'high'
-    examples: list[dict] = None
-    related_tools: list[str] = None
+    examples: list[dict] = field(default_factory=list)
+    related_tools: list[str] = field(default_factory=list)
 
 class ToolMetadataExtractor:
     """Extract metadata from tool functions."""
