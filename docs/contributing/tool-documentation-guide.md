@@ -14,7 +14,6 @@ documentation in the StockTrim MCP server.
 ```python
 import re
 from dataclasses import dataclass, field
-from typing import Optional
 
 @dataclass
 class DocstringSection:
@@ -152,6 +151,7 @@ ______________________________________________________________________
 ```python
 import inspect
 import json
+import re
 from dataclasses import dataclass, asdict, field
 from typing import Any, Callable, get_type_hints
 from pydantic import BaseModel
