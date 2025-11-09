@@ -4,6 +4,11 @@ from datetime import datetime
 from unittest.mock import AsyncMock
 
 import pytest
+from fastmcp.server.elicitation import (
+    AcceptedElicitation,
+    CancelledElicitation,
+    DeclinedElicitation,
+)
 from pydantic import ValidationError
 
 from stocktrim_mcp_server.tools.foundation.sales_orders import (
@@ -267,15 +272,46 @@ async def test_list_sales_orders_by_product(extended_mock_context, sample_sales_
 
 
 @pytest.mark.asyncio
-async def test_delete_sales_orders_by_product(
-    extended_mock_context, sample_sales_order
-):
-    """Test deleting sales orders for a specific product."""
+async def test_delete_sales_orders_no_product_id(extended_mock_context):
+    """Test deleting sales orders without product_id returns error."""
+    # Execute
+    request = DeleteSalesOrdersRequest()
+    response = await delete_sales_orders(request, extended_mock_context)
+
+    # Verify
+    assert response.success is False
+    assert "product_id is required" in response.message
+
+
+@pytest.mark.asyncio
+async def test_delete_sales_orders_not_found(extended_mock_context):
+    """Test deleting sales orders when none exist for product."""
     # Setup
-    mock_service = extended_mock_context.request_context.lifespan_context.sales_orders
-    mock_service.delete_for_product.return_value = (
+    services = extended_mock_context.request_context.lifespan_context
+    services.sales_orders.get_all.return_value = []
+
+    # Execute
+    request = DeleteSalesOrdersRequest(product_id="prod-missing")
+    response = await delete_sales_orders(request, extended_mock_context)
+
+    # Verify
+    assert response.success is False
+    assert "No sales orders found" in response.message
+    assert "prod-missing" in response.message
+
+
+@pytest.mark.asyncio
+async def test_delete_sales_orders_accepted(extended_mock_context, sample_sales_order):
+    """Test deleting sales orders when user accepts confirmation."""
+    # Setup
+    services = extended_mock_context.request_context.lifespan_context
+    services.sales_orders.get_all.return_value = [sample_sales_order]
+    services.sales_orders.delete_for_product.return_value = (
         True,
         "Sales orders for product prod-123 deleted successfully",
+    )
+    extended_mock_context.elicit = AsyncMock(
+        return_value=AcceptedElicitation(data=None)
     )
 
     # Execute
@@ -284,14 +320,62 @@ async def test_delete_sales_orders_by_product(
 
     # Verify
     assert response.success is True
-    assert "prod-123" in response.message
-    mock_service.delete_for_product.assert_called_once_with("prod-123")
+    assert "✅" in response.message
+    assert "deleted successfully" in response.message
+
+    # Verify elicitation was called with preview
+    extended_mock_context.elicit.assert_called_once()
+    elicit_args = extended_mock_context.elicit.call_args
+    assert "⚠️ Delete" in elicit_args[1]["message"]
+    assert "prod-123" in elicit_args[1]["message"]
+
+    # Verify deletion was called
+    services.sales_orders.delete_for_product.assert_called_once_with("prod-123")
 
 
 @pytest.mark.asyncio
-async def test_delete_sales_orders_no_filter_raises_error(extended_mock_context):
-    """Test deleting sales orders without filter raises error for safety."""
-    # Execute and verify
-    request = DeleteSalesOrdersRequest()
-    with pytest.raises(ValueError, match="product_id is required for deletion"):
-        await delete_sales_orders(request, extended_mock_context)
+async def test_delete_sales_orders_declined(extended_mock_context, sample_sales_order):
+    """Test deleting sales orders when user declines confirmation."""
+    # Setup
+    services = extended_mock_context.request_context.lifespan_context
+    services.sales_orders.get_all.return_value = [sample_sales_order]
+    extended_mock_context.elicit = AsyncMock(
+        return_value=DeclinedElicitation(data=None)
+    )
+
+    # Execute
+    request = DeleteSalesOrdersRequest(product_id="prod-123")
+    response = await delete_sales_orders(request, extended_mock_context)
+
+    # Verify
+    assert response.success is False
+    assert "❌" in response.message
+    assert "declined" in response.message
+    assert "prod-123" in response.message
+
+    # Verify deletion was NOT called
+    services.sales_orders.delete_for_product.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_delete_sales_orders_cancelled(extended_mock_context, sample_sales_order):
+    """Test deleting sales orders when user cancels confirmation."""
+    # Setup
+    services = extended_mock_context.request_context.lifespan_context
+    services.sales_orders.get_all.return_value = [sample_sales_order]
+    extended_mock_context.elicit = AsyncMock(
+        return_value=CancelledElicitation(data=None)
+    )
+
+    # Execute
+    request = DeleteSalesOrdersRequest(product_id="prod-123")
+    response = await delete_sales_orders(request, extended_mock_context)
+
+    # Verify
+    assert response.success is False
+    assert "❌" in response.message
+    assert "cancelled" in response.message
+    assert "prod-123" in response.message
+
+    # Verify deletion was NOT called
+    services.sales_orders.delete_for_product.assert_not_called()

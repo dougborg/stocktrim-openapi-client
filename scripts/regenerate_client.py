@@ -259,6 +259,72 @@ def add_nullable_to_date_fields(spec_path: Path) -> bool:
         return False
 
 
+def add_nullable_to_enum_fields(spec_path: Path) -> bool:
+    """Add nullable: true to enum fields that can be null.
+
+    The StockTrim API returns null for enum fields like currentStatus in
+    OrderPlanFilterCriteria, but the OpenAPI spec doesn't mark them as nullable.
+    This causes "None is not a valid XxxEnum" validation errors.
+
+    See: https://github.com/dougborg/stocktrim-openapi-client/issues/83
+    """
+    logger.info("Adding nullable: true to enum fields")
+
+    try:
+        with open(spec_path) as f:
+            spec = yaml.safe_load(f)
+
+        # Define which enum fields should be nullable based on real API behavior
+        NULLABLE_ENUM_FIELDS = {
+            "OrderPlanFilterCriteria": [
+                "currentStatus",  # CurrentStatusEnum - API returns null in echoed filter_criteria
+            ],
+            # Note: OrderPlanFilterCriteriaDto is not included because we haven't observed
+            # null values in actual API responses yet. Add when confirmed.
+        }
+
+        schemas = spec.get("components", {}).get("schemas", {})
+        fields_modified = 0
+
+        for schema_name, field_names in NULLABLE_ENUM_FIELDS.items():
+            if schema_name not in schemas:
+                logger.warning(f"Schema {schema_name} not found in spec")
+                continue
+
+            schema = schemas[schema_name]
+            properties = schema.get("properties", {})
+
+            for field_name in field_names:
+                if field_name not in properties:
+                    logger.warning(f"Field {field_name} not found in {schema_name}")
+                    continue
+
+                field = properties[field_name]
+
+                # Add nullable: true if not already present
+                # Enum fields use $ref, so we need allOf pattern
+                if not field.get("nullable", False) and "$ref" in field:
+                    ref_value = field["$ref"]
+                    field.clear()  # Remove $ref
+                    field["allOf"] = [{"$ref": ref_value}]
+                    field["nullable"] = True
+                    fields_modified += 1
+                    logger.info(
+                        f"  ✓ Made {schema_name}.{field_name} (enum ref) nullable using allOf pattern"
+                    )
+
+        # Save the modified spec
+        with open(spec_path, "w") as f:
+            yaml.dump(spec, f, default_flow_style=False, sort_keys=False)
+
+        logger.info(f"✅ Made {fields_modified} enum fields nullable")
+        return True
+
+    except Exception as e:
+        logger.error(f"❌ Failed to add nullable to enum fields: {e}")
+        return False
+
+
 def add_200_response_to_upsert_endpoints(spec_path: Path) -> bool:
     """Add 200 OK response to POST endpoints that support upsert behavior.
 
@@ -882,18 +948,27 @@ def main() -> None:
         sys.exit(1)
     logger.info("")
 
-    # Step 2.6: Add 200 responses to upsert endpoints
+    # Step 2.6: Add nullable to enum fields
     logger.info("=" * 60)
-    logger.info("STEP 2.6: Add 200 OK Responses to Upsert Endpoints")
+    logger.info("STEP 2.6: Add Nullable to Enum Fields")
+    logger.info("=" * 60)
+    if not add_nullable_to_enum_fields(SPEC_FILE):
+        logger.error("❌ Failed to add nullable to enum fields")
+        sys.exit(1)
+    logger.info("")
+
+    # Step 2.7: Add 200 responses to upsert endpoints
+    logger.info("=" * 60)
+    logger.info("STEP 2.7: Add 200 OK Responses to Upsert Endpoints")
     logger.info("=" * 60)
     if not add_200_response_to_upsert_endpoints(SPEC_FILE):
         logger.error("❌ Failed to add 200 responses to upsert endpoints")
         sys.exit(1)
     logger.info("")
 
-    # Step 2.7: Fix DELETE responses to 204
+    # Step 2.8: Fix DELETE responses to 204
     logger.info("=" * 60)
-    logger.info("STEP 2.7: Fix DELETE Responses to 204 No Content")
+    logger.info("STEP 2.8: Fix DELETE Responses to 204 No Content")
     logger.info("=" * 60)
     if not fix_delete_responses_to_204(SPEC_FILE):
         logger.error("❌ Failed to fix DELETE responses")

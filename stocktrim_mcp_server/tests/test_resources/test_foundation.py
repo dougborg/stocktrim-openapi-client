@@ -1,7 +1,5 @@
 """Tests for foundation resources."""
 
-from unittest.mock import AsyncMock
-
 import pytest
 from fastmcp.exceptions import ResourceError
 
@@ -29,16 +27,8 @@ from stocktrim_public_api_client.generated.models.supplier_response_dto import (
 # ============================================================================
 
 
-@pytest.fixture
-def mock_foundation_context(mock_context):
-    """Extend mock_context with foundation resource services."""
-    services = mock_context.request_context.lifespan_context
-    services.products = AsyncMock()
-    services.customers = AsyncMock()
-    services.suppliers = AsyncMock()
-    services.locations = AsyncMock()
-    services.inventory = AsyncMock()
-    return mock_context
+# Note: We use mock_context directly instead of overriding with AsyncMock
+# to ensure autospec catches interface mismatches
 
 
 # ============================================================================
@@ -47,10 +37,10 @@ def mock_foundation_context(mock_context):
 
 
 @pytest.mark.asyncio
-async def test_get_product_resource_success(mock_foundation_context):
+async def test_get_product_resource_success(mock_context):
     """Test successfully retrieving a product resource."""
     # Setup
-    services = mock_foundation_context.request_context.lifespan_context
+    services = mock_context.request_context.lifespan_context
     product = ProductsResponseDto(
         product_id="prod-123",
         product_code_readable="WIDGET-001",
@@ -63,7 +53,7 @@ async def test_get_product_resource_success(mock_foundation_context):
     services.products.get_by_code.return_value = product
 
     # Execute
-    result = await _get_product_resource("WIDGET-001", mock_foundation_context)
+    result = await _get_product_resource("WIDGET-001", mock_context)
 
     # Verify
     assert result["product_code"] == "WIDGET-001"
@@ -76,15 +66,15 @@ async def test_get_product_resource_success(mock_foundation_context):
 
 
 @pytest.mark.asyncio
-async def test_get_product_resource_not_found(mock_foundation_context):
+async def test_get_product_resource_not_found(mock_context):
     """Test error when product doesn't exist."""
     # Setup
-    services = mock_foundation_context.request_context.lifespan_context
+    services = mock_context.request_context.lifespan_context
     services.products.get_by_code.return_value = None
 
     # Execute & Verify
     with pytest.raises(ResourceError, match="Product not found"):
-        await _get_product_resource("NONEXISTENT", mock_foundation_context)
+        await _get_product_resource("NONEXISTENT", mock_context)
 
 
 # ============================================================================
@@ -93,10 +83,10 @@ async def test_get_product_resource_not_found(mock_foundation_context):
 
 
 @pytest.mark.asyncio
-async def test_get_products_catalog_success(mock_foundation_context):
+async def test_get_products_catalog_success(mock_context):
     """Test successfully retrieving products catalog."""
     # Setup
-    services = mock_foundation_context.request_context.lifespan_context
+    services = mock_context.request_context.lifespan_context
     products = [
         ProductsResponseDto(
             product_id=f"prod-{i}",
@@ -108,40 +98,40 @@ async def test_get_products_catalog_success(mock_foundation_context):
     services.products.list_all.return_value = products
 
     # Execute
-    result = await _get_products_catalog_resource(mock_foundation_context)
+    result = await _get_products_catalog_resource(mock_context)
 
     # Verify
     assert result["total_shown"] == 5
     assert len(result["products"]) == 5
     assert result["products"][0]["product_code"] == "WIDGET-001"
     assert result["products"][0]["name"] == "Widget 1"
-    services.products.list_all.assert_called_once_with(limit=50)
+    services.products.list_all.assert_called_once()
 
 
 @pytest.mark.asyncio
-async def test_get_products_catalog_limits_results(mock_foundation_context):
+async def test_get_products_catalog_limits_results(mock_context):
     """Test that catalog limits results to 50 items."""
     # Setup
-    services = mock_foundation_context.request_context.lifespan_context
-    # The limit happens in list_all(limit=50), so we just return 50 products
+    services = mock_context.request_context.lifespan_context
+    # Return 100 products to verify the resource limits to 50 via slicing
     products = [
         ProductsResponseDto(
             product_id=f"prod-{i}",
             product_code_readable=f"WIDGET-{i:03d}",
             name=f"Widget {i}",
         )
-        for i in range(1, 51)  # 50 products (simulating limit)
+        for i in range(1, 101)  # 100 products
     ]
     services.products.list_all.return_value = products
 
     # Execute
-    result = await _get_products_catalog_resource(mock_foundation_context)
+    result = await _get_products_catalog_resource(mock_context)
 
-    # Verify - should return 50
+    # Verify - should limit to 50 via slicing
     assert len(result["products"]) == 50
     assert result["total_shown"] == 50
     assert "Limited to 50 products" in result["note"]
-    services.products.list_all.assert_called_once_with(limit=50)
+    services.products.list_all.assert_called_once()
 
 
 # ============================================================================
@@ -150,10 +140,10 @@ async def test_get_products_catalog_limits_results(mock_foundation_context):
 
 
 @pytest.mark.asyncio
-async def test_get_customer_resource_success(mock_foundation_context):
+async def test_get_customer_resource_success(mock_context):
     """Test successfully retrieving a customer resource."""
     # Setup
-    services = mock_foundation_context.request_context.lifespan_context
+    services = mock_context.request_context.lifespan_context
     customer = CustomerDto(
         code="CUST-001",
         name="Test Customer Inc",
@@ -167,7 +157,7 @@ async def test_get_customer_resource_success(mock_foundation_context):
     services.customers.get_by_code.return_value = customer
 
     # Execute
-    result = await _get_customer_resource("CUST-001", mock_foundation_context)
+    result = await _get_customer_resource("CUST-001", mock_context)
 
     # Verify
     assert result["customer_code"] == "CUST-001"
@@ -180,15 +170,15 @@ async def test_get_customer_resource_success(mock_foundation_context):
 
 
 @pytest.mark.asyncio
-async def test_get_customer_resource_not_found(mock_foundation_context):
+async def test_get_customer_resource_not_found(mock_context):
     """Test error when customer doesn't exist."""
     # Setup
-    services = mock_foundation_context.request_context.lifespan_context
+    services = mock_context.request_context.lifespan_context
     services.customers.get_by_code.return_value = None
 
     # Execute & Verify
     with pytest.raises(ResourceError, match="Customer not found"):
-        await _get_customer_resource("NONEXISTENT", mock_foundation_context)
+        await _get_customer_resource("NONEXISTENT", mock_context)
 
 
 # ============================================================================
@@ -197,10 +187,10 @@ async def test_get_customer_resource_not_found(mock_foundation_context):
 
 
 @pytest.mark.asyncio
-async def test_get_supplier_resource_success(mock_foundation_context):
+async def test_get_supplier_resource_success(mock_context):
     """Test successfully retrieving a supplier resource."""
     # Setup
-    services = mock_foundation_context.request_context.lifespan_context
+    services = mock_context.request_context.lifespan_context
     supplier = SupplierResponseDto(
         supplier_code="SUP-001",
         supplier_name="Test Supplier Inc",
@@ -211,7 +201,7 @@ async def test_get_supplier_resource_success(mock_foundation_context):
     services.suppliers.get_by_code.return_value = supplier
 
     # Execute
-    result = await _get_supplier_resource("SUP-001", mock_foundation_context)
+    result = await _get_supplier_resource("SUP-001", mock_context)
 
     # Verify
     assert result["supplier_code"] == "SUP-001"
@@ -223,15 +213,15 @@ async def test_get_supplier_resource_success(mock_foundation_context):
 
 
 @pytest.mark.asyncio
-async def test_get_supplier_resource_not_found(mock_foundation_context):
+async def test_get_supplier_resource_not_found(mock_context):
     """Test error when supplier doesn't exist."""
     # Setup
-    services = mock_foundation_context.request_context.lifespan_context
+    services = mock_context.request_context.lifespan_context
     services.suppliers.get_by_code.return_value = None
 
     # Execute & Verify
     with pytest.raises(ResourceError, match="Supplier not found"):
-        await _get_supplier_resource("NONEXISTENT", mock_foundation_context)
+        await _get_supplier_resource("NONEXISTENT", mock_context)
 
 
 # ============================================================================
@@ -240,10 +230,10 @@ async def test_get_supplier_resource_not_found(mock_foundation_context):
 
 
 @pytest.mark.asyncio
-async def test_get_location_resource_success(mock_foundation_context):
+async def test_get_location_resource_success(mock_context):
     """Test successfully retrieving a location resource."""
     # Setup
-    services = mock_foundation_context.request_context.lifespan_context
+    services = mock_context.request_context.lifespan_context
     location = LocationResponseDto(
         location_code="WH-001",
         location_name="Main Warehouse",
@@ -251,7 +241,7 @@ async def test_get_location_resource_success(mock_foundation_context):
     services.locations.list_all.return_value = [location]
 
     # Execute
-    result = await _get_location_resource("WH-001", mock_foundation_context)
+    result = await _get_location_resource("WH-001", mock_context)
 
     # Verify
     assert result["location_code"] == "WH-001"
@@ -260,15 +250,15 @@ async def test_get_location_resource_success(mock_foundation_context):
 
 
 @pytest.mark.asyncio
-async def test_get_location_resource_not_found(mock_foundation_context):
+async def test_get_location_resource_not_found(mock_context):
     """Test error when location doesn't exist."""
     # Setup
-    services = mock_foundation_context.request_context.lifespan_context
+    services = mock_context.request_context.lifespan_context
     services.locations.list_all.return_value = []
 
     # Execute & Verify
     with pytest.raises(ResourceError, match="Location not found"):
-        await _get_location_resource("NONEXISTENT", mock_foundation_context)
+        await _get_location_resource("NONEXISTENT", mock_context)
 
 
 # ============================================================================
@@ -277,10 +267,10 @@ async def test_get_location_resource_not_found(mock_foundation_context):
 
 
 @pytest.mark.asyncio
-async def test_get_inventory_resource_success(mock_foundation_context, sample_product):
+async def test_get_inventory_resource_success(mock_context, sample_product):
     """Test successfully retrieving inventory resource."""
     # Setup
-    services = mock_foundation_context.request_context.lifespan_context
+    services = mock_context.request_context.lifespan_context
     location = LocationResponseDto(
         location_code="WH-001", location_name="Main Warehouse"
     )
@@ -294,9 +284,7 @@ async def test_get_inventory_resource_success(mock_foundation_context, sample_pr
     services.products.get_by_code.return_value = product_with_stock
 
     # Execute
-    result = await _get_inventory_resource(
-        "WH-001", "WIDGET-001", mock_foundation_context
-    )
+    result = await _get_inventory_resource("WH-001", "WIDGET-001", mock_context)
 
     # Verify
     assert result["product_code"] == "WIDGET-001"
@@ -308,14 +296,12 @@ async def test_get_inventory_resource_success(mock_foundation_context, sample_pr
 
 
 @pytest.mark.asyncio
-async def test_get_inventory_resource_not_found(mock_foundation_context):
+async def test_get_inventory_resource_not_found(mock_context):
     """Test error when location doesn't exist."""
     # Setup
-    services = mock_foundation_context.request_context.lifespan_context
+    services = mock_context.request_context.lifespan_context
     services.locations.list_all.return_value = []
 
     # Execute & Verify
     with pytest.raises(ResourceError, match="Location not found"):
-        await _get_inventory_resource(
-            "NONEXISTENT", "WIDGET-001", mock_foundation_context
-        )
+        await _get_inventory_resource("NONEXISTENT", "WIDGET-001", mock_context)

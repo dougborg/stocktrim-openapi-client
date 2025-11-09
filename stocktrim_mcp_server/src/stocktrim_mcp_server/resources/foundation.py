@@ -75,10 +75,11 @@ async def _get_products_catalog_resource(context: Context) -> dict:
         Product catalog with pagination info
     """
     services = get_services(context)
-    products = await services.products.list_all(limit=50)
+    products = await services.products.list_all()
 
     product_list = []
-    for product in products:
+    # Limit to 50 products for token budget
+    for product in products[:50]:
         product_list.append(
             {
                 "product_code": product.product_code_readable
