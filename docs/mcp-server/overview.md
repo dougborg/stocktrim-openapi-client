@@ -9,12 +9,21 @@ management, customer data, and inventory control.
 
 ## Features
 
-- **Product Management**: Search, retrieve, and manage product information
-- **Customer Operations**: Access and list customer data
-- **Inventory Control**: Set and update inventory levels
-- **Type-Safe**: Full TypeScript-like type hints for all operations
+- **Product Management**: Create, retrieve, update, and delete products with full
+  lifecycle support
+- **Customer Operations**: Access and manage customer data
+- **Supplier Management**: Manage supplier information and relationships
+- **Inventory Control**: Set and update inventory levels across locations
+- **Purchase Orders**: Create and manage purchase orders with line items
+- **Sales Orders**: Track and manage sales orders
+- **Workflow Tools**: High-level business operations (forecast management, urgent
+  orders)
+- **Safety Features**: User confirmation for destructive operations via MCP elicitation
+- **Service Layer Architecture**: Clean separation of business logic with dependency
+  injection
+- **Type-Safe**: Full type hints with Pydantic validation for all operations
 - **Production-Ready**: Built-in error handling, logging, and resilience
-- **FastMCP**: Leverages FastMCP for high-performance MCP implementation
+- **FastMCP**: Leverages FastMCP 2.11.0 for high-performance MCP implementation
 
 ## Installation
 
@@ -259,13 +268,34 @@ stocktrim_mcp_server/
 ├── src/stocktrim_mcp_server/
 │   ├── __init__.py          # Package metadata
 │   ├── server.py            # FastMCP server setup
+│   ├── services/            # Business logic layer
+│   │   ├── customers.py     # Customer service
+│   │   ├── products.py      # Product service
+│   │   ├── suppliers.py     # Supplier service
+│   │   ├── locations.py     # Location service
+│   │   ├── inventory.py     # Inventory service
+│   │   ├── purchase_orders.py  # Purchase order service
+│   │   └── sales_orders.py  # Sales order service
+│   ├── resources/           # MCP resources
+│   │   ├── foundation.py    # Core entity resources
+│   │   └── reports.py       # Report resources
 │   └── tools/               # Tool implementations
 │       ├── __init__.py      # Tool registration
-│       ├── products.py      # Product management tools
-│       ├── customers.py     # Customer management tools
-│       └── inventory.py     # Inventory management tools
+│       ├── foundation/      # Direct API access tools
+│       │   ├── products.py  # Product management
+│       │   ├── customers.py # Customer management
+│       │   ├── suppliers.py # Supplier management
+│       │   ├── locations.py # Location management
+│       │   ├── inventory.py # Inventory management
+│       │   ├── purchase_orders.py  # Purchase order tools
+│       │   └── sales_orders.py     # Sales order tools
+│       └── workflows/       # High-level business workflows
+│           ├── forecast_management.py  # Forecast operations
+│           ├── urgent_orders.py        # Urgent order workflows
+│           └── product_management.py   # Product workflows
+├── tests/                   # Test suite
 ├── pyproject.toml           # Package configuration
-└── README.md               # This file
+└── README.md               # Package readme
 ```
 
 ### Adding New Tools

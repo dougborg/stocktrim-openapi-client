@@ -9,13 +9,23 @@ management, customer data, and inventory control.
 
 ## Features
 
-- **Product Management**: Search, retrieve, and manage product information
-- **Customer Operations**: Access and list customer data
-- **Order Management**: Create and manage sales orders and purchase orders
-- **Inventory Control**: Set and update inventory levels
-- **Type-Safe**: Full TypeScript-like type hints for all operations
+- **Product Management**: Create, retrieve, update, and delete products with full
+  lifecycle support
+- **Customer Operations**: Access and manage customer data
+- **Supplier Management**: Manage supplier information and relationships
+- **Inventory Control**: Set and update inventory levels across locations
+- **Purchase Orders**: Create and manage purchase orders with line items
+- **Sales Orders**: Track and manage sales orders
+- **Workflow Tools**: High-level business operations (forecast management, urgent
+  orders)
+- **Safety Features**: User confirmation for destructive operations via MCP elicitation
+  ([ADR 001](../docs/architecture/decisions/001-user-confirmation-pattern.md))
+- **Service Layer Architecture**: Clean separation of business logic with dependency
+  injection
+- **Type-Safe**: Full type hints with Pydantic validation for all operations
+  ([ADR 002](../docs/architecture/decisions/002-tool-interface-pattern.md))
 - **Production-Ready**: Built-in error handling, logging, and resilience
-- **FastMCP**: Leverages FastMCP for high-performance MCP implementation
+- **FastMCP**: Leverages FastMCP 2.11.0 for high-performance MCP implementation
 
 ## Installation
 
