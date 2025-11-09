@@ -50,9 +50,9 @@ def register_tools(mcp: FastMCP) -> None:
 
 **Key Files**:
 
-- `/Users/dougborg/Projects/stocktrim-openapi-client/stocktrim_mcp_server/src/stocktrim_mcp_server/tools/__init__.py`
-- `/Users/dougborg/Projects/stocktrim-openapi-client/stocktrim_mcp_server/src/stocktrim_mcp_server/tools/foundation/__init__.py`
-- `/Users/dougborg/Projects/stocktrim-openapi-client/stocktrim_mcp_server/src/stocktrim_mcp_server/tools/workflows/__init__.py`
+- `stocktrim_mcp_server/src/stocktrim_mcp_server/tools/__init__.py`
+- `stocktrim_mcp_server/src/stocktrim_mcp_server/tools/foundation/__init__.py`
+- `stocktrim_mcp_server/src/stocktrim_mcp_server/tools/workflows/__init__.py`
 
 ### 1.2 Tool Description Sources
 
@@ -527,7 +527,7 @@ ______________________________________________________________________
 ### 5.3 Template Files
 
 **Location**:
-`/Users/dougborg/Projects/stocktrim-openapi-client/stocktrim_mcp_server/src/stocktrim_mcp_server/templates/`
+`stocktrim_mcp_server/src/stocktrim_mcp_server/templates/`
 
 **Current Templates** (for status messages, not tool documentation):
 
@@ -548,7 +548,7 @@ ______________________________________________________________________
 ### 6.1 Foundation Tool Example
 
 **File**:
-`/Users/dougborg/Projects/stocktrim-openapi-client/stocktrim_mcp_server/src/stocktrim_mcp_server/tools/foundation/customers.py`
+`stocktrim_mcp_server/src/stocktrim_mcp_server/tools/foundation/customers.py`
 
 ```python
 class GetCustomerRequest(BaseModel):
@@ -600,7 +600,7 @@ async def get_customer(
 ### 6.2 Workflow Tool Example
 
 **File**:
-`/Users/dougborg/Projects/stocktrim-openapi-client/stocktrim_mcp_server/src/stocktrim_mcp_server/tools/workflows/urgent_orders.py`
+`stocktrim_mcp_server/src/stocktrim_mcp_server/tools/workflows/urgent_orders.py`
 
 ```python
 class ReviewUrgentOrdersRequest(BaseModel):
@@ -760,35 +760,35 @@ ______________________________________________________________________
 ### Tool Registration
 
 - Primary:
-  `/Users/dougborg/Projects/stocktrim-openapi-client/stocktrim_mcp_server/src/stocktrim_mcp_server/tools/__init__.py`
+  `stocktrim_mcp_server/src/stocktrim_mcp_server/tools/__init__.py`
 - Foundation:
-  `/Users/dougborg/Projects/stocktrim-openapi-client/stocktrim_mcp_server/src/stocktrim_mcp_server/tools/foundation/__init__.py`
+  `stocktrim_mcp_server/src/stocktrim_mcp_server/tools/foundation/__init__.py`
 - Workflows:
-  `/Users/dougborg/Projects/stocktrim-openapi-client/stocktrim_mcp_server/src/stocktrim_mcp_server/tools/workflows/__init__.py`
+  `stocktrim_mcp_server/src/stocktrim_mcp_server/tools/workflows/__init__.py`
 
 ### Tool Implementations
 
 - Customers:
-  `/Users/dougborg/Projects/stocktrim-openapi-client/stocktrim_mcp_server/src/stocktrim_mcp_server/tools/foundation/customers.py`
+  `stocktrim_mcp_server/src/stocktrim_mcp_server/tools/foundation/customers.py`
 - Products:
-  `/Users/dougborg/Projects/stocktrim-openapi-client/stocktrim_mcp_server/src/stocktrim_mcp_server/tools/foundation/products.py`
+  `stocktrim_mcp_server/src/stocktrim_mcp_server/tools/foundation/products.py`
 - Suppliers:
-  `/Users/dougborg/Projects/stocktrim-openapi-client/stocktrim_mcp_server/src/stocktrim_mcp_server/tools/foundation/suppliers.py`
+  `stocktrim_mcp_server/src/stocktrim_mcp_server/tools/foundation/suppliers.py`
 - Locations:
-  `/Users/dougborg/Projects/stocktrim-openapi-client/stocktrim_mcp_server/src/stocktrim_mcp_server/tools/foundation/locations.py`
+  `stocktrim_mcp_server/src/stocktrim_mcp_server/tools/foundation/locations.py`
 - Inventory:
-  `/Users/dougborg/Projects/stocktrim-openapi-client/stocktrim_mcp_server/src/stocktrim_mcp_server/tools/foundation/inventory.py`
+  `stocktrim_mcp_server/src/stocktrim_mcp_server/tools/foundation/inventory.py`
 - Purchase Orders:
-  `/Users/dougborg/Projects/stocktrim-openapi-client/stocktrim_mcp_server/src/stocktrim_mcp_server/tools/foundation/purchase_orders.py`
+  `stocktrim_mcp_server/src/stocktrim_mcp_server/tools/foundation/purchase_orders.py`
 - Urgent Orders:
-  `/Users/dougborg/Projects/stocktrim-openapi-client/stocktrim_mcp_server/src/stocktrim_mcp_server/tools/workflows/urgent_orders.py`
+  `stocktrim_mcp_server/src/stocktrim_mcp_server/tools/workflows/urgent_orders.py`
 
 ### Documentation
 
 - Tools Reference:
-  `/Users/dougborg/Projects/stocktrim-openapi-client/docs/mcp-server/tools.md`
+  `docs/mcp-server/tools.md`
 - Templates:
-  `/Users/dougborg/Projects/stocktrim-openapi-client/stocktrim_mcp_server/src/stocktrim_mcp_server/templates/`
+  `stocktrim_mcp_server/src/stocktrim_mcp_server/templates/`
 
 ### FastMCP Source
 
