@@ -6,6 +6,11 @@ import logging
 from datetime import datetime
 
 from fastmcp import Context, FastMCP
+from fastmcp.server.elicitation import (
+    AcceptedElicitation,
+    CancelledElicitation,
+    DeclinedElicitation,
+)
 from pydantic import BaseModel, Field
 
 from stocktrim_mcp_server.dependencies import get_services
@@ -362,50 +367,101 @@ class DeletePurchaseOrderResponse(BaseModel):
     message: str
 
 
-async def _delete_purchase_order_impl(
-    request: DeletePurchaseOrderRequest, context: Context
-) -> DeletePurchaseOrderResponse:
-    """Implementation of delete_purchase_order tool.
-
-    Args:
-        request: Request containing reference number
-        context: Server context with services
-
-    Returns:
-        DeletePurchaseOrderResponse indicating success
-
-    Raises:
-        ValueError: If reference number is empty
-        Exception: If API call fails
-    """
-    services = get_services(context)
-    success, message = await services.purchase_orders.delete(request.reference_number)
-
-    return DeletePurchaseOrderResponse(
-        success=success,
-        message=message,
-    )
-
-
 async def delete_purchase_order(
     request: DeletePurchaseOrderRequest, context: Context
 ) -> DeletePurchaseOrderResponse:
     """Delete a purchase order by reference number.
 
-    This tool deletes a purchase order from StockTrim.
+    🔴 HIGH-RISK OPERATION: This action permanently deletes purchase order data
+    and cannot be undone. User confirmation is required via elicitation.
+
+    This tool deletes a purchase order from StockTrim after obtaining
+    explicit user confirmation through the MCP elicitation protocol.
 
     Args:
         request: Request containing reference number
         context: Server context with StockTrimClient
 
     Returns:
-        DeletePurchaseOrderResponse indicating success
+        DeletePurchaseOrderResponse indicating success or cancellation
 
     Example:
         Request: {"reference_number": "PO-2024-001"}
         Returns: {"success": true, "message": "Purchase order PO-2024-001 deleted successfully"}
+                 or {"success": false, "message": "Deletion cancelled by user"}
     """
-    return await _delete_purchase_order_impl(request, context)
+    services = get_services(context)
+
+    # Get PO details for preview
+    po_info = await _get_purchase_order_impl(
+        GetPurchaseOrderRequest(reference_number=request.reference_number), context
+    )
+
+    if not po_info:
+        return DeletePurchaseOrderResponse(
+            success=False,
+            message=f"Purchase order not found: {request.reference_number}",
+        )
+
+    # Build preview information
+    supplier_info = (
+        f"{po_info.supplier_name} ({po_info.supplier_code})"
+        if po_info.supplier_name and po_info.supplier_code
+        else po_info.supplier_code or "Unknown Supplier"
+    )
+    cost_info = f"${po_info.total_cost:,.2f}" if po_info.total_cost else "Unknown"
+    items_info = (
+        f"{po_info.line_items_count} items" if po_info.line_items_count else "0 items"
+    )
+    status_info = po_info.status or "Unknown"
+
+    # Request user confirmation via elicitation
+    result = await context.elicit(
+        message=f"""⚠️ Delete purchase order {po_info.reference_number}?
+
+**Supplier**: {supplier_info}
+**Status**: {status_info}
+**Total Cost**: {cost_info}
+**Line Items**: {items_info}
+
+This action will permanently delete the purchase order and cannot be undone.
+
+Proceed with deletion?""",
+        response_type=None,  # Simple yes/no approval
+    )
+
+    # Handle elicitation response
+    match result:
+        case AcceptedElicitation():
+            # User confirmed - proceed with deletion
+            success, message = await services.purchase_orders.delete(
+                request.reference_number
+            )
+            return DeletePurchaseOrderResponse(
+                success=success,
+                message=f"✅ {message}" if success else message,
+            )
+
+        case DeclinedElicitation():
+            # User declined
+            return DeletePurchaseOrderResponse(
+                success=False,
+                message=f"❌ Deletion of purchase order {po_info.reference_number} declined by user",
+            )
+
+        case CancelledElicitation():
+            # User cancelled
+            return DeletePurchaseOrderResponse(
+                success=False,
+                message=f"❌ Deletion of purchase order {po_info.reference_number} cancelled by user",
+            )
+
+        case _:
+            # Unexpected response type
+            return DeletePurchaseOrderResponse(
+                success=False,
+                message=f"Unexpected elicitation response for purchase order {po_info.reference_number}",
+            )
 
 
 # ============================================================================

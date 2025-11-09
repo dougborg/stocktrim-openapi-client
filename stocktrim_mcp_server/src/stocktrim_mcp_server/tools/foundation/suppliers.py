@@ -3,6 +3,11 @@
 from __future__ import annotations
 
 from fastmcp import Context, FastMCP
+from fastmcp.server.elicitation import (
+    AcceptedElicitation,
+    CancelledElicitation,
+    DeclinedElicitation,
+)
 from pydantic import BaseModel, Field
 
 from stocktrim_mcp_server.dependencies import get_services
@@ -202,26 +207,86 @@ async def delete_supplier(
 ) -> DeleteSupplierResponse:
     """Delete a supplier by code.
 
-    This tool deletes a supplier from StockTrim.
+    🔴 HIGH-RISK OPERATION: This action permanently deletes supplier data
+    and cannot be undone. User confirmation is required via elicitation.
+
+    This tool deletes a supplier from StockTrim after obtaining
+    explicit user confirmation through the MCP elicitation protocol.
 
     Args:
         request: Request containing supplier code
         context: Server context with StockTrimClient
 
     Returns:
-        DeleteSupplierResponse indicating success
+        DeleteSupplierResponse indicating success or cancellation
 
     Example:
         Request: {"code": "SUP-001"}
         Returns: {"success": true, "message": "Supplier SUP-001 deleted successfully"}
+                 or {"success": false, "message": "Deletion cancelled by user"}
     """
     services = get_services(context)
-    success, message = await services.suppliers.delete(request.code)
 
-    return DeleteSupplierResponse(
-        success=success,
-        message=message,
+    # Get supplier details for preview
+    supplier = await services.suppliers.get_by_code(request.code)
+
+    if not supplier:
+        return DeleteSupplierResponse(
+            success=False,
+            message=f"Supplier not found: {request.code}",
+        )
+
+    # Build preview information
+    supplier_code = supplier.supplier_code or request.code
+    supplier_name = supplier.supplier_name or "Unnamed Supplier"
+    contact_info = (
+        supplier.primary_contact_name or supplier.email_address or "No contact"
     )
+
+    # Request user confirmation via elicitation
+    result = await context.elicit(
+        message=f"""⚠️ Delete supplier {supplier_code}?
+
+**{supplier_name}**
+Contact: {contact_info}
+
+This action will permanently delete the supplier and all associations (product mappings, purchase order history).
+This cannot be undone.
+
+Proceed with deletion?""",
+        response_type=None,  # Simple yes/no approval
+    )
+
+    # Handle elicitation response
+    match result:
+        case AcceptedElicitation():
+            # User confirmed - proceed with deletion
+            success, message = await services.suppliers.delete(request.code)
+            return DeleteSupplierResponse(
+                success=success,
+                message=f"✅ {message}" if success else message,
+            )
+
+        case DeclinedElicitation():
+            # User declined
+            return DeleteSupplierResponse(
+                success=False,
+                message=f"❌ Deletion of supplier {supplier_code} declined by user",
+            )
+
+        case CancelledElicitation():
+            # User cancelled
+            return DeleteSupplierResponse(
+                success=False,
+                message=f"❌ Deletion of supplier {supplier_code} cancelled by user",
+            )
+
+        case _:
+            # Unexpected response type
+            return DeleteSupplierResponse(
+                success=False,
+                message=f"Unexpected elicitation response for supplier {supplier_code}",
+            )
 
 
 # ============================================================================

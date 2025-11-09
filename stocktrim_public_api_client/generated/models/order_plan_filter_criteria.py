@@ -16,7 +16,7 @@ class OrderPlanFilterCriteria:
     """
     Attributes:
         exclude_manufactured (bool | None | Unset):
-        current_status (CurrentStatusEnum | Unset):
+        current_status (CurrentStatusEnum | None | Unset):
         location_id (int | None | Unset):
         location (None | str | Unset):
         customer_id (int | None | Unset):
@@ -32,7 +32,7 @@ class OrderPlanFilterCriteria:
     """
 
     exclude_manufactured: bool | None | Unset = UNSET
-    current_status: CurrentStatusEnum | Unset = UNSET
+    current_status: CurrentStatusEnum | None | Unset = UNSET
     location_id: int | None | Unset = UNSET
     location: None | str | Unset = UNSET
     customer_id: int | None | Unset = UNSET
@@ -53,9 +53,13 @@ class OrderPlanFilterCriteria:
         else:
             exclude_manufactured = self.exclude_manufactured
 
-        current_status: str | Unset = UNSET
-        if not isinstance(self.current_status, Unset):
+        current_status: None | str | Unset
+        if isinstance(self.current_status, Unset):
+            current_status = UNSET
+        elif isinstance(self.current_status, CurrentStatusEnum):
             current_status = self.current_status.value
+        else:
+            current_status = self.current_status
 
         location_id: int | None | Unset
         if isinstance(self.location_id, Unset):
@@ -170,12 +174,22 @@ class OrderPlanFilterCriteria:
             d.pop("excludeManufactured", UNSET)
         )
 
-        _current_status = d.pop("currentStatus", UNSET)
-        current_status: CurrentStatusEnum | Unset
-        if isinstance(_current_status, Unset):
-            current_status = UNSET
-        else:
-            current_status = CurrentStatusEnum(_current_status)
+        def _parse_current_status(data: object) -> CurrentStatusEnum | None | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            try:
+                if not isinstance(data, str):
+                    raise TypeError()
+                current_status_type_1 = CurrentStatusEnum(data)
+
+                return current_status_type_1
+            except:  # noqa: E722
+                pass
+            return cast(CurrentStatusEnum | None | Unset, data)
+
+        current_status = _parse_current_status(d.pop("currentStatus", UNSET))
 
         def _parse_location_id(data: object) -> int | None | Unset:
             if data is None:

@@ -4,6 +4,22 @@ The StockTrim MCP Server provides 20+ tools for interacting with the StockTrim A
 organized into **Foundation Tools** (direct API access) and **Workflow Tools**
 (high-level business operations).
 
+## Safety and User Confirmation
+
+Some tools perform destructive operations that require explicit user confirmation. These
+tools use the MCP elicitation protocol to request approval before execution.
+
+**Risk Levels:**
+
+- 🔴 **HIGH-RISK**: Requires user confirmation (permanent deletion)
+- 🟡 **MEDIUM-HIGH**: May require confirmation (critical modifications)
+- 🟠 **MEDIUM**: May require confirmation (financial obligations)
+- 🟢 **LOW**: No confirmation (reversible operations)
+- ⚪ **SAFE**: No confirmation (read-only operations)
+
+For details on safety patterns and confirmation workflows, see
+[Safety Patterns](./safety-patterns.md).
+
 ## Tool Categories
 
 ### Foundation Tools vs Workflow Tools
@@ -205,13 +221,21 @@ Create one or more products.
 
 - `products` (array): List of product objects
 
-### `stocktrim_delete_products`
+### `delete_product` 🔴
 
-Delete products by code.
+Delete a product by code.
+
+**Risk Level:** 🔴 HIGH-RISK - Requires user confirmation via elicitation
 
 **Parameters:**
 
-- `codes` (array): List of product codes
+- `code` (string): Product code to delete
+
+**Returns:** Success status and message
+
+**Safety:** This operation permanently deletes product data and cannot be undone. User
+confirmation is required before execution. See
+[Safety Patterns](./safety-patterns.md#high-risk-requires-confirmation).
 
 ## Customer Tools
 
@@ -256,6 +280,23 @@ Create one or more suppliers.
 **Parameters:**
 
 - `suppliers` (array): List of supplier objects
+
+### `delete_supplier` 🔴
+
+Delete a supplier by code.
+
+**Risk Level:** 🔴 HIGH-RISK - Requires user confirmation via elicitation
+
+**Parameters:**
+
+- `code` (string): Supplier code to delete
+
+**Returns:** Success status and message
+
+**Safety:** This operation permanently deletes supplier data and all associations
+(product mappings, purchase order history) and cannot be undone. User confirmation is
+required before execution. See
+[Safety Patterns](./safety-patterns.md#high-risk-requires-confirmation).
 
 ## Inventory Tools
 
@@ -333,18 +374,22 @@ List all sales orders with optional product filter (alias for `get_sales_orders`
 
 **Returns:** List of sales orders with total count
 
-#### `delete_sales_orders`
+#### `delete_sales_orders` 🔴
 
 Delete sales orders for a specific product.
+
+**Risk Level:** 🔴 HIGH-RISK - Requires user confirmation via elicitation
 
 **Parameters:**
 
 - `product_id` (string, required): Product ID to delete orders for
 
-**Returns:** Success status and count of deleted orders
+**Returns:** Success status and message
 
-**Note:** For safety, `product_id` is required. Cannot delete all orders without a
-filter.
+**Safety:** This operation permanently deletes all sales orders for a product and cannot
+be undone. User confirmation is required before execution. For safety, `product_id` is
+required - cannot delete all orders without a filter. See
+[Safety Patterns](./safety-patterns.md#high-risk-requires-confirmation).
 
 **Example:**
 
@@ -410,15 +455,21 @@ calculated total cost, and line item count.
 }
 ```
 
-#### `delete_purchase_order`
+#### `delete_purchase_order` 🔴
 
 Delete a purchase order by reference number.
+
+**Risk Level:** 🔴 HIGH-RISK - Requires user confirmation via elicitation
 
 **Parameters:**
 
 - `reference_number` (string, required): Purchase order reference number to delete
 
-**Returns:** Success/failure status and message.
+**Returns:** Success status and message
+
+**Safety:** This operation permanently deletes purchase order data and cannot be undone.
+User confirmation is required before execution. See
+[Safety Patterns](./safety-patterns.md#high-risk-requires-confirmation).
 
 **Note:** The StockTrim API does not support updating purchase orders. To modify a
 purchase order, you must delete and recreate it.

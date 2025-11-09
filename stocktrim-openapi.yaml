@@ -1343,7 +1343,9 @@ components:
           type: boolean
           nullable: true
         currentStatus:
-          $ref: '#/components/schemas/CurrentStatusEnum'
+          allOf:
+          - $ref: '#/components/schemas/CurrentStatusEnum'
+          nullable: true
         locationId:
           type: integer
           format: int32
