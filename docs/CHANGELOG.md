@@ -2,6 +2,465 @@
 
 <!-- version list -->
 
+## v0.10.0 (2025-11-09)
+
+### Chores
+
+- **release**: Mcp v0.10.0
+  ([`f1209d8`](https://github.com/dougborg/stocktrim-openapi-client/commit/f1209d8479b03823bf7dff82288d9fc47ac61ba5))
+
+- **release**: Mcp v0.8.0
+  ([`c950b0e`](https://github.com/dougborg/stocktrim-openapi-client/commit/c950b0e329bdf848c6afbd1a8dbda3f7f5909839))
+
+- **release**: Mcp v0.9.0
+  ([`1a2659e`](https://github.com/dougborg/stocktrim-openapi-client/commit/1a2659e5a4c2db310b05decef027b64a626e8d63))
+
+### Documentation
+
+- **mcp**: Comprehensive documentation enhancements and template externalization (#5)
+  ([#78](https://github.com/dougborg/stocktrim-openapi-client/pull/78),
+  [`d5ee08d`](https://github.com/dougborg/stocktrim-openapi-client/commit/d5ee08d4666d41a5d228d05b67d01a5a62230955))
+
+* test(mcp): add comprehensive tests for structured logging
+
+Add test coverage for logging configuration and observability decorators.
+
+Tests added: - test_logging_config.py (10 tests): * Configuration with different formats
+(console, JSON) * Configuration with different log levels * Logger instance creation \*
+Environment variable handling * Invalid configuration handling
+
+- test_observability.py (15 tests): * @observe_tool decorator functionality \*
+  @observe_service decorator functionality * Success and failure scenarios * Timing
+  measurements * Parameter filtering * Function metadata preservation * Exception
+  propagation
+
+All 25 tests pass successfully.
+
+This provides coverage for the structured logging implementation added in commit
+925a19f.
+
+- fix(test): replace time.sleep with asyncio.sleep in async tests
+
+Address code review feedback: use asyncio.sleep() instead of time.sleep() in async test
+functions to properly test timing without blocking the event loop.
+
+Changes: - Replace time.sleep() with asyncio.sleep() in timing tests - Remove
+AsyncMock() calls that don't yield control - Import asyncio instead of time module
+
+Fixes PR review comments from Copilot.
+
+- test: add comprehensive tests for forecast management tools
+
+Add 13 new unit tests covering the two new forecast management workflow tools: -
+forecasts_update_and_monitor (5 tests) - forecasts_get_for_products (8 tests)
+
+Tests cover: - Trigger-only and wait-for-completion modes - Progress monitoring and
+timeout handling
+
+- Error scenarios and validation - Filtering, sorting, and priority indicators - Empty
+  results and summary statistics
+
+Also fix DTO field name issues in forecast_management.py: - Remove references to
+non-existent supplier_name field - Use correct field names (order_quantity,
+safety_stock_level) - Add pytest timeout marker for long-running test
+
+All 235 tests now passing.
+
+- fix: remove unused product_name assignment
+
+Address Copilot review comment - remove unnecessary product_name assignment that was
+immediately overwritten. Now correctly uses product_code as the display name since the
+DTO doesn't have a product_description field.
+
+- docs(mcp): enhance documentation and externalize markdown templates (#5)
+
+This commit addresses issue #5 by significantly improving MCP server documentation for
+AI agent success. Changes include:
+
+## Documentation Improvements
+
+1. **Comprehensive Server Instructions** (server.py) - Expanded FastMCP instructions
+   from 6 lines to 200+ lines - Added tool categorization (Foundation vs Workflow) -
+   Included 5 complete workflow examples: * Inventory Reordering (automated & manual
+   approaches) * Forecast Management (update, monitor, analyze) * Supplier Onboarding
+   (workflow vs step-by-step) * Product Configuration (lifecycle management) * Customer
+   Order Fulfillment (complete flow) - Added best practices for tool selection -
+   Documented error handling patterns - Included observability and performance notes
+
+1. **Complete Workflow Examples** (docs/mcp-server/examples.md) - Real-world scenarios
+   with full request/response flows - When-to-use guidance for each workflow - Trade-off
+   analysis for different approaches - Advanced patterns and troubleshooting - Error
+   handling best practices - Performance optimization tips
+
+## Code Quality Improvements
+
+3. **Externalized Markdown Templates** - Created templates/ directory for response
+   templates - Extracted 6 markdown templates from forecast_management.py - Added
+   template loader utility with format support - Cleaner code with better
+   maintainability - Templates can now be edited without touching Python code
+
+## Technical Details
+
+- Templates use Python .format() for variable substitution - Template loader provides
+  FileNotFoundError for missing templates - All existing tests pass without modification
+  \- Server imports successfully with new structure
+
+* docs(mcp): enhance workflow tool docstrings and complete tools.md (#5)
+
+This commit completes issue #5 by enhancing workflow tool documentation with
+comprehensive docstrings and updating tools.md to include workflow tools.
+
+## Enhanced Workflow Tool Docstrings
+
+Updated all 6 workflow tool docstrings with:
+
+1. **review_urgent_order_requirements** - How it works section - Common use cases
+   (weekly reorders, urgent restocking, etc.) - Typical workflow with step-by-step
+   guidance - Enhanced example with detailed response structure - See Also section
+   linking to examples.md
+
+1. **generate_purchase_orders_from_urgent_items** - How it works section - Common use
+   cases and best practices - Important notes about draft status and review requirements
+   \- Enhanced example showing multiple POs - See Also section with related tools
+
+1. **create_supplier_with_products** - How it works with transactional approach
+   explanation - Common use cases for supplier onboarding scenarios - Best practices for
+   verification and error handling - Advantages over manual approach comparison -
+   Enhanced example with 3 product mappings
+
+1. **configure_product** - How it works section - Common use cases (discontinuation,
+   seasonal activation, etc.) - Best practices for lifecycle management - Field mappings
+   explanation (discontinue -> discontinued) - Multiple examples (discontinuing and
+   activating products)
+
+## Updated tools.md
+
+Added comprehensive workflow tools section including: - Tool categories explanation
+(Foundation vs Workflow) - When to use which type of tool - Detailed documentation for
+all 7 workflow tools: * Forecast management tools (3) * Urgent order management tools
+(2) * Supplier management tools (1)
+
+- Product management tools (1) - Links to examples.md for complete workflows - Parameter
+  documentation with ranges and defaults
+
+## Documentation Structure
+
+Each enhanced docstring now includes: - Brief description - "How It Works" section -
+"Common Use Cases" section - "Best Practices" section (where applicable) - Enhanced
+examples with realistic data - "See Also" section with links to: * Complete workflows in
+examples.md * Related tools * Foundation tools for comparison
+
+This makes the tools self-documenting and provides clear guidance for AI agents on when
+and how to use each tool.
+
+- refactor: extract magic numbers to named constants
+
+Address Copilot review comments by defining: - MAX_RESPONSE_SIZE_BYTES = 400_000 -
+ESTIMATED_CHARS_PER_FORECAST_ITEM = 500
+
+This improves maintainability and makes token budget thresholds easy to adjust.
+
+- fix: address Copilot review comments
+
+* Extract priority threshold constants (HIGH=7, MEDIUM=14 days) - Remove unnecessary
+  comments from test file - Fix markdown formatting for environment variables
+
+______________________________________________________________________
+
+Co-authored-by: Doug Borg <dougborg@dougborg.org>
+
+Co-authored-by: Claude <noreply@anthropic.com>
+
+### Features
+
+- Add user confirmation for destructive operations (#80)
+  ([#81](https://github.com/dougborg/stocktrim-openapi-client/pull/81),
+  [`198eb66`](https://github.com/dougborg/stocktrim-openapi-client/commit/198eb66a0d4b667eee879c6f1539090976aaeb54))
+
+* docs: add ADR 001 documenting user confirmation pattern
+
+Add Architecture Decision Record documenting the choice to use FastMCP Elicitation for
+user confirmation on destructive operations.
+
+Documents: - Context and problem statement - 4 options considered (pre-flight,
+parameter, prompt, elicitation) - Decision rationale (MCP-native, industry best
+practice) - Implementation pattern with code examples - Tool categorization by risk
+level - Testing requirements - Consequences and validation criteria
+
+Decision: Use FastMCP Elicitation (MCP native protocol)
+
+Rationale: Standard protocol, strong safety guarantees, rich context,
+
+excellent developer experience
+
+- test: update purchase order and sales order deletion tests for elicitation
+
+* Replace old deletion tests with elicitation pattern tests - Add imports for
+  AcceptedElicitation, DeclinedElicitation, CancelledElicitation - Test all elicitation
+  response paths (not found, accepted, declined, cancelled) - Align with product and
+  supplier test patterns - All 276 tests passing
+
+- test: implement autospec for service mocks to enforce interface compliance
+
+Use create_autospec() for all service mocks in conftest.py to prevent tests from passing
+while mocking non-existent methods. This ensures that test mocks always match the actual
+service interfaces.
+
+Benefits: - Tests will fail immediately if they mock non-existent methods - Prevents
+bugs where tests pass but production code fails - Provides better refactoring safety -
+Catches method name typos and signature mismatches
+
+This change was implemented after discovering that tests were mocking
+services.suppliers.list_suppliers() instead of list_all(), which allowed the bug to slip
+through to the resource implementation.
+
+All 276 tests pass with autospec enforcement.
+
+Addresses: #82
+
+- fix: add nullable enum support to client regeneration + fix resource bug
+
+1. Add nullable enum field support to regeneration script - Add
+   `add_nullable_to_enum_fields()` function - Mark OrderPlanFilterCriteria.currentStatus
+   as nullable - Fixes "None is not a valid CurrentStatusEnum" errors - Addresses: #83
+
+1. Fix supplier directory resource method name - Change `list_suppliers()` to
+   `list_all()` - This bug was caught by autospec implementation - Related: #82
+
+The regeneration script now handles enum fields that can be null in API responses, using
+the allOf + nullable pattern for OpenAPI 3.0.
+
+- fix: regenerate client with nullable currentStatus enum field
+
+Regenerated Python client from StockTrim OpenAPI spec with the nullable enum field fix
+applied. The currentStatus field in OrderPlanFilterCriteria can now handle null values
+from the API.
+
+Changes: - OrderPlanFilterCriteria.currentStatus is now CurrentStatusEnum | None | Unset
+\- from_dict() properly handles None values without throwing validation errors
+
+This fixes the "None is not a valid CurrentStatusEnum" error when querying order plan
+data.
+
+Fixes: #83
+
+- fix: remove limit parameter from ProductService.list_all() calls
+
+The ProductService.list_all() method doesn't accept a limit parameter, but foundation.py
+was calling it with limit=50. This was caught when testing resources with MCP Inspector
+at runtime.
+
+Root cause: test_foundation.py was using mock_foundation_context which overrode the
+autospec'd services from conftest.py with plain AsyncMock, so tests couldn't catch the
+interface mismatch.
+
+Changes: - foundation.py: Remove limit=50 from list_all() call, use slicing instead -
+test_foundation.py: Remove mock_foundation_context fixture that was overriding
+autospec'd services with plain AsyncMock - test_foundation.py: Update all tests to use
+mock_context directly - test_foundation.py: Fix catalog limit test to verify slicing
+behavior
+
+This ensures autospec catches interface mismatches in resource tests.
+
+- fix: use bulk endpoint for listing all suppliers
+
+The Suppliers.get_all() method was incorrectly using /api/Suppliers endpoint without a
+code parameter, which returns 404. The StockTrim API has separate endpoints for
+different supplier operations: - /api/Suppliers?code=X - returns single supplier
+(requires code) - /api/SuppliersBulk
+
+- returns all suppliers (no parameters)
+
+This is different from other endpoints like Customers and Products which return arrays
+from their main endpoint.
+
+Changes: - Import get_api_suppliers_bulk from generated API - Use bulk endpoint when
+code is UNSET (listing all) - Use single endpoint when code is provided (get specific
+supplier) - Update docstring to clarify the conditional behavior
+
+This fixes the 404 error in the supplier directory MCP resource.
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+
+- **mcp**: Add structured logging and observability
+  ([`925a19f`](https://github.com/dougborg/stocktrim-openapi-client/commit/925a19fc46b98a61863a9e6ad4ca6208a210b975))
+
+Implements comprehensive structured logging using structlog with automatic observability
+for all MCP tools and service operations.
+
+Features: - Structured logging with dual format support (console/JSON) -
+Environment-based configuration (LOG_LEVEL, LOG_FORMAT) - Automatic tool invocation
+tracking with timing metrics - Service layer operation tracing at DEBUG level - Rich
+error context with categorization - Comprehensive documentation with examples
+
+Changes: - Add structlog dependency (>=24.1.0) - Create logging_config.py for structured
+logging setup - Create observability.py with @observe_tool and @observe_service
+decorators - Update server.py to use structured logging for lifecycle events - Apply
+observability decorator to supplier tools - Add comprehensive logging documentation
+(docs/mcp-server/logging.md)
+
+Console format provides human-readable colored output for development. JSON format
+provides machine-readable logs for production aggregation.
+
+Example structured log events: - logging_configured: Logging system initialized -
+server_starting/ready/shutdown: Server lifecycle - tool_invoked/completed/failed: Tool
+execution tracking - service_operation_started/completed/failed: Service layer tracing
+
+Closes #12
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+
+- **mcp**: Complete Phase 2 workflow tools with lifecycle and enhanced supplier
+  onboarding ([#18](https://github.com/dougborg/stocktrim-openapi-client/pull/18),
+  [`c301f7f`](https://github.com/dougborg/stocktrim-openapi-client/commit/c301f7fb9e62880bf7098359db35445bf73ae030))
+
+## Changes
+
+### 1. Enhanced Supplier Service - Extended `SupplierService.create()` to support all
+
+SupplierRequestDto fields: - Contact info: email_address, primary_contact_name - Lead
+time: default_lead_time - Address: street_address, address_line_1, address_line_2,
+state, country, post_code - External ID: external_id
+
+### 2. Enhanced Supplier Onboarding Tool - Updated `create_supplier_with_products` to match
+
+`suppliers_add_and_configure` spec - Added all contact and address fields to request
+model - Changed return type from JSON to markdown report - Enhanced output with: -
+Structured supplier details (contact, lead time, address) - Success/failure tracking for
+product mappings - Actionable next steps based on mapping results
+
+### 3. New Product Lifecycle Management Tool - Implemented `products_configure_lifecycle` workflow
+
+tool - Supports 4 lifecycle actions: - `activate`: Enable product and forecasting -
+`deactivate`: Temporarily disable forecasting - `discontinue`: Mark as discontinued -
+`unstock`: Remove from inventory management - Features: - Impact analysis (current
+inventory, previous status) - Optional forecast recalculation - Before/after comparison
+in markdown report - Error handling with graceful forecast failure
+
+### 4. Comprehensive Test Coverage - Added 8 new unit tests for `products_configure_lifecycle` -
+
+Updated 7 supplier onboarding tests for markdown output - All 243 tests passing
+
+## Closes
+
+Completes #18 (Phase 2: High-Value Workflow Tools)
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+
+- **mcp**: Implement Phase 3 MCP resources for discovery (#19)
+  ([#79](https://github.com/dougborg/stocktrim-openapi-client/pull/79),
+  [`ccaa05c`](https://github.com/dougborg/stocktrim-openapi-client/commit/ccaa05c92b7c69cc2a3c720541df1a993c3de162))
+
+* feat(mcp): implement Phase 3 MCP resources for discovery
+
+Add 9 MCP resources that enable AI agents to explore StockTrim data without making tool
+calls, improving context gathering and discovery.
+
+Resources Implemented:
+
+Foundation Resources (6): - stocktrim://products/{product_code} - Product details -
+stocktrim://products/catalog - Product catalog (50 item limit) -
+stocktrim://customers/{customer_code} - Customer details -
+stocktrim://suppliers/{supplier_code} - Supplier information -
+stocktrim://locations/{location_code} - Location details -
+stocktrim://inventory/{location_code}/{product_code} - Stock levels
+
+Report Resources (3): - stocktrim://reports/inventory-status?days_threshold=30 - Low
+stock items - stocktrim://reports/urgent-orders - Items needing reorder (< 7 days) -
+stocktrim://reports/supplier-directory - Supplier directory
+
+Key Implementation Details: - All resources return JSON for LLM consumption - Proper
+error handling with ResourceError for not found cases - Service layer reuse via
+dependency injection - UNSET handling for optional API fields - Token budget management
+(30-50 item limits on lists) - Client-side filtering for order plan queries (API
+limitation) - Inventory resource uses product-level stock (no GET endpoint)
+
+Testing: - 24 comprehensive unit tests for all resources - All 267 tests passing - Test
+coverage for success cases, not found errors, and edge cases
+
+Documentation: - Updated server.py instructions with resource documentation - Organized
+into Foundation and Report categories - Examples of resource usage in common workflows
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+
+- fix: address copilot review comments for resources
+
+* Remove default value from context parameter in inventory_status_report - Reorder
+  parameters to put context first (required param before optional) - Update docstring to
+  specify "50 items" limit in products catalog resource
+
+Addresses review comments from PR #79
+
+______________________________________________________________________
+
+Co-authored-by: Doug Borg <dougborg@apple.com>
+
+Co-authored-by: Claude <noreply@anthropic.com>
+
+### Testing
+
+- Add comprehensive test coverage for forecast management tools
+  ([#77](https://github.com/dougborg/stocktrim-openapi-client/pull/77),
+  [`5fbf576`](https://github.com/dougborg/stocktrim-openapi-client/commit/5fbf576aaef0848df6a511540bca9a023615df62))
+
+* test(mcp): add comprehensive tests for structured logging
+
+Add test coverage for logging configuration and observability decorators.
+
+Tests added: - test_logging_config.py (10 tests): * Configuration with different formats
+(console, JSON) * Configuration with different log levels * Logger instance creation \*
+Environment variable handling * Invalid configuration handling
+
+- test_observability.py (15 tests): * @observe_tool decorator functionality \*
+  @observe_service decorator functionality * Success and failure scenarios * Timing
+  measurements * Parameter filtering * Function metadata preservation * Exception
+  propagation
+
+All 25 tests pass successfully.
+
+This provides coverage for the structured logging implementation added in commit
+925a19f.
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+
+- **mcp**: Add comprehensive tests for structured logging
+  ([#76](https://github.com/dougborg/stocktrim-openapi-client/pull/76),
+  [`cf1a415`](https://github.com/dougborg/stocktrim-openapi-client/commit/cf1a415a7ea9004118b22830a0cb6f5c32bf3be6))
+
+* test(mcp): add comprehensive tests for structured logging
+
+Add test coverage for logging configuration and observability decorators.
+
+Tests added: - test_logging_config.py (10 tests): * Configuration with different formats
+(console, JSON) * Configuration with different log levels * Logger instance creation \*
+Environment variable handling * Invalid configuration handling
+
+- test_observability.py (15 tests): * @observe_tool decorator functionality \*
+  @observe_service decorator functionality * Success and failure scenarios * Timing
+  measurements * Parameter filtering * Function metadata preservation * Exception
+  propagation
+
+All 25 tests pass successfully.
+
+This provides coverage for the structured logging implementation added in commit
+925a19f.
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+Co-authored-by: Doug Borg <dougborg@apple.com>
+
+Co-authored-by: Claude <noreply@anthropic.com>
+
 ## v0.9.2 (2025-11-06)
 
 ### Bug Fixes
