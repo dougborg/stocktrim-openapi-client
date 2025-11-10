@@ -14,8 +14,8 @@ from pydantic import BaseModel, Field
 
 from stocktrim_mcp_server.dependencies import get_services
 from stocktrim_public_api_client.client_types import UNSET, Unset
-from stocktrim_public_api_client.generated.models.order_plan_filter_criteria_dto import (
-    OrderPlanFilterCriteriaDto,
+from stocktrim_public_api_client.generated.models.order_plan_filter_criteria import (
+    OrderPlanFilterCriteria,
 )
 
 logger = logging.getLogger(__name__)
@@ -130,7 +130,7 @@ async def search_products(
     services = get_services(context)
 
     # Use Order Plan API with searchString filter for keyword search
-    filter_criteria = OrderPlanFilterCriteriaDto(
+    filter_criteria = OrderPlanFilterCriteria(
         search_string=request.search_query,
     )
 

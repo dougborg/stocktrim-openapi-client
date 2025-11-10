@@ -159,8 +159,12 @@ async def test_search_products_success(mock_product_context):
 
     # Verify order plan query was called with searchString
     services.client.order_plan.query.assert_called_once()
-    call_args = services.client.order_plan.query.call_args[0][0]
-    assert call_args.search_string == "widget"
+    # Get the filter criteria passed to query()
+    call_args = services.client.order_plan.query.call_args
+    filter_criteria = (
+        call_args[0][0] if call_args[0] else call_args[1].get("filter_criteria")
+    )
+    assert filter_criteria.search_string == "widget"
 
 
 @pytest.mark.asyncio
