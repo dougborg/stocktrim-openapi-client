@@ -13,7 +13,6 @@ from stocktrim_mcp_server.tools.foundation.products import (
     CreateProductRequest,
     DeleteProductRequest,
     GetProductRequest,
-    SearchProductsRequest,
     create_product,
     delete_product,
     get_product,
@@ -145,9 +144,10 @@ async def test_search_products_success(mock_product_context):
     services = mock_product_context.request_context.lifespan_context
     services.client.order_plan.query.return_value = [order_plan_item1, order_plan_item2]
 
-    # Execute
-    request = SearchProductsRequest(search_query="widget")
-    response = await search_products(request, mock_product_context)
+    # Execute - using flattened parameters
+    response = await search_products(
+        search_query="widget", context=mock_product_context
+    )
 
     # Verify
     assert response.total_count == 2
@@ -174,9 +174,10 @@ async def test_search_products_empty(mock_product_context):
     services = mock_product_context.request_context.lifespan_context
     services.client.order_plan.query.return_value = []
 
-    # Execute
-    request = SearchProductsRequest(search_query="NONEXISTENT")
-    response = await search_products(request, mock_product_context)
+    # Execute - using flattened parameters
+    response = await search_products(
+        search_query="NONEXISTENT", context=mock_product_context
+    )
 
     # Verify
     assert response.total_count == 0

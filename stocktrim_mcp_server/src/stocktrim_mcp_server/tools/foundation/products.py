@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from typing import Annotated
 
 from fastmcp import Context, FastMCP
 from fastmcp.server.elicitation import (
@@ -13,6 +14,7 @@ from fastmcp.server.elicitation import (
 from pydantic import BaseModel, Field
 
 from stocktrim_mcp_server.dependencies import get_services
+from stocktrim_mcp_server.unpack import Unpack, unpack_pydantic_params
 from stocktrim_public_api_client.client_types import UNSET, Unset
 from stocktrim_public_api_client.generated.models.order_plan_filter_criteria import (
     OrderPlanFilterCriteria,
@@ -98,8 +100,9 @@ class SearchProductsResponse(BaseModel):
     total_count: int
 
 
+@unpack_pydantic_params
 async def search_products(
-    request: SearchProductsRequest, context: Context
+    request: Annotated[SearchProductsRequest, Unpack()], context: Context
 ) -> SearchProductsResponse:
     """Search for products by name, code, or category keywords.
 
@@ -121,10 +124,10 @@ async def search_products(
         SearchProductsResponse with matching products
 
     Example:
-        Request: {"search_query": "blue widget"}
+        search_query="blue widget"
         Returns: {"products": [{"code": "WIDGET-001", "description": "Blue Widget", ...}], "total_count": 1}
 
-        Request: {"search_query": "electronics"}
+        search_query="electronics"
         Returns: {"products": [...], "total_count": 15}
     """
     services = get_services(context)
