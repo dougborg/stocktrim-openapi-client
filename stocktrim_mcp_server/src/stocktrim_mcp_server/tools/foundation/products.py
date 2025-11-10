@@ -13,7 +13,10 @@ from fastmcp.server.elicitation import (
 from pydantic import BaseModel, Field
 
 from stocktrim_mcp_server.dependencies import get_services
-from stocktrim_public_api_client.client_types import Unset
+from stocktrim_public_api_client.client_types import UNSET, Unset
+from stocktrim_public_api_client.generated.models.order_plan_filter_criteria_dto import (
+    OrderPlanFilterCriteriaDto,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -83,7 +86,9 @@ async def get_product(
 class SearchProductsRequest(BaseModel):
     """Request model for searching products."""
 
-    prefix: str = Field(..., description="Product code prefix to search for")
+    search_query: str = Field(
+        ..., description="Search query for product name, code, or category"
+    )
 
 
 class SearchProductsResponse(BaseModel):
@@ -96,36 +101,55 @@ class SearchProductsResponse(BaseModel):
 async def search_products(
     request: SearchProductsRequest, context: Context
 ) -> SearchProductsResponse:
-    """Search for products by code prefix.
+    """Search for products by name, code, or category keywords.
 
-    This tool finds all products whose code starts with the given prefix.
-    Useful for discovering products in a category or product line.
+    This tool searches across product fields (name, code, category) using
+    the StockTrim Order Plan API's searchString parameter. Useful for finding
+    products when you don't know the exact product code.
+
+    Search matches against:
+    - Product names (e.g., "blue widget")
+    - Product codes (e.g., "WIDG" matches "WIDGET-001")
+    - Categories (e.g., "electronics")
+    - Other product attributes
 
     Args:
-        request: Request containing search prefix
+        request: Request containing search query
         context: Server context with StockTrimClient
 
     Returns:
         SearchProductsResponse with matching products
 
     Example:
-        Request: {"prefix": "WIDGET"}
-        Returns: {"products": [...], "total_count": 5}
+        Request: {"search_query": "blue widget"}
+        Returns: {"products": [{"code": "WIDGET-001", "description": "Blue Widget", ...}], "total_count": 1}
+
+        Request: {"search_query": "electronics"}
+        Returns: {"products": [...], "total_count": 15}
     """
     services = get_services(context)
-    products = await services.products.search(request.prefix)
 
-    # Build response
+    # Use Order Plan API with searchString filter for keyword search
+    filter_criteria = OrderPlanFilterCriteriaDto(
+        search_string=request.search_query,
+    )
+
+    # Query order plan which searches across product fields
+    order_plan_results = await services.client.order_plan.query(filter_criteria)
+
+    # Build response from order plan results
     product_infos = [
         ProductInfo(
-            code=p.product_code_readable or p.product_id or "",
-            description=p.name,
-            unit_of_measurement=None,
-            is_active=not (p.discontinued or False),
-            cost_price=p.cost if not isinstance(p.cost, Unset) else None,
-            selling_price=p.price if not isinstance(p.price, Unset) else None,
+            code=item.product_code if item.product_code not in (None, UNSET) else "",
+            description=item.name if item.name not in (None, UNSET) else None,
+            unit_of_measurement=None,  # Not available in SkuOptimizedResultsDto
+            is_active=not (item.is_discontinued or False),
+            cost_price=item.sku_cost if item.sku_cost not in (None, UNSET) else None,
+            selling_price=item.sku_price
+            if item.sku_price not in (None, UNSET)
+            else None,
         )
-        for p in products
+        for item in order_plan_results
     ]
 
     return SearchProductsResponse(

@@ -23,6 +23,9 @@ from stocktrim_public_api_client.client_types import UNSET
 from stocktrim_public_api_client.generated.models.products_response_dto import (
     ProductsResponseDto,
 )
+from stocktrim_public_api_client.generated.models.sku_optimized_results_dto import (
+    SkuOptimizedResultsDto,
+)
 
 
 @pytest.fixture
@@ -122,31 +125,42 @@ async def test_get_product_discontinued(mock_product_context):
 
 
 @pytest.mark.asyncio
-async def test_search_products_success(mock_product_context, sample_product):
-    """Test successfully searching products."""
-    # Setup
-    product2 = ProductsResponseDto(
-        product_id="WIDGET-002",
-        product_code_readable="WIDGET-002",
+async def test_search_products_success(mock_product_context):
+    """Test successfully searching products with keyword search."""
+    # Setup - create order plan results (SkuOptimizedResultsDto)
+    order_plan_item1 = SkuOptimizedResultsDto(
+        product_code="WIDGET-001",
+        name="Blue Widget",
+        is_discontinued=False,
+        sku_cost=15.50,
+        sku_price=25.00,
+    )
+    order_plan_item2 = SkuOptimizedResultsDto(
+        product_code="WIDGET-002",
         name="Red Widget",
-        discontinued=False,
-        cost=16.00,
-        price=26.00,
+        is_discontinued=False,
+        sku_cost=16.00,
+        sku_price=26.00,
     )
     services = mock_product_context.request_context.lifespan_context
-    services.products.search.return_value = [sample_product, product2]
+    services.client.order_plan.query.return_value = [order_plan_item1, order_plan_item2]
 
     # Execute
-    request = SearchProductsRequest(prefix="WIDGET")
+    request = SearchProductsRequest(search_query="widget")
     response = await search_products(request, mock_product_context)
 
     # Verify
     assert response.total_count == 2
     assert len(response.products) == 2
     assert response.products[0].code == "WIDGET-001"
+    assert response.products[0].description == "Blue Widget"
     assert response.products[1].code == "WIDGET-002"
+    assert response.products[1].description == "Red Widget"
 
-    services.products.search.assert_called_once_with("WIDGET")
+    # Verify order plan query was called with searchString
+    services.client.order_plan.query.assert_called_once()
+    call_args = services.client.order_plan.query.call_args[0][0]
+    assert call_args.search_string == "widget"
 
 
 @pytest.mark.asyncio
@@ -154,10 +168,10 @@ async def test_search_products_empty(mock_product_context):
     """Test searching products with no matches."""
     # Setup
     services = mock_product_context.request_context.lifespan_context
-    services.products.search.return_value = []
+    services.client.order_plan.query.return_value = []
 
     # Execute
-    request = SearchProductsRequest(prefix="NONEXISTENT")
+    request = SearchProductsRequest(search_query="NONEXISTENT")
     response = await search_products(request, mock_product_context)
 
     # Verify
