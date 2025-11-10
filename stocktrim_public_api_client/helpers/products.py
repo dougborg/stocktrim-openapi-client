@@ -49,6 +49,9 @@ class Products(Base):
             code=code,
             page_no=page_no,
         )
+        # Handle 404 as empty result (product prefix not found)
+        if response.status_code == 404:
+            return []
         result = unwrap(response)
         # unwrap() returns the actual type or raises an exception on error
         return result if isinstance(result, list) else []  # type: ignore[return-value]
