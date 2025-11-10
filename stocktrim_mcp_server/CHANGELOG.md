@@ -1,6 +1,284 @@
 # CHANGELOG
 
+## v0.11.0 (2025-11-10)
+
+### Chores
+
+- **release**: Client v0.10.0
+  ([`e11ae0e`](https://github.com/dougborg/stocktrim-openapi-client/commit/e11ae0ea48abfd00b0108804e70c592ff715d5bc))
+
+### Documentation
+
+- Add ADRs and update documentation
+  ([#90](https://github.com/dougborg/stocktrim-openapi-client/pull/90),
+  [`ec871c2`](https://github.com/dougborg/stocktrim-openapi-client/commit/ec871c2d02db7e636ee6b233ba428d75e62e7a00))
+
+* docs: add ADRs and update documentation
+
+- Add ADR 002: Tool Interface Pattern (Pydantic + FastMCP) - Add ADR 003: Automated Tool
+  Documentation strategy - Update overview.md and README.md with current features -
+  Organize tool documentation investigation into docs/ - Add session summary for
+  2025-11-07
+
+Related: #84, #85, #86
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+
+### Features
+
+- Add user confirmation for destructive operations (#80)
+  ([#81](https://github.com/dougborg/stocktrim-openapi-client/pull/81),
+  [`198eb66`](https://github.com/dougborg/stocktrim-openapi-client/commit/198eb66a0d4b667eee879c6f1539090976aaeb54))
+
+* docs: add ADR 001 documenting user confirmation pattern
+
+Add Architecture Decision Record documenting the choice to use FastMCP Elicitation for
+user confirmation on destructive operations.
+
+Documents: - Context and problem statement - 4 options considered (pre-flight,
+parameter, prompt, elicitation) - Decision rationale (MCP-native, industry best
+practice) - Implementation pattern with code examples - Tool categorization by risk
+level - Testing requirements - Consequences and validation criteria
+
+Decision: Use FastMCP Elicitation (MCP native protocol)
+
+Rationale: Standard protocol, strong safety guarantees, rich context,
+
+excellent developer experience
+
+- test: update purchase order and sales order deletion tests for elicitation
+
+* Replace old deletion tests with elicitation pattern tests - Add imports for
+  AcceptedElicitation, DeclinedElicitation, CancelledElicitation - Test all elicitation
+  response paths (not found, accepted, declined, cancelled) - Align with product and
+  supplier test patterns - All 276 tests passing
+
+- test: implement autospec for service mocks to enforce interface compliance
+
+Use create_autospec() for all service mocks in conftest.py to prevent tests from passing
+while mocking non-existent methods. This ensures that test mocks always match the actual
+service interfaces.
+
+Benefits: - Tests will fail immediately if they mock non-existent methods - Prevents
+bugs where tests pass but production code fails - Provides better refactoring safety -
+Catches method name typos and signature mismatches
+
+This change was implemented after discovering that tests were mocking
+services.suppliers.list_suppliers() instead of list_all(), which allowed the bug to slip
+through to the resource implementation.
+
+All 276 tests pass with autospec enforcement.
+
+Addresses: #82
+
+- fix: add nullable enum support to client regeneration + fix resource bug
+
+1. Add nullable enum field support to regeneration script - Add
+   `add_nullable_to_enum_fields()` function - Mark OrderPlanFilterCriteria.currentStatus
+   as nullable - Fixes "None is not a valid CurrentStatusEnum" errors - Addresses: #83
+
+1. Fix supplier directory resource method name - Change `list_suppliers()` to
+   `list_all()` - This bug was caught by autospec implementation - Related: #82
+
+The regeneration script now handles enum fields that can be null in API responses, using
+the allOf + nullable pattern for OpenAPI 3.0.
+
+- fix: regenerate client with nullable currentStatus enum field
+
+Regenerated Python client from StockTrim OpenAPI spec with the nullable enum field fix
+applied. The currentStatus field in OrderPlanFilterCriteria can now handle null values
+from the API.
+
+Changes: - OrderPlanFilterCriteria.currentStatus is now CurrentStatusEnum | None | Unset
+\- from_dict() properly handles None values without throwing validation errors
+
+This fixes the "None is not a valid CurrentStatusEnum" error when querying order plan
+data.
+
+Fixes: #83
+
+- fix: remove limit parameter from ProductService.list_all() calls
+
+The ProductService.list_all() method doesn't accept a limit parameter, but foundation.py
+was calling it with limit=50. This was caught when testing resources with MCP Inspector
+at runtime.
+
+Root cause: test_foundation.py was using mock_foundation_context which overrode the
+autospec'd services from conftest.py with plain AsyncMock, so tests couldn't catch the
+interface mismatch.
+
+Changes: - foundation.py: Remove limit=50 from list_all() call, use slicing instead -
+test_foundation.py: Remove mock_foundation_context fixture that was overriding
+autospec'd services with plain AsyncMock - test_foundation.py: Update all tests to use
+mock_context directly - test_foundation.py: Fix catalog limit test to verify slicing
+behavior
+
+This ensures autospec catches interface mismatches in resource tests.
+
+- fix: use bulk endpoint for listing all suppliers
+
+The Suppliers.get_all() method was incorrectly using /api/Suppliers endpoint without a
+code parameter, which returns 404. The StockTrim API has separate endpoints for
+different supplier operations: - /api/Suppliers?code=X - returns single supplier
+(requires code) - /api/SuppliersBulk
+
+- returns all suppliers (no parameters)
+
+This is different from other endpoints like Customers and Products which return arrays
+from their main endpoint.
+
+Changes: - Import get_api_suppliers_bulk from generated API - Use bulk endpoint when
+code is UNSET (listing all) - Use single endpoint when code is provided (get specific
+supplier) - Update docstring to clarify the conditional behavior
+
+This fixes the 404 error in the supplier directory MCP resource.
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+
+- **mcp**: Add Docker MCP Registry support
+  ([#93](https://github.com/dougborg/stocktrim-openapi-client/pull/93),
+  [`7428599`](https://github.com/dougborg/stocktrim-openapi-client/commit/74285990b3617fae10f96afac598978b1c45aeae))
+
+* docs: add ADR 001 documenting user confirmation pattern
+
+Add Architecture Decision Record documenting the choice to use FastMCP Elicitation for
+user confirmation on destructive operations.
+
+Documents: - Context and problem statement - 4 options considered (pre-flight,
+parameter, prompt, elicitation) - Decision rationale (MCP-native, industry best
+practice) - Implementation pattern with code examples - Tool categorization by risk
+level - Testing requirements - Consequences and validation criteria
+
+Decision: Use FastMCP Elicitation (MCP native protocol)
+
+Rationale: Standard protocol, strong safety guarantees, rich context,
+
+excellent developer experience
+
+Part of Issue #80 implementation.
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+
+- test: update purchase order and sales order deletion tests for elicitation
+
+* Replace old deletion tests with elicitation pattern tests - Add imports for
+  AcceptedElicitation, DeclinedElicitation, CancelledElicitation - Test all elicitation
+  response paths (not found, accepted, declined, cancelled) - Align with product and
+  supplier test patterns - All 276 tests passing
+
+- test: implement autospec for service mocks to enforce interface compliance
+
+Use create_autospec() for all service mocks in conftest.py to prevent tests from passing
+while mocking non-existent methods. This ensures that test mocks always match the actual
+service interfaces.
+
+Benefits: - Tests will fail immediately if they mock non-existent methods - Prevents
+bugs where tests pass but production code fails - Provides better refactoring safety -
+Catches method name typos and signature mismatches
+
+This change was implemented after discovering that tests were mocking
+services.suppliers.list_suppliers() instead of list_all(), which allowed the bug to slip
+through to the resource implementation.
+
+All 276 tests pass with autospec enforcement.
+
+Addresses: #82
+
+- fix: add nullable enum support to client regeneration + fix resource bug
+
+1. Add nullable enum field support to regeneration script - Add
+   `add_nullable_to_enum_fields()` function - Mark OrderPlanFilterCriteria.currentStatus
+   as nullable - Fixes "None is not a valid CurrentStatusEnum" errors - Addresses: #83
+
+1. Fix supplier directory resource method name - Change `list_suppliers()` to
+   `list_all()` - This bug was caught by autospec implementation - Related: #82
+
+The regeneration script now handles enum fields that can be null in API responses, using
+the allOf + nullable pattern for OpenAPI 3.0.
+
+- fix: regenerate client with nullable currentStatus enum field
+
+Regenerated Python client from StockTrim OpenAPI spec with the nullable enum field fix
+applied. The currentStatus field in OrderPlanFilterCriteria can now handle null values
+from the API.
+
+Changes: - OrderPlanFilterCriteria.currentStatus is now CurrentStatusEnum | None | Unset
+\- from_dict() properly handles None values without throwing validation errors
+
+This fixes the "None is not a valid CurrentStatusEnum" error when querying order plan
+data.
+
+Fixes: #83
+
+- fix: remove limit parameter from ProductService.list_all() calls
+
+The ProductService.list_all() method doesn't accept a limit parameter, but foundation.py
+was calling it with limit=50. This was caught when testing resources with MCP Inspector
+at runtime.
+
+Root cause: test_foundation.py was using mock_foundation_context which overrode the
+autospec'd services from conftest.py with plain AsyncMock, so tests couldn't catch the
+interface mismatch.
+
+Changes: - foundation.py: Remove limit=50 from list_all() call, use slicing instead -
+test_foundation.py: Remove mock_foundation_context fixture that was overriding
+autospec'd services with plain AsyncMock - test_foundation.py: Update all tests to use
+mock_context directly - test_foundation.py: Fix catalog limit test to verify slicing
+behavior
+
+This ensures autospec catches interface mismatches in resource tests.
+
+- fix: use bulk endpoint for listing all suppliers
+
+The Suppliers.get_all() method was incorrectly using /api/Suppliers endpoint without a
+code parameter, which returns 404. The StockTrim API has separate endpoints for
+different supplier operations: - /api/Suppliers?code=X - returns single supplier
+(requires code) - /api/SuppliersBulk
+
+- returns all suppliers (no parameters)
+
+This is different from other endpoints like Customers and Products which return arrays
+from their main endpoint.
+
+Changes: - Import get_api_suppliers_bulk from generated API - Use bulk endpoint when
+code is UNSET (listing all) - Use single endpoint when code is provided (get specific
+supplier) - Update docstring to clarify the conditional behavior
+
+This fixes the 404 error in the supplier directory MCP resource.
+
+- feat(mcp): add Dockerfile for Docker MCP Registry
+
+Add Dockerfile to support publishing MCP server to Docker Hub via Docker MCP Registry.
+Image installs stocktrim-openapi-client from PyPI and runs the MCP server.
+
+Related to #2
+
+- feat(mcp): add tools.json generation script
+
+Add script to auto-generate tools.json from registered MCP tools to keep Docker MCP
+Registry submission in sync with actual tool implementations.
+
+Script introspects FastMCP tool manager and extracts tool names and descriptions from
+registered tools.
+
+______________________________________________________________________
+
+Co-authored-by: Doug Borg <dougborg@apple.com>
+
+Co-authored-by: Claude <noreply@anthropic.com>
+
 ## v0.10.0 (2025-11-07)
+
+### Chores
+
+- **release**: Mcp v0.10.0
+  ([`f1209d8`](https://github.com/dougborg/stocktrim-openapi-client/commit/f1209d8479b03823bf7dff82288d9fc47ac61ba5))
 
 ### Documentation
 

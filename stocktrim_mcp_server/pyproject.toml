@@ -1,6 +1,6 @@
 [project]
 name = "stocktrim-mcp-server"
-version = "0.10.0"
+version = "0.11.0"
 description = "Model Context Protocol (MCP) server for StockTrim Inventory Management API"
 authors = [
     {name = "Doug Borg", email = "dougborg@dougborg.org"},
