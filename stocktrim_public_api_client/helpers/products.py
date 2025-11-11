@@ -49,7 +49,9 @@ class Products(Base):
             code=code,
             page_no=page_no,
         )
-        # Handle 404 as empty result (product prefix not found)
+        # StockTrim API returns 404 when no products match the filter (e.g., code or prefix).
+        # This is not an error, but indicates "no results" (unlike the more conventional 200 with empty list).
+        # We treat 404 as "no products found" and return an empty list for consistency with expected API behavior.
         if response.status_code == 404:
             return []
         result = unwrap(response)

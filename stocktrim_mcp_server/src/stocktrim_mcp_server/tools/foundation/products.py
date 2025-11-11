@@ -141,20 +141,27 @@ async def search_products(
     # Query order plan which searches across product fields
     order_plan_results = await services.client.order_plan.query(filter_criteria)
 
-    # Build response from order plan results
-    product_infos = [
-        ProductInfo(
-            code=item.product_code if item.product_code not in (None, UNSET) else "",
-            description=item.name if item.name not in (None, UNSET) else None,
-            unit_of_measurement=None,  # Not available in SkuOptimizedResultsDto
-            is_active=not (item.is_discontinued or False),
-            cost_price=item.sku_cost if item.sku_cost not in (None, UNSET) else None,
-            selling_price=item.sku_price
-            if item.sku_price not in (None, UNSET)
-            else None,
+    # Build response from order plan results, filtering out items without product codes
+    product_infos = []
+    for item in order_plan_results:
+        # Skip items without a valid product code
+        if item.product_code in (None, UNSET, ""):
+            continue
+
+        product_infos.append(
+            ProductInfo(
+                code=item.product_code,
+                description=item.name if item.name not in (None, UNSET) else None,
+                unit_of_measurement=None,  # Not available in SkuOptimizedResultsDto
+                is_active=not (item.is_discontinued or False),
+                cost_price=item.sku_cost
+                if item.sku_cost not in (None, UNSET)
+                else None,
+                selling_price=item.sku_price
+                if item.sku_price not in (None, UNSET)
+                else None,
+            )
         )
-        for item in order_plan_results
-    ]
 
     return SearchProductsResponse(
         products=product_infos,

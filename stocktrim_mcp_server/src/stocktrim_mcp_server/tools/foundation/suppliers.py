@@ -33,7 +33,7 @@ class GetSupplierRequest(BaseModel):
 class SupplierInfo(BaseModel):
     """Supplier information."""
 
-    code: str | None
+    code: str
     name: str | None
     email: str | None
     primary_contact: str | None
