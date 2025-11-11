@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime
+from typing import Annotated
 
 from fastmcp import Context, FastMCP
 from fastmcp.server.elicitation import (
@@ -14,6 +15,7 @@ from fastmcp.server.elicitation import (
 from pydantic import BaseModel, Field
 
 from stocktrim_mcp_server.dependencies import get_services
+from stocktrim_mcp_server.unpack import Unpack, unpack_pydantic_params
 from stocktrim_mcp_server.utils import unset_to_none
 
 logger = logging.getLogger(__name__)
@@ -101,8 +103,9 @@ async def _create_sales_order_impl(
     )
 
 
+@unpack_pydantic_params
 async def create_sales_order(
-    request: CreateSalesOrderRequest, context: Context
+    request: Annotated[CreateSalesOrderRequest, Unpack()], context: Context
 ) -> SalesOrderInfo:
     """Create a new sales order.
 
@@ -196,8 +199,9 @@ async def _get_sales_orders_impl(
     )
 
 
+@unpack_pydantic_params
 async def get_sales_orders(
-    request: GetSalesOrdersRequest, context: Context
+    request: Annotated[GetSalesOrdersRequest, Unpack()], context: Context
 ) -> GetSalesOrdersResponse:
     """Get sales orders, optionally filtered by product.
 
@@ -239,8 +243,9 @@ class ListSalesOrdersResponse(BaseModel):
     total_count: int
 
 
+@unpack_pydantic_params
 async def list_sales_orders(
-    request: ListSalesOrdersRequest, context: Context
+    request: Annotated[ListSalesOrdersRequest, Unpack()], context: Context
 ) -> ListSalesOrdersResponse:
     """List all sales orders with optional product filter.
 
@@ -287,8 +292,9 @@ class DeleteSalesOrdersResponse(BaseModel):
     message: str
 
 
+@unpack_pydantic_params
 async def delete_sales_orders(
-    request: DeleteSalesOrdersRequest, context: Context
+    request: Annotated[DeleteSalesOrdersRequest, Unpack()], context: Context
 ) -> DeleteSalesOrdersResponse:
     """Delete sales orders for a specific product.
 

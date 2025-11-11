@@ -5,7 +5,6 @@ from unittest.mock import AsyncMock
 import pytest
 
 from stocktrim_mcp_server.tools.foundation.inventory import (
-    SetInventoryRequest,
     set_product_inventory,
 )
 
@@ -31,14 +30,14 @@ async def test_set_product_inventory_success(mock_inventory_context):
     services.inventory.set_for_product.return_value = None
 
     # Execute
-    request = SetInventoryRequest(
+    response = await set_product_inventory(
         product_id="WIDGET-001",
         stock_on_hand=50.0,
         stock_on_order=100.0,
         location_code="WH-01",
         location_name="Main Warehouse",
+        context=mock_inventory_context,
     )
-    response = await set_product_inventory(request, mock_inventory_context)
 
     # Verify
     assert response.product_id == "WIDGET-001"
@@ -64,11 +63,9 @@ async def test_set_product_inventory_minimal_fields(mock_inventory_context):
     services.inventory.set_for_product.return_value = None
 
     # Execute
-    request = SetInventoryRequest(
-        product_id="WIDGET-002",
-        stock_on_hand=25.0,
+    response = await set_product_inventory(
+        product_id="WIDGET-002", stock_on_hand=25.0, context=mock_inventory_context
     )
-    response = await set_product_inventory(request, mock_inventory_context)
 
     # Verify
     assert response.product_id == "WIDGET-002"
@@ -94,12 +91,12 @@ async def test_set_product_inventory_zero_stock(mock_inventory_context):
     services.inventory.set_for_product.return_value = None
 
     # Execute
-    request = SetInventoryRequest(
+    response = await set_product_inventory(
         product_id="WIDGET-003",
         stock_on_hand=0.0,
         stock_on_order=0.0,
+        context=mock_inventory_context,
     )
-    response = await set_product_inventory(request, mock_inventory_context)
 
     # Verify
     assert response.product_id == "WIDGET-003"
@@ -115,11 +112,9 @@ async def test_set_product_inventory_negative_stock(mock_inventory_context):
     services.inventory.set_for_product.return_value = None
 
     # Execute - negative inventory can indicate issues but should be allowed
-    request = SetInventoryRequest(
-        product_id="WIDGET-004",
-        stock_on_hand=-10.0,
+    response = await set_product_inventory(
+        product_id="WIDGET-004", stock_on_hand=-10.0, context=mock_inventory_context
     )
-    response = await set_product_inventory(request, mock_inventory_context)
 
     # Verify
     assert response.product_id == "WIDGET-004"
@@ -134,13 +129,13 @@ async def test_set_product_inventory_with_location_only(mock_inventory_context):
     services.inventory.set_for_product.return_value = None
 
     # Execute
-    request = SetInventoryRequest(
+    response = await set_product_inventory(
         product_id="WIDGET-005",
         stock_on_hand=75.0,
         location_code="WH-02",
         location_name="Secondary Warehouse",
+        context=mock_inventory_context,
     )
-    response = await set_product_inventory(request, mock_inventory_context)
 
     # Verify
     assert response.product_id == "WIDGET-005"
@@ -157,12 +152,12 @@ async def test_set_product_inventory_service_error(mock_inventory_context):
     services.inventory.set_for_product.side_effect = Exception("API error")
 
     # Execute & Verify
-    request = SetInventoryRequest(
-        product_id="WIDGET-ERROR",
-        stock_on_hand=50.0,
-    )
     with pytest.raises(Exception, match="API error"):
-        await set_product_inventory(request, mock_inventory_context)
+        await set_product_inventory(
+            product_id="WIDGET-ERROR",
+            stock_on_hand=50.0,
+            context=mock_inventory_context,
+        )
 
 
 @pytest.mark.asyncio
@@ -175,12 +170,10 @@ async def test_set_product_inventory_validation_error(mock_inventory_context):
     )
 
     # Execute & Verify
-    request = SetInventoryRequest(
-        product_id="",
-        stock_on_hand=50.0,
-    )
     with pytest.raises(ValueError, match="Product ID is required"):
-        await set_product_inventory(request, mock_inventory_context)
+        await set_product_inventory(
+            product_id="", stock_on_hand=50.0, context=mock_inventory_context
+        )
 
 
 @pytest.mark.asyncio
@@ -191,12 +184,12 @@ async def test_set_product_inventory_decimal_quantities(mock_inventory_context):
     services.inventory.set_for_product.return_value = None
 
     # Execute
-    request = SetInventoryRequest(
+    response = await set_product_inventory(
         product_id="WIDGET-006",
         stock_on_hand=12.5,
         stock_on_order=47.25,
+        context=mock_inventory_context,
     )
-    response = await set_product_inventory(request, mock_inventory_context)
 
     # Verify
     assert response.product_id == "WIDGET-006"

@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import logging
+from typing import Annotated
 
 from fastmcp import Context, FastMCP
 from pydantic import BaseModel, Field
 
 from stocktrim_mcp_server.dependencies import get_services
+from stocktrim_mcp_server.unpack import Unpack, unpack_pydantic_params
 
 logger = logging.getLogger(__name__)
 
@@ -32,8 +34,9 @@ class CustomerInfo(BaseModel):
     address: str | None
 
 
+@unpack_pydantic_params
 async def get_customer(
-    request: GetCustomerRequest, context: Context
+    request: Annotated[GetCustomerRequest, Unpack()], context: Context
 ) -> CustomerInfo | None:
     """Get a customer by code.
 
@@ -85,8 +88,9 @@ class ListCustomersResponse(BaseModel):
     total_count: int
 
 
+@unpack_pydantic_params
 async def list_customers(
-    request: ListCustomersRequest, context: Context
+    request: Annotated[ListCustomersRequest, Unpack()], context: Context
 ) -> ListCustomersResponse:
     """List all customers.
 

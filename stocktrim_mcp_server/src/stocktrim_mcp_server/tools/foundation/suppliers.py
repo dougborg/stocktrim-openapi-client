@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Annotated
+
 from fastmcp import Context, FastMCP
 from fastmcp.server.elicitation import (
     AcceptedElicitation,
@@ -13,6 +15,7 @@ from pydantic import BaseModel, Field
 from stocktrim_mcp_server.dependencies import get_services
 from stocktrim_mcp_server.logging_config import get_logger
 from stocktrim_mcp_server.observability import observe_tool
+from stocktrim_mcp_server.unpack import Unpack, unpack_pydantic_params
 
 logger = get_logger(__name__)
 
@@ -37,8 +40,9 @@ class SupplierInfo(BaseModel):
 
 
 @observe_tool
+@unpack_pydantic_params
 async def get_supplier(
-    request: GetSupplierRequest, context: Context
+    request: Annotated[GetSupplierRequest, Unpack()], context: Context
 ) -> SupplierInfo | None:
     """Get a supplier by code.
 
@@ -92,8 +96,9 @@ class ListSuppliersResponse(BaseModel):
 
 
 @observe_tool
+@unpack_pydantic_params
 async def list_suppliers(
-    request: ListSuppliersRequest, context: Context
+    request: Annotated[ListSuppliersRequest, Unpack()], context: Context
 ) -> ListSuppliersResponse:
     """List all suppliers.
 
@@ -148,8 +153,9 @@ class CreateSupplierRequest(BaseModel):
 
 
 @observe_tool
+@unpack_pydantic_params
 async def create_supplier(
-    request: CreateSupplierRequest, context: Context
+    request: Annotated[CreateSupplierRequest, Unpack()], context: Context
 ) -> SupplierInfo:
     """Create a new supplier.
 
@@ -202,8 +208,9 @@ class DeleteSupplierResponse(BaseModel):
 
 
 @observe_tool
+@unpack_pydantic_params
 async def delete_supplier(
-    request: DeleteSupplierRequest, context: Context
+    request: Annotated[DeleteSupplierRequest, Unpack()], context: Context
 ) -> DeleteSupplierResponse:
     """Delete a supplier by code.
 

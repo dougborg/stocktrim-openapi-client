@@ -13,9 +13,6 @@ from pydantic import ValidationError
 
 from stocktrim_mcp_server.tools.foundation.sales_orders import (
     CreateSalesOrderRequest,
-    DeleteSalesOrdersRequest,
-    GetSalesOrdersRequest,
-    ListSalesOrdersRequest,
     create_sales_order,
     delete_sales_orders,
     get_sales_orders,
@@ -67,14 +64,14 @@ async def test_create_sales_order_success(extended_mock_context, sample_sales_or
     mock_service.create.return_value = sample_sales_order
 
     # Execute
-    request = CreateSalesOrderRequest(
+    response = await create_sales_order(
         product_id="prod-123",
         order_date=datetime(2024, 1, 15, 10, 0, 0),
         quantity=10.0,
         customer_code="CUST-001",
         unit_price=29.99,
+        context=extended_mock_context,
     )
-    response = await create_sales_order(request, extended_mock_context)
 
     # Verify
     assert response.id == 789
@@ -99,12 +96,12 @@ async def test_create_sales_order_minimal(extended_mock_context, sample_sales_or
     mock_service.create.return_value = minimal_order
 
     # Execute
-    request = CreateSalesOrderRequest(
+    response = await create_sales_order(
         product_id="prod-456",
         order_date=datetime(2024, 1, 15, 10, 0, 0),
         quantity=5.0,
+        context=extended_mock_context,
     )
-    response = await create_sales_order(request, extended_mock_context)
 
     # Verify
     assert response.id == 790
@@ -122,13 +119,13 @@ async def test_create_sales_order_empty_product_id(extended_mock_context):
     mock_service.create.side_effect = ValueError("Product ID cannot be empty")
 
     # Execute and verify
-    request = CreateSalesOrderRequest(
-        product_id="",
-        order_date=datetime(2024, 1, 15, 10, 0, 0),
-        quantity=10.0,
-    )
     with pytest.raises(ValueError, match="Product ID cannot be empty"):
-        await create_sales_order(request, extended_mock_context)
+        await create_sales_order(
+            product_id="",
+            order_date=datetime(2024, 1, 15, 10, 0, 0),
+            quantity=10.0,
+            context=extended_mock_context,
+        )
 
 
 @pytest.mark.asyncio
@@ -164,8 +161,7 @@ async def test_get_sales_orders_all(extended_mock_context, sample_sales_order):
     ]
 
     # Execute
-    request = GetSalesOrdersRequest()
-    response = await get_sales_orders(request, extended_mock_context)
+    response = await get_sales_orders(context=extended_mock_context)
 
     # Verify
     assert response.total_count == 2
@@ -183,8 +179,9 @@ async def test_get_sales_orders_by_product(extended_mock_context, sample_sales_o
     mock_service.get_all.return_value = [sample_sales_order]
 
     # Execute
-    request = GetSalesOrdersRequest(product_id="prod-123")
-    response = await get_sales_orders(request, extended_mock_context)
+    response = await get_sales_orders(
+        product_id="prod-123", context=extended_mock_context
+    )
 
     # Verify
     assert response.total_count == 1
@@ -201,8 +198,7 @@ async def test_get_sales_orders_empty_list(extended_mock_context):
     mock_service.get_all.return_value = []
 
     # Execute
-    request = GetSalesOrdersRequest()
-    response = await get_sales_orders(request, extended_mock_context)
+    response = await get_sales_orders(context=extended_mock_context)
 
     # Verify
     assert response.total_count == 0
@@ -219,8 +215,7 @@ async def test_get_sales_orders_single_object(
     mock_service.get_all.return_value = [sample_sales_order]
 
     # Execute
-    request = GetSalesOrdersRequest()
-    response = await get_sales_orders(request, extended_mock_context)
+    response = await get_sales_orders(context=extended_mock_context)
 
     # Verify
     assert response.total_count == 1
@@ -241,8 +236,7 @@ async def test_list_sales_orders_all(extended_mock_context, sample_sales_order):
     mock_service.get_all.return_value = [sample_sales_order]
 
     # Execute
-    request = ListSalesOrdersRequest()
-    response = await list_sales_orders(request, extended_mock_context)
+    response = await list_sales_orders(context=extended_mock_context)
 
     # Verify
     assert response.total_count == 1
@@ -258,8 +252,9 @@ async def test_list_sales_orders_by_product(extended_mock_context, sample_sales_
     mock_service.get_all.return_value = [sample_sales_order]
 
     # Execute
-    request = ListSalesOrdersRequest(product_id="prod-123")
-    response = await list_sales_orders(request, extended_mock_context)
+    response = await list_sales_orders(
+        product_id="prod-123", context=extended_mock_context
+    )
 
     # Verify
     assert response.total_count == 1
@@ -275,8 +270,7 @@ async def test_list_sales_orders_by_product(extended_mock_context, sample_sales_
 async def test_delete_sales_orders_no_product_id(extended_mock_context):
     """Test deleting sales orders without product_id returns error."""
     # Execute
-    request = DeleteSalesOrdersRequest()
-    response = await delete_sales_orders(request, extended_mock_context)
+    response = await delete_sales_orders(context=extended_mock_context)
 
     # Verify
     assert response.success is False
@@ -291,8 +285,9 @@ async def test_delete_sales_orders_not_found(extended_mock_context):
     services.sales_orders.get_all.return_value = []
 
     # Execute
-    request = DeleteSalesOrdersRequest(product_id="prod-missing")
-    response = await delete_sales_orders(request, extended_mock_context)
+    response = await delete_sales_orders(
+        product_id="prod-missing", context=extended_mock_context
+    )
 
     # Verify
     assert response.success is False
@@ -315,8 +310,9 @@ async def test_delete_sales_orders_accepted(extended_mock_context, sample_sales_
     )
 
     # Execute
-    request = DeleteSalesOrdersRequest(product_id="prod-123")
-    response = await delete_sales_orders(request, extended_mock_context)
+    response = await delete_sales_orders(
+        product_id="prod-123", context=extended_mock_context
+    )
 
     # Verify
     assert response.success is True
@@ -344,8 +340,9 @@ async def test_delete_sales_orders_declined(extended_mock_context, sample_sales_
     )
 
     # Execute
-    request = DeleteSalesOrdersRequest(product_id="prod-123")
-    response = await delete_sales_orders(request, extended_mock_context)
+    response = await delete_sales_orders(
+        product_id="prod-123", context=extended_mock_context
+    )
 
     # Verify
     assert response.success is False
@@ -368,8 +365,9 @@ async def test_delete_sales_orders_cancelled(extended_mock_context, sample_sales
     )
 
     # Execute
-    request = DeleteSalesOrdersRequest(product_id="prod-123")
-    response = await delete_sales_orders(request, extended_mock_context)
+    response = await delete_sales_orders(
+        product_id="prod-123", context=extended_mock_context
+    )
 
     # Verify
     assert response.success is False

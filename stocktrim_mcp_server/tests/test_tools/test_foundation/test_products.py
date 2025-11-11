@@ -10,10 +10,6 @@ from fastmcp.server.elicitation import (
 )
 
 from stocktrim_mcp_server.tools.foundation.products import (
-    CreateProductRequest,
-    DeleteProductRequest,
-    GetProductRequest,
-    SearchProductsRequest,
     create_product,
     delete_product,
     get_product,
@@ -22,6 +18,9 @@ from stocktrim_mcp_server.tools.foundation.products import (
 from stocktrim_public_api_client.client_types import UNSET
 from stocktrim_public_api_client.generated.models.products_response_dto import (
     ProductsResponseDto,
+)
+from stocktrim_public_api_client.generated.models.sku_optimized_results_dto import (
+    SkuOptimizedResultsDto,
 )
 
 
@@ -59,8 +58,7 @@ async def test_get_product_success(mock_product_context, sample_product):
     services.products.get_by_code.return_value = sample_product
 
     # Execute
-    request = GetProductRequest(code="WIDGET-001")
-    response = await get_product(request, mock_product_context)
+    response = await get_product(code="WIDGET-001", context=mock_product_context)
 
     # Verify
     assert response is not None
@@ -81,8 +79,7 @@ async def test_get_product_not_found(mock_product_context):
     services.products.get_by_code.return_value = None
 
     # Execute
-    request = GetProductRequest(code="MISSING")
-    response = await get_product(request, mock_product_context)
+    response = await get_product(code="MISSING", context=mock_product_context)
 
     # Verify
     assert response is None
@@ -105,8 +102,7 @@ async def test_get_product_discontinued(mock_product_context):
     services.products.get_by_code.return_value = product
 
     # Execute
-    request = GetProductRequest(code="OLD-001")
-    response = await get_product(request, mock_product_context)
+    response = await get_product(code="OLD-001", context=mock_product_context)
 
     # Verify
     assert response is not None
@@ -122,31 +118,47 @@ async def test_get_product_discontinued(mock_product_context):
 
 
 @pytest.mark.asyncio
-async def test_search_products_success(mock_product_context, sample_product):
-    """Test successfully searching products."""
-    # Setup
-    product2 = ProductsResponseDto(
-        product_id="WIDGET-002",
-        product_code_readable="WIDGET-002",
+async def test_search_products_success(mock_product_context):
+    """Test successfully searching products with keyword search."""
+    # Setup - create order plan results (SkuOptimizedResultsDto)
+    order_plan_item1 = SkuOptimizedResultsDto(
+        product_code="WIDGET-001",
+        name="Blue Widget",
+        is_discontinued=False,
+        sku_cost=15.50,
+        sku_price=25.00,
+    )
+    order_plan_item2 = SkuOptimizedResultsDto(
+        product_code="WIDGET-002",
         name="Red Widget",
-        discontinued=False,
-        cost=16.00,
-        price=26.00,
+        is_discontinued=False,
+        sku_cost=16.00,
+        sku_price=26.00,
     )
     services = mock_product_context.request_context.lifespan_context
-    services.products.search.return_value = [sample_product, product2]
+    services.client.order_plan.query.return_value = [order_plan_item1, order_plan_item2]
 
-    # Execute
-    request = SearchProductsRequest(prefix="WIDGET")
-    response = await search_products(request, mock_product_context)
+    # Execute - using flattened parameters
+    response = await search_products(
+        search_query="widget", context=mock_product_context
+    )
 
     # Verify
     assert response.total_count == 2
     assert len(response.products) == 2
     assert response.products[0].code == "WIDGET-001"
+    assert response.products[0].description == "Blue Widget"
     assert response.products[1].code == "WIDGET-002"
+    assert response.products[1].description == "Red Widget"
 
-    services.products.search.assert_called_once_with("WIDGET")
+    # Verify order plan query was called with searchString
+    services.client.order_plan.query.assert_called_once()
+    # Get the filter criteria passed to query()
+    call_args = services.client.order_plan.query.call_args
+    filter_criteria = (
+        call_args[0][0] if call_args[0] else call_args[1].get("filter_criteria")
+    )
+    assert filter_criteria.search_string == "widget"
 
 
 @pytest.mark.asyncio
@@ -154,11 +166,12 @@ async def test_search_products_empty(mock_product_context):
     """Test searching products with no matches."""
     # Setup
     services = mock_product_context.request_context.lifespan_context
-    services.products.search.return_value = []
+    services.client.order_plan.query.return_value = []
 
-    # Execute
-    request = SearchProductsRequest(prefix="NONEXISTENT")
-    response = await search_products(request, mock_product_context)
+    # Execute - using flattened parameters
+    response = await search_products(
+        search_query="NONEXISTENT", context=mock_product_context
+    )
 
     # Verify
     assert response.total_count == 0
@@ -178,13 +191,13 @@ async def test_create_product_success(mock_product_context, sample_product):
     services.products.create.return_value = sample_product
 
     # Execute
-    request = CreateProductRequest(
+    response = await create_product(
         code="WIDGET-001",
         description="Blue Widget",
         cost_price=15.50,
         selling_price=25.00,
+        context=mock_product_context,
     )
-    response = await create_product(request, mock_product_context)
 
     # Verify
     assert response.code == "WIDGET-001"
@@ -216,11 +229,9 @@ async def test_create_product_minimal(mock_product_context):
     services.products.create.return_value = product
 
     # Execute
-    request = CreateProductRequest(
-        code="MIN-001",
-        description="Minimal Product",
+    response = await create_product(
+        code="MIN-001", description="Minimal Product", context=mock_product_context
     )
-    response = await create_product(request, mock_product_context)
 
     # Verify
     assert response.code == "MIN-001"
@@ -237,12 +248,8 @@ async def test_create_product_validation_error(mock_product_context):
     services.products.create.side_effect = ValueError("Product code cannot be empty")
 
     # Execute & Verify
-    request = CreateProductRequest(
-        code="",
-        description="Test",
-    )
     with pytest.raises(ValueError, match="Product code cannot be empty"):
-        await create_product(request, mock_product_context)
+        await create_product(code="", description="Test", context=mock_product_context)
 
 
 # ============================================================================
@@ -258,8 +265,7 @@ async def test_delete_product_not_found(mock_product_context):
     services.products.get_by_code.return_value = None
 
     # Execute
-    request = DeleteProductRequest(code="MISSING")
-    response = await delete_product(request, mock_product_context)
+    response = await delete_product(code="MISSING", context=mock_product_context)
 
     # Verify
     assert response.success is False
@@ -280,8 +286,7 @@ async def test_delete_product_accepted(mock_product_context, sample_product):
     mock_product_context.elicit = AsyncMock(return_value=AcceptedElicitation(data=None))
 
     # Execute
-    request = DeleteProductRequest(code="WIDGET-001")
-    response = await delete_product(request, mock_product_context)
+    response = await delete_product(code="WIDGET-001", context=mock_product_context)
 
     # Verify
     assert response.success is True
@@ -308,8 +313,7 @@ async def test_delete_product_declined(mock_product_context, sample_product):
     mock_product_context.elicit = AsyncMock(return_value=DeclinedElicitation(data=None))
 
     # Execute
-    request = DeleteProductRequest(code="WIDGET-001")
-    response = await delete_product(request, mock_product_context)
+    response = await delete_product(code="WIDGET-001", context=mock_product_context)
 
     # Verify
     assert response.success is False
@@ -332,8 +336,7 @@ async def test_delete_product_cancelled(mock_product_context, sample_product):
     )
 
     # Execute
-    request = DeleteProductRequest(code="WIDGET-001")
-    response = await delete_product(request, mock_product_context)
+    response = await delete_product(code="WIDGET-001", context=mock_product_context)
 
     # Verify
     assert response.success is False
@@ -362,8 +365,7 @@ async def test_delete_product_discontinued_preview(mock_product_context):
     mock_product_context.elicit = AsyncMock(return_value=DeclinedElicitation(data=None))
 
     # Execute
-    request = DeleteProductRequest(code="OLD-001")
-    await delete_product(request, mock_product_context)
+    await delete_product(code="OLD-001", context=mock_product_context)
 
     # Verify elicitation preview shows discontinued status
     elicit_args = mock_product_context.elicit.call_args
