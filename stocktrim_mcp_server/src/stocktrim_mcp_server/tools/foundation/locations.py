@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import logging
+from typing import Annotated
 
 from fastmcp import Context, FastMCP
 from pydantic import BaseModel, Field
 
 from stocktrim_mcp_server.dependencies import get_services
+from stocktrim_mcp_server.unpack import Unpack, unpack_pydantic_params
 
 logger = logging.getLogger(__name__)
 
@@ -36,8 +38,9 @@ class ListLocationsResponse(BaseModel):
     total_count: int
 
 
+@unpack_pydantic_params
 async def list_locations(
-    request: ListLocationsRequest, context: Context
+    request: Annotated[ListLocationsRequest, Unpack()], context: Context
 ) -> ListLocationsResponse:
     """List all locations.
 
@@ -84,8 +87,9 @@ class CreateLocationRequest(BaseModel):
     name: str = Field(..., description="Location name")
 
 
+@unpack_pydantic_params
 async def create_location(
-    request: CreateLocationRequest, context: Context
+    request: Annotated[CreateLocationRequest, Unpack()], context: Context
 ) -> LocationInfo:
     """Create a new location.
 

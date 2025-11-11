@@ -5,8 +5,6 @@ from unittest.mock import AsyncMock
 import pytest
 
 from stocktrim_mcp_server.tools.foundation.customers import (
-    GetCustomerRequest,
-    ListCustomersRequest,
     get_customer,
     list_customers,
 )
@@ -46,8 +44,7 @@ async def test_get_customer_success(mock_customer_context, sample_customer):
     services.customers.get_by_code.return_value = sample_customer
 
     # Execute
-    request = GetCustomerRequest(code="CUST-001")
-    response = await get_customer(request, mock_customer_context)
+    response = await get_customer(code="CUST-001", context=mock_customer_context)
 
     # Verify
     assert response is not None
@@ -68,8 +65,7 @@ async def test_get_customer_not_found(mock_customer_context):
     services.customers.get_by_code.return_value = None
 
     # Execute
-    request = GetCustomerRequest(code="CUST-MISSING")
-    response = await get_customer(request, mock_customer_context)
+    response = await get_customer(code="CUST-MISSING", context=mock_customer_context)
 
     # Verify
     assert response is None
@@ -91,8 +87,7 @@ async def test_get_customer_with_none_fields(mock_customer_context):
     services.customers.get_by_code.return_value = customer
 
     # Execute
-    request = GetCustomerRequest(code="CUST-002")
-    response = await get_customer(request, mock_customer_context)
+    response = await get_customer(code="CUST-002", context=mock_customer_context)
 
     # Verify
     assert response is not None
@@ -123,8 +118,7 @@ async def test_list_customers_success(mock_customer_context, sample_customer):
     services.customers.list_all.return_value = [sample_customer, customer2]
 
     # Execute
-    request = ListCustomersRequest(limit=50)
-    response = await list_customers(request, mock_customer_context)
+    response = await list_customers(limit=50, context=mock_customer_context)
 
     # Verify
     assert response.total_count == 2
@@ -145,8 +139,7 @@ async def test_list_customers_empty(mock_customer_context):
     services.customers.list_all.return_value = []
 
     # Execute
-    request = ListCustomersRequest()
-    response = await list_customers(request, mock_customer_context)
+    response = await list_customers(context=mock_customer_context)
 
     # Verify
     assert response.total_count == 0
@@ -163,8 +156,7 @@ async def test_list_customers_with_custom_limit(mock_customer_context, sample_cu
     services.customers.list_all.return_value = [sample_customer]
 
     # Execute
-    request = ListCustomersRequest(limit=10)
-    response = await list_customers(request, mock_customer_context)
+    response = await list_customers(limit=10, context=mock_customer_context)
 
     # Verify
     assert response.total_count == 1
@@ -188,8 +180,7 @@ async def test_list_customers_with_minimal_data(mock_customer_context):
     services.customers.list_all.return_value = [minimal_customer]
 
     # Execute
-    request = ListCustomersRequest()
-    response = await list_customers(request, mock_customer_context)
+    response = await list_customers(context=mock_customer_context)
 
     # Verify
     assert response.total_count == 1

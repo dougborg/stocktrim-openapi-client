@@ -44,8 +44,9 @@ class ProductInfo(BaseModel):
     selling_price: float | None
 
 
+@unpack_pydantic_params
 async def get_product(
-    request: GetProductRequest, context: Context
+    request: Annotated[GetProductRequest, Unpack()], context: Context
 ) -> ProductInfo | None:
     """Get a product by code.
 
@@ -179,8 +180,9 @@ class CreateProductRequest(BaseModel):
     selling_price: float | None = Field(default=None, description="Selling price")
 
 
+@unpack_pydantic_params
 async def create_product(
-    request: CreateProductRequest, context: Context
+    request: Annotated[CreateProductRequest, Unpack()], context: Context
 ) -> ProductInfo:
     """Create a new product.
 
@@ -238,8 +240,9 @@ class DeleteProductResponse(BaseModel):
     message: str
 
 
+@unpack_pydantic_params
 async def delete_product(
-    request: DeleteProductRequest, context: Context
+    request: Annotated[DeleteProductRequest, Unpack()], context: Context
 ) -> DeleteProductResponse:
     """Delete a product by code.
 

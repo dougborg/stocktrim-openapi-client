@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import logging
+from typing import Annotated
 
 from fastmcp import Context, FastMCP
 from pydantic import BaseModel, Field
 
 from stocktrim_mcp_server.dependencies import get_services
+from stocktrim_mcp_server.unpack import Unpack, unpack_pydantic_params
 
 logger = logging.getLogger(__name__)
 
@@ -82,8 +84,9 @@ async def _set_product_inventory_impl(
         raise
 
 
+@unpack_pydantic_params
 async def set_product_inventory(
-    request: SetInventoryRequest, context: Context
+    request: Annotated[SetInventoryRequest, Unpack()], context: Context
 ) -> InventoryResult:
     """Set inventory levels for a product.
 

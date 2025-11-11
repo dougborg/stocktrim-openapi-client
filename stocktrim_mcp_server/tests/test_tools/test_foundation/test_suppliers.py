@@ -10,10 +10,6 @@ from fastmcp.server.elicitation import (
 )
 
 from stocktrim_mcp_server.tools.foundation.suppliers import (
-    CreateSupplierRequest,
-    DeleteSupplierRequest,
-    GetSupplierRequest,
-    ListSuppliersRequest,
     create_supplier,
     delete_supplier,
     get_supplier,
@@ -56,8 +52,7 @@ async def test_get_supplier_success(mock_supplier_context, sample_supplier):
     services.suppliers.get_by_code.return_value = sample_supplier
 
     # Execute
-    request = GetSupplierRequest(code="SUP-001")
-    response = await get_supplier(request, mock_supplier_context)
+    response = await get_supplier(code="SUP-001", context=mock_supplier_context)
 
     # Verify
     assert response is not None
@@ -77,8 +72,7 @@ async def test_get_supplier_not_found(mock_supplier_context):
     services.suppliers.get_by_code.return_value = None
 
     # Execute
-    request = GetSupplierRequest(code="MISSING")
-    response = await get_supplier(request, mock_supplier_context)
+    response = await get_supplier(code="MISSING", context=mock_supplier_context)
 
     # Verify
     assert response is None
@@ -99,8 +93,7 @@ async def test_get_supplier_minimal_fields(mock_supplier_context):
     services.suppliers.get_by_code.return_value = supplier
 
     # Execute
-    request = GetSupplierRequest(code="SUP-002")
-    response = await get_supplier(request, mock_supplier_context)
+    response = await get_supplier(code="SUP-002", context=mock_supplier_context)
 
     # Verify
     assert response is not None
@@ -129,8 +122,7 @@ async def test_list_suppliers_all(mock_supplier_context, sample_supplier):
     services.suppliers.list_all.return_value = [sample_supplier, supplier2]
 
     # Execute
-    request = ListSuppliersRequest(active_only=False)
-    response = await list_suppliers(request, mock_supplier_context)
+    response = await list_suppliers(active_only=False, context=mock_supplier_context)
 
     # Verify
     assert response.total_count == 2
@@ -149,8 +141,7 @@ async def test_list_suppliers_active_only(mock_supplier_context, sample_supplier
     services.suppliers.list_all.return_value = [sample_supplier]
 
     # Execute
-    request = ListSuppliersRequest(active_only=True)
-    response = await list_suppliers(request, mock_supplier_context)
+    response = await list_suppliers(active_only=True, context=mock_supplier_context)
 
     # Verify
     assert response.total_count == 1
@@ -167,8 +158,7 @@ async def test_list_suppliers_empty(mock_supplier_context):
     services.suppliers.list_all.return_value = []
 
     # Execute
-    request = ListSuppliersRequest()
-    response = await list_suppliers(request, mock_supplier_context)
+    response = await list_suppliers(context=mock_supplier_context)
 
     # Verify
     assert response.total_count == 0
@@ -188,13 +178,13 @@ async def test_create_supplier_success(mock_supplier_context, sample_supplier):
     services.suppliers.create.return_value = sample_supplier
 
     # Execute
-    request = CreateSupplierRequest(
+    response = await create_supplier(
         code="SUP-001",
         name="Acme Supplies",
         email="contact@acme.com",
         primary_contact="John Doe",
+        context=mock_supplier_context,
     )
-    response = await create_supplier(request, mock_supplier_context)
 
     # Verify
     assert response.code == "SUP-001"
@@ -224,11 +214,9 @@ async def test_create_supplier_minimal(mock_supplier_context):
     services.suppliers.create.return_value = supplier
 
     # Execute
-    request = CreateSupplierRequest(
-        code="SUP-003",
-        name="Minimal Supplier",
+    response = await create_supplier(
+        code="SUP-003", name="Minimal Supplier", context=mock_supplier_context
     )
-    response = await create_supplier(request, mock_supplier_context)
 
     # Verify
     assert response.code == "SUP-003"
@@ -245,12 +233,8 @@ async def test_create_supplier_validation_error(mock_supplier_context):
     services.suppliers.create.side_effect = ValueError("Supplier code cannot be empty")
 
     # Execute & Verify
-    request = CreateSupplierRequest(
-        code="",
-        name="Test",
-    )
     with pytest.raises(ValueError, match="Supplier code cannot be empty"):
-        await create_supplier(request, mock_supplier_context)
+        await create_supplier(code="", name="Test", context=mock_supplier_context)
 
 
 # ============================================================================
@@ -266,8 +250,7 @@ async def test_delete_supplier_not_found(mock_supplier_context):
     services.suppliers.get_by_code.return_value = None
 
     # Execute
-    request = DeleteSupplierRequest(code="MISSING")
-    response = await delete_supplier(request, mock_supplier_context)
+    response = await delete_supplier(code="MISSING", context=mock_supplier_context)
 
     # Verify
     assert response.success is False
@@ -290,8 +273,7 @@ async def test_delete_supplier_accepted(mock_supplier_context, sample_supplier):
     )
 
     # Execute
-    request = DeleteSupplierRequest(code="SUP-001")
-    response = await delete_supplier(request, mock_supplier_context)
+    response = await delete_supplier(code="SUP-001", context=mock_supplier_context)
 
     # Verify
     assert response.success is True
@@ -320,8 +302,7 @@ async def test_delete_supplier_declined(mock_supplier_context, sample_supplier):
     )
 
     # Execute
-    request = DeleteSupplierRequest(code="SUP-001")
-    response = await delete_supplier(request, mock_supplier_context)
+    response = await delete_supplier(code="SUP-001", context=mock_supplier_context)
 
     # Verify
     assert response.success is False
@@ -344,8 +325,7 @@ async def test_delete_supplier_cancelled(mock_supplier_context, sample_supplier)
     )
 
     # Execute
-    request = DeleteSupplierRequest(code="SUP-001")
-    response = await delete_supplier(request, mock_supplier_context)
+    response = await delete_supplier(code="SUP-001", context=mock_supplier_context)
 
     # Verify
     assert response.success is False

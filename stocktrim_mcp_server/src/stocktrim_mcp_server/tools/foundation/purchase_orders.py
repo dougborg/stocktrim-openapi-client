@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime
+from typing import Annotated
 
 from fastmcp import Context, FastMCP
 from fastmcp.server.elicitation import (
@@ -14,6 +15,7 @@ from fastmcp.server.elicitation import (
 from pydantic import BaseModel, Field
 
 from stocktrim_mcp_server.dependencies import get_services
+from stocktrim_mcp_server.unpack import Unpack, unpack_pydantic_params
 
 logger = logging.getLogger(__name__)
 
@@ -82,8 +84,9 @@ async def _get_purchase_order_impl(
     )
 
 
+@unpack_pydantic_params
 async def get_purchase_order(
-    request: GetPurchaseOrderRequest, context: Context
+    request: Annotated[GetPurchaseOrderRequest, Unpack()], context: Context
 ) -> PurchaseOrderInfo | None:
     """Get a purchase order by reference number.
 
@@ -176,8 +179,9 @@ async def _list_purchase_orders_impl(
     )
 
 
+@unpack_pydantic_params
 async def list_purchase_orders(
-    request: ListPurchaseOrdersRequest, context: Context
+    request: Annotated[ListPurchaseOrdersRequest, Unpack()], context: Context
 ) -> ListPurchaseOrdersResponse:
     """List all purchase orders.
 
@@ -314,8 +318,9 @@ async def _create_purchase_order_impl(
     )
 
 
+@unpack_pydantic_params
 async def create_purchase_order(
-    request: CreatePurchaseOrderRequest, context: Context
+    request: Annotated[CreatePurchaseOrderRequest, Unpack()], context: Context
 ) -> CreatePurchaseOrderResponse:
     """Create a new purchase order.
 
@@ -367,8 +372,9 @@ class DeletePurchaseOrderResponse(BaseModel):
     message: str
 
 
+@unpack_pydantic_params
 async def delete_purchase_order(
-    request: DeletePurchaseOrderRequest, context: Context
+    request: Annotated[DeletePurchaseOrderRequest, Unpack()], context: Context
 ) -> DeletePurchaseOrderResponse:
     """Delete a purchase order by reference number.
 

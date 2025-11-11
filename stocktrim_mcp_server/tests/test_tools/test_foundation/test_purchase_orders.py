@@ -12,10 +12,7 @@ from fastmcp.server.elicitation import (
 
 from stocktrim_mcp_server.tools.foundation.purchase_orders import (
     CreatePurchaseOrderRequest,
-    DeletePurchaseOrderRequest,
-    GetPurchaseOrderRequest,
     LineItemRequest,
-    ListPurchaseOrdersRequest,
     create_purchase_order,
     delete_purchase_order,
     get_purchase_order,
@@ -89,8 +86,9 @@ async def test_get_purchase_order_success(mock_po_context, sample_purchase_order
     services.purchase_orders.get_by_reference.return_value = sample_purchase_order
 
     # Execute
-    request = GetPurchaseOrderRequest(reference_number="PO-2024-001")
-    response = await get_purchase_order(request, mock_po_context)
+    response = await get_purchase_order(
+        reference_number="PO-2024-001", context=mock_po_context
+    )
 
     # Verify
     assert response is not None
@@ -112,8 +110,9 @@ async def test_get_purchase_order_not_found(mock_po_context):
     services.purchase_orders.get_by_reference.return_value = None
 
     # Execute
-    request = GetPurchaseOrderRequest(reference_number="PO-MISSING")
-    response = await get_purchase_order(request, mock_po_context)
+    response = await get_purchase_order(
+        reference_number="PO-MISSING", context=mock_po_context
+    )
 
     # Verify
     assert response is None
@@ -130,9 +129,8 @@ async def test_get_purchase_order_empty_reference(mock_po_context):
     )
 
     # Execute & Verify
-    request = GetPurchaseOrderRequest(reference_number="")
     with pytest.raises(ValueError, match="Reference number cannot be empty"):
-        await get_purchase_order(request, mock_po_context)
+        await get_purchase_order(reference_number="", context=mock_po_context)
 
 
 # ============================================================================
@@ -148,8 +146,7 @@ async def test_list_purchase_orders_success(mock_po_context, sample_purchase_ord
     services.purchase_orders.list_all.return_value = [sample_purchase_order]
 
     # Execute
-    request = ListPurchaseOrdersRequest()
-    response = await list_purchase_orders(request, mock_po_context)
+    response = await list_purchase_orders(context=mock_po_context)
 
     # Verify
     assert response.total_count == 1
@@ -166,8 +163,7 @@ async def test_list_purchase_orders_empty(mock_po_context):
     services.purchase_orders.list_all.return_value = []
 
     # Execute
-    request = ListPurchaseOrdersRequest()
-    response = await list_purchase_orders(request, mock_po_context)
+    response = await list_purchase_orders(context=mock_po_context)
 
     # Verify
     assert response.total_count == 0
@@ -184,8 +180,7 @@ async def test_list_purchase_orders_api_returns_single_object(
     services.purchase_orders.list_all.return_value = sample_purchase_order
 
     # Execute
-    request = ListPurchaseOrdersRequest()
-    response = await list_purchase_orders(request, mock_po_context)
+    response = await list_purchase_orders(context=mock_po_context)
 
     # Verify - should handle single object and convert to list
     assert response.total_count == 1
@@ -206,7 +201,7 @@ async def test_create_purchase_order_success(mock_po_context, sample_purchase_or
     services.purchase_orders.create.return_value = sample_purchase_order
 
     # Execute
-    request = CreatePurchaseOrderRequest(
+    response = await create_purchase_order(
         supplier_code="SUP-001",
         supplier_name="Test Supplier",
         line_items=[
@@ -224,8 +219,8 @@ async def test_create_purchase_order_success(mock_po_context, sample_purchase_or
         location_code="WH-001",
         location_name="Main Warehouse",
         status="Draft",
+        context=mock_po_context,
     )
-    response = await create_purchase_order(request, mock_po_context)
 
     # Verify
     assert response.reference_number == "PO-2024-001"
@@ -247,13 +242,13 @@ async def test_create_purchase_order_minimal_fields(
     services.purchase_orders.create.return_value = sample_purchase_order
 
     # Execute
-    request = CreatePurchaseOrderRequest(
+    response = await create_purchase_order(
         supplier_code="SUP-001",
         line_items=[
             LineItemRequest(product_code="WIDGET-001", quantity=10.0),
         ],
+        context=mock_po_context,
     )
-    response = await create_purchase_order(request, mock_po_context)
 
     # Verify
     assert response.reference_number == "PO-2024-001"
@@ -271,12 +266,12 @@ async def test_create_purchase_order_empty_supplier_code(mock_po_context):
     )
 
     # Execute & Verify
-    request = CreatePurchaseOrderRequest(
-        supplier_code="",
-        line_items=[LineItemRequest(product_code="WIDGET-001", quantity=10.0)],
-    )
     with pytest.raises(ValueError, match="Supplier code cannot be empty"):
-        await create_purchase_order(request, mock_po_context)
+        await create_purchase_order(
+            supplier_code="",
+            line_items=[LineItemRequest(product_code="WIDGET-001", quantity=10.0)],
+            context=mock_po_context,
+        )
 
 
 @pytest.mark.asyncio
@@ -305,12 +300,12 @@ async def test_create_purchase_order_with_custom_date(
     services.purchase_orders.create.return_value = sample_purchase_order
 
     # Execute
-    request = CreatePurchaseOrderRequest(
+    response = await create_purchase_order(
         supplier_code="SUP-001",
         line_items=[LineItemRequest(product_code="WIDGET-001", quantity=10.0)],
         order_date="2024-01-15",
+        context=mock_po_context,
     )
-    response = await create_purchase_order(request, mock_po_context)
 
     # Verify
     assert response.reference_number == "PO-2024-001"
@@ -328,12 +323,12 @@ async def test_create_purchase_order_with_different_statuses(
 
     # Test each valid status
     for status in ["Draft", "Approved", "Sent", "Received"]:
-        request = CreatePurchaseOrderRequest(
+        response = await create_purchase_order(
             supplier_code="SUP-001",
             line_items=[LineItemRequest(product_code="WIDGET-001", quantity=10.0)],
             status=status,
+            context=mock_po_context,
         )
-        response = await create_purchase_order(request, mock_po_context)
         assert response.reference_number == "PO-2024-001"
 
     # Verify create was called for each status
@@ -353,8 +348,9 @@ async def test_delete_purchase_order_not_found(mock_po_context):
     services.purchase_orders.get_by_reference.return_value = None
 
     # Execute
-    request = DeletePurchaseOrderRequest(reference_number="PO-MISSING")
-    response = await delete_purchase_order(request, mock_po_context)
+    response = await delete_purchase_order(
+        reference_number="PO-MISSING", context=mock_po_context
+    )
 
     # Verify
     assert response.success is False
@@ -375,8 +371,9 @@ async def test_delete_purchase_order_accepted(mock_po_context, sample_purchase_o
     mock_po_context.elicit = AsyncMock(return_value=AcceptedElicitation(data=None))
 
     # Execute
-    request = DeletePurchaseOrderRequest(reference_number="PO-2024-001")
-    response = await delete_purchase_order(request, mock_po_context)
+    response = await delete_purchase_order(
+        reference_number="PO-2024-001", context=mock_po_context
+    )
 
     # Verify
     assert response.success is True
@@ -402,8 +399,9 @@ async def test_delete_purchase_order_declined(mock_po_context, sample_purchase_o
     mock_po_context.elicit = AsyncMock(return_value=DeclinedElicitation(data=None))
 
     # Execute
-    request = DeletePurchaseOrderRequest(reference_number="PO-2024-001")
-    response = await delete_purchase_order(request, mock_po_context)
+    response = await delete_purchase_order(
+        reference_number="PO-2024-001", context=mock_po_context
+    )
 
     # Verify
     assert response.success is False
@@ -424,8 +422,9 @@ async def test_delete_purchase_order_cancelled(mock_po_context, sample_purchase_
     mock_po_context.elicit = AsyncMock(return_value=CancelledElicitation(data=None))
 
     # Execute
-    request = DeletePurchaseOrderRequest(reference_number="PO-2024-001")
-    response = await delete_purchase_order(request, mock_po_context)
+    response = await delete_purchase_order(
+        reference_number="PO-2024-001", context=mock_po_context
+    )
 
     # Verify
     assert response.success is False

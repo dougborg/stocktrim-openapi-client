@@ -283,10 +283,72 @@ stocktrim_mcp_server/
 
 1. Create a new file in `src/stocktrim_mcp_server/tools/`
 1. Define your tool functions with type hints
+1. Use the `@unpack_pydantic_params` decorator for parameter flattening
 1. Create a `register_tools(mcp: FastMCP)` function
 1. Import and call in `tools/__init__.py`
 
 See existing tools for examples.
+
+#### Parameter Flattening Pattern
+
+All tools use a parameter flattening decorator to expose Pydantic model fields as
+individual tool parameters. This provides better MCP client compatibility while
+maintaining type safety.
+
+**Example Tool Implementation:**
+
+```python
+from typing import Annotated
+from fastmcp import Context
+from pydantic import BaseModel, Field
+from stocktrim_mcp_server.unpack import Unpack, unpack_pydantic_params
+
+class SearchProductsRequest(BaseModel):
+    """Request model for searching products."""
+    search_query: str = Field(..., description="Search query for product name or code")
+    limit: int = Field(10, description="Maximum number of results")
+
+class SearchProductsResponse(BaseModel):
+    """Response containing matching products."""
+    products: list[ProductInfo]
+    total_count: int
+
+@unpack_pydantic_params
+async def search_products(
+    request: Annotated[SearchProductsRequest, Unpack()],
+    context: Context
+) -> SearchProductsResponse:
+    """Search for products by name or code.
+
+    This tool searches across product fields using keyword matching.
+    """
+    # Inside the function, 'request' is a validated SearchProductsRequest instance
+    services = get_services(context)
+    results = await services.products.search(request.search_query, request.limit)
+    return SearchProductsResponse(products=results, total_count=len(results))
+```
+
+**What FastMCP Sees:**
+
+```python
+# Tool signature exposed to MCP clients:
+search_products(
+    search_query: str,      # From SearchProductsRequest.search_query
+    limit: int = 10,        # From SearchProductsRequest.limit
+    context: Context
+) -> SearchProductsResponse
+```
+
+**Benefits:**
+
+- ✅ **MCP Compatibility**: Flat parameters work reliably with Claude Code and other
+  clients
+- ✅ **Type Safety**: Pydantic validation ensures parameter correctness
+- ✅ **Clean Code**: Tool implementations work with typed model instances
+- ✅ **Auto Documentation**: Field descriptions become parameter documentation
+
+**See Also:**
+[ADR 0001: Parameter Flattening](docs/adr/0001-parameter-flattening-for-mcp-tools.md)
 
 ## Logging
 
