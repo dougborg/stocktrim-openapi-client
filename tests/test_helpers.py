@@ -50,7 +50,7 @@ class TestHelpersIntegration:
         assert hasattr(stocktrim_client.products, "get_all")
         assert hasattr(stocktrim_client.products, "create")
         assert hasattr(stocktrim_client.products, "find_by_code")
-        assert hasattr(stocktrim_client.products, "search")
+        assert hasattr(stocktrim_client.products, "find_by_exact_code")
         assert hasattr(stocktrim_client.products, "exists")
 
         # Customers

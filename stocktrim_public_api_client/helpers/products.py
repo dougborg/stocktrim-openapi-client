@@ -31,27 +31,32 @@ class Products(Base):
         code: str | Unset = UNSET,
         page_no: str | Unset = UNSET,
     ) -> list[ProductsResponseDto]:
-        """Get all products, optionally filtered by code or page.
+        """Get all products, optionally filtered by exact code match or page.
 
         Args:
-            code: Optional product code filter.
+            code: Optional product code for exact match filtering. The StockTrim API
+                only supports exact code matches, not prefix or partial matching.
             page_no: Optional page number for pagination.
 
         Returns:
-            List of ProductsResponseDto objects.
+            List of ProductsResponseDto objects. Returns empty list if no products
+            match the filter.
 
         Example:
             >>> products = await client.products.get_all()
-            >>> products = await client.products.get_all(code="WIDGET")
+            >>> products = await client.products.get_all(
+            ...     code="WIDGET-001"
+            ... )  # Exact match only
         """
         response = await get_api_products.asyncio_detailed(
             client=self._client,
             code=code,
             page_no=page_no,
         )
-        # StockTrim API returns 404 when no products match the filter (e.g., code or prefix).
-        # This is not an error, but indicates "no results" (unlike the more conventional 200 with empty list).
-        # We treat 404 as "no products found" and return an empty list for consistency with expected API behavior.
+        # StockTrim API returns 404 when no products match the exact code filter.
+        # This is non-standard REST behavior (should be 200 with empty array), but we handle it
+        # by treating 404 as "no results" and returning an empty list for a consistent interface.
+        # Note: The API only supports exact code matching, not prefix/partial matching.
         if response.status_code == 404:
             return []
         result = unwrap(response)
@@ -118,21 +123,25 @@ class Products(Base):
         products = await self.get_all(code=code)
         return products[0] if products else None
 
-    async def search(self, code_prefix: str) -> list[ProductsResponseDto]:
-        """Search for products with code starting with prefix.
+    async def find_by_exact_code(self, code: str) -> list[ProductsResponseDto]:
+        """Find products by exact code match, returning a list.
 
-        This is a convenience alias for get_all() with clearer search intent.
+        This method provides the same functionality as find_by_code() but returns
+        a list for consistency with search patterns. Since the API only supports
+        exact matching, this will return 0 or 1 products.
 
         Args:
-            code_prefix: The code prefix to search for.
+            code: The exact product code to search for.
 
         Returns:
-            List of matching ProductsResponseDto objects.
+            List containing the matching product (0 or 1 item).
 
         Example:
-            >>> widgets = await client.products.search("WIDGET")
+            >>> products = await client.products.find_by_exact_code("WIDGET-001")
+            >>> if products:
+            ...     print(f"Found: {products[0].description}")
         """
-        return await self.get_all(code=code_prefix)
+        return await self.get_all(code=code)
 
     async def exists(self, code: str) -> bool:
         """Check if a product with given code exists.
