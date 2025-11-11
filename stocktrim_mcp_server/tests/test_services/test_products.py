@@ -110,51 +110,53 @@ async def test_get_by_code_empty_code(product_service):
 
 
 # ============================================================================
-# Tests for search
+# Tests for find_by_exact_code
 # ============================================================================
 
 
 @pytest.mark.asyncio
-async def test_search_success(product_service, mock_client, sample_products):
-    """Test successfully searching products by prefix."""
+async def test_find_by_exact_code_success(
+    product_service, mock_client, sample_products
+):
+    """Test successfully finding products by exact code."""
     # Setup
-    mock_client.products.search = AsyncMock(return_value=sample_products)
+    mock_client.products.find_by_exact_code = AsyncMock(return_value=sample_products)
 
     # Execute
-    result = await product_service.search("WIDGET")
+    result = await product_service.find_by_exact_code("WIDGET-001")
 
     # Verify
     assert len(result) == 3
     assert result[0].product_code_readable == "WIDGET-001"
     assert result[1].product_code_readable == "WIDGET-002"
     assert result[2].product_code_readable == "WIDGET-003"
-    mock_client.products.search.assert_called_once_with("WIDGET")
+    mock_client.products.find_by_exact_code.assert_called_once_with("WIDGET-001")
 
 
 @pytest.mark.asyncio
-async def test_search_no_results(product_service, mock_client):
-    """Test searching when no products match."""
+async def test_find_by_exact_code_no_results(product_service, mock_client):
+    """Test finding products when no products match."""
     # Setup
-    mock_client.products.search = AsyncMock(return_value=[])
+    mock_client.products.find_by_exact_code = AsyncMock(return_value=[])
 
     # Execute
-    result = await product_service.search("NONEXISTENT")
+    result = await product_service.find_by_exact_code("NONEXISTENT")
 
     # Verify
     assert len(result) == 0
     assert result == []
-    mock_client.products.search.assert_called_once_with("NONEXISTENT")
+    mock_client.products.find_by_exact_code.assert_called_once_with("NONEXISTENT")
 
 
 @pytest.mark.asyncio
-async def test_search_empty_prefix(product_service):
-    """Test that empty prefix raises ValueError."""
+async def test_find_by_exact_code_empty(product_service):
+    """Test that empty code raises ValueError."""
     # Execute & Verify
-    with pytest.raises(ValueError, match="Search prefix cannot be empty"):
-        await product_service.search("")
+    with pytest.raises(ValueError, match="Product code cannot be empty"):
+        await product_service.find_by_exact_code("")
 
-    with pytest.raises(ValueError, match="Search prefix cannot be empty"):
-        await product_service.search("  ")
+    with pytest.raises(ValueError, match="Product code cannot be empty"):
+        await product_service.find_by_exact_code("  ")
 
 
 # ============================================================================

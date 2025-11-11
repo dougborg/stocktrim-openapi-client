@@ -54,25 +54,29 @@ class ProductService(BaseService):
         logger.info(f"Found {len(products)} products")
         return products
 
-    async def search(self, prefix: str) -> list[ProductsResponseDto]:
-        """Search products by code prefix.
+    async def find_by_exact_code(self, code: str) -> list[ProductsResponseDto]:
+        """Find products by exact code match.
+
+        Note: The StockTrim Products API only supports exact code matching,
+        not prefix or partial matching. For keyword search functionality,
+        use the Order Plan API.
 
         Args:
-            prefix: Product code prefix to search for
+            code: Exact product code to search for
 
         Returns:
-            List of matching products
+            List of matching products (0 or 1 item for exact match)
 
         Raises:
-            ValueError: If prefix is empty
+            ValueError: If code is empty
             Exception: If API call fails
         """
-        self.validate_not_empty(prefix, "Search prefix")
-        logger.info(f"Searching products with prefix: {prefix}")
+        self.validate_not_empty(code, "Product code")
+        logger.info(f"Finding product with exact code: {code}")
 
-        products = await self._client.products.search(prefix)
+        products = await self._client.products.find_by_exact_code(code)
 
-        logger.info(f"Found {len(products)} products matching prefix: {prefix}")
+        logger.info(f"Found {len(products)} products matching code: {code}")
         return products
 
     async def create(

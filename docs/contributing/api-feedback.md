@@ -772,6 +772,80 @@ to match the current spec.
 
 ______________________________________________________________________
 
+### Products Endpoint Returns 404 for Query Parameter Filtering
+
+**Issue Discovered**: 2025-11-11 **Status**: ⚠️ **NON-STANDARD BEHAVIOR** - Endpoint
+returns 404 for "no results"
+
+**Discovery**: The `GET /api/Products` endpoint returns `404 Not Found` when query
+parameter filtering produces no results, rather than the more conventional `200 OK` with
+an empty array.
+
+**Test Results**:
+
+| Query                                              | Status | Result              |
+| -------------------------------------------------- | ------ | ------------------- |
+| `GET /api/Products`                                | 200    | List of 50 products |
+| `GET /api/Products?code=14851399` (exact match)    | 200    | List with 1 product |
+| `GET /api/Products?code=NONEXISTENT`               | 404    | Empty response      |
+| `GET /api/Products?code=148` (prefix of real code) | 404    | Empty response      |
+
+**Why This Is Non-Standard**:
+
+In REST conventions, HTTP 404 indicates the **resource path itself doesn't exist**.
+Since `/api/Products` is a valid endpoint, the appropriate response for "no matching
+products" should be:
+
+- Status: `200 OK`
+- Body: `[]` (empty array)
+
+The 404 status code is typically reserved for:
+
+- Missing resource IDs in the path: `GET /api/Products/999999` → 404
+- Invalid endpoint paths: `GET /api/InvalidEndpoint` → 404
+
+**Current Behavior**: Query parameter filtering returns 404 for "no results":
+
+```http
+GET /api/Products?code=NONEXISTENT
+→ 404 Not Found
+```
+
+**Expected REST Behavior**: Query parameter filtering returns empty list for "no
+results":
+
+```http
+GET /api/Products?code=NONEXISTENT
+→ 200 OK
+   []
+```
+
+**Client Impact**: This behavior creates ambiguity:
+
+- Is 404 a "no results" response? (current interpretation)
+- Or is it an actual error (malformed request, endpoint doesn't exist)?
+
+We've worked around this by treating 404 as "no results found" in our helper methods,
+but this required special-case handling.
+
+**Additional Discovery**: The `code` query parameter only supports **exact match**, not
+prefix search:
+
+- `code=14851399` → Returns matching product
+- `code=148` (prefix) → Returns 404, not products starting with "148"
+
+This makes the parameter less useful for search functionality, as it requires knowing
+the exact product code.
+
+**Recommendation for StockTrim**: Consider either:
+
+1. Return `200 OK` with empty array when query filters produce no results (preferred)
+1. Document this 404 behavior explicitly in the API specification if it's intentional
+1. Add a separate search/filter endpoint that supports prefix matching and returns 200 +
+   empty array for no results
+
+______________________________________________________________________
+
 ## Closing Notes
 
 Thank you for providing a public API! These suggestions come from a place of wanting to
