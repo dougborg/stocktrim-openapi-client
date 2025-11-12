@@ -10,10 +10,6 @@ from fastmcp import Context, FastMCP
 from fastmcp.prompts.prompt import Message
 from pydantic import Field
 
-from stocktrim_mcp_server.logging_config import get_logger
-
-logger = get_logger(__name__)
-
 
 async def _supplier_performance_review(
     supplier_code: str | None,
