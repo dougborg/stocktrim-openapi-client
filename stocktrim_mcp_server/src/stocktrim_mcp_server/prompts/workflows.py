@@ -8,22 +8,10 @@ from datetime import datetime
 
 from fastmcp import FastMCP
 from mcp.types import PromptMessage, TextContent
-from pydantic import BaseModel, Field
 
 from stocktrim_mcp_server.logging_config import get_logger
 
 logger = get_logger(__name__)
-
-
-class ProductLifecycleReviewParams(BaseModel):
-    """Parameters for product lifecycle review prompt."""
-
-    category: str = Field(
-        default="all", description="Product category to review (default: 'all')"
-    )
-    include_inactive: bool = Field(
-        default=False, description="Include discontinued/inactive products"
-    )
 
 
 def product_lifecycle_review(
