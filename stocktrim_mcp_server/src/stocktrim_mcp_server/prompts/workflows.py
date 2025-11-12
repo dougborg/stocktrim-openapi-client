@@ -43,19 +43,16 @@ async def _stockout_prevention(
     """
 
     # Fetch dynamic data if context provided
+    # Note: Dynamic context fetching is not yet implemented but infrastructure is in place
     if context:
         try:
-            get_services(context)
+            _ = get_services(context)  # Validate services are available; result unused for now
             # Could optionally fetch location details, product count, etc.
             # Keep this fast (< 100ms)
-            # For now, just include current date
         except Exception as e:
             logger.warning(f"Failed to fetch dynamic context: {e}")
 
     current_date = datetime.now().strftime("%Y-%m-%d")
-
-    # Empty dynamic context for now - could be populated with location details, etc.
-    dynamic_context = ""
 
     # MCP prompts use a single user message with embedded instructions
     prompt_msg = f"""# Stockout Prevention Analysis
@@ -67,8 +64,6 @@ You are an expert inventory management analyst conducting a proactive stockout p
 - **Location:** {location_code}
 - **Forecast horizon:** {days_ahead} days
 - **Analysis date:** {current_date}
-
-{dynamic_context}
 
 ## Your Role
 
