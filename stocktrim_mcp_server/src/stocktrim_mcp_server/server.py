@@ -359,11 +359,14 @@ See individual tool documentation for specific field requirements.
 
 # Register all tools, resources, and prompts with the mcp instance
 # This must come after mcp initialization
+from stocktrim_mcp_server.prompts import register_all_prompts  # noqa: E402
 from stocktrim_mcp_server.resources import register_all_resources  # noqa: E402
 from stocktrim_mcp_server.tools import register_all_tools  # noqa: E402
 
 register_all_tools(mcp)
 register_all_resources(mcp)
+register_all_prompts(mcp)
+logger.info("prompts_registered")
 
 
 def main(**kwargs: Any) -> None:
