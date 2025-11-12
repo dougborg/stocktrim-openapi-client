@@ -46,7 +46,9 @@ async def _stockout_prevention(
     # Note: Dynamic context fetching is not yet implemented but infrastructure is in place
     if context:
         try:
-            _ = get_services(context)  # Validate services are available; result unused for now
+            _ = get_services(
+                context
+            )  # Validate services are available; result unused for now
             # Could optionally fetch location details, product count, etc.
             # Keep this fast (< 100ms)
         except Exception as e:
