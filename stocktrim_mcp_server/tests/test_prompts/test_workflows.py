@@ -1,7 +1,6 @@
 """Tests for workflow prompts."""
 
 
-
 class TestWorkflowPrompts:
     """Tests for workflow prompt registration and structure."""
 
