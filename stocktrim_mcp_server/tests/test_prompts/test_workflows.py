@@ -4,9 +4,11 @@ import re
 
 import pytest
 
-from stocktrim_mcp_server.prompts.workflows import _purchasing_workflow
-from stocktrim_mcp_server.prompts.workflows import _forecast_accuracy_review
-from stocktrim_mcp_server.prompts.workflows import _supplier_performance_review
+from stocktrim_mcp_server.prompts.workflows import (
+    _forecast_accuracy_review,
+    _purchasing_workflow,
+    _supplier_performance_review,
+)
 
 
 class TestWorkflowPrompts:
@@ -106,8 +108,8 @@ class TestPurchasingWorkflow:
 
         user_content = messages[0].content.text
         assert "30-day threshold" in user_content
-        
-        
+
+
 class TestForecastAccuracyReview:
     """Tests for forecast accuracy review prompt."""
 
@@ -198,8 +200,8 @@ class TestForecastAccuracyReview:
         assert "Step 2" in prompt
         assert "Step 3" in prompt
         assert "Step 4" in prompt
-        
-        
+
+
 class TestSupplierPerformanceReview:
     """Tests for supplier_performance_review prompt."""
 

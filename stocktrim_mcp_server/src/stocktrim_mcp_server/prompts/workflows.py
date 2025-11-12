@@ -298,7 +298,8 @@ Start with Step 1: Analyze reorder requirements for {location_code}."""
     return [
         Message(content=combined_msg, role="user"),
     ]
-  
+
+
 async def _forecast_accuracy_review(
     location_code: str | None,
     lookback_days: int,
@@ -464,7 +465,7 @@ def register_workflow_prompts(mcp: FastMCP) -> None:
         generating purchase orders, and providing cost analysis.
         """
         return await _purchasing_workflow(location_code, days_threshold, context)
-      
+
     @mcp.prompt()
     async def forecast_accuracy_review(
         location_code: str | None = Field(
@@ -478,8 +479,8 @@ def register_workflow_prompts(mcp: FastMCP) -> None:
     ) -> str:
         """Analyze forecast accuracy, identify patterns, and optimize forecast settings for improved planning."""
         return await _forecast_accuracy_review(location_code, lookback_days, context)
-    
-    @mcp.prompt()  
+
+    @mcp.prompt()
     async def supplier_performance_review(
         supplier_code: str | None = Field(
             default=None,
