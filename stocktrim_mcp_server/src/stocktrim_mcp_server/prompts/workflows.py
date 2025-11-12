@@ -10,7 +10,6 @@ from fastmcp import Context, FastMCP
 from fastmcp.prompts.prompt import Message
 from pydantic import Field
 
-from stocktrim_mcp_server.dependencies import get_services
 from stocktrim_mcp_server.logging_config import get_logger
 
 logger = get_logger(__name__)
@@ -43,19 +42,17 @@ async def _purchasing_workflow(
     """
 
     # Fetch dynamic data if context provided
+    # Future: Could optionally fetch location details, product count, etc.
+    # Keep this fast (< 100ms)
     dynamic_context = ""
     if context:
-        try:
-            _ = get_services(context)  # Placeholder for future location lookup
-            # Could optionally fetch location details, product count, etc.
-            # Keep this fast (< 100ms)
-            # For now, just note that analysis will proceed
-            dynamic_context = (
-                f"Note: Analysis will proceed for location '{location_code}'."
-            )
-        except Exception as e:
-            logger.warning(f"Failed to fetch dynamic context: {e}")
-            dynamic_context = f"Note: Could not verify location '{location_code}'. Proceeding with analysis if products exist for this location."
+        # For now, just note that analysis will proceed
+        # When implementing location lookup:
+        # services = get_services(context)
+        # location = await services.locations.get_by_code(location_code)
+        dynamic_context = (
+            f"Note: Analysis will proceed for location '{location_code}'."
+        )
 
     current_date = datetime.now().strftime("%Y-%m-%d")
 
