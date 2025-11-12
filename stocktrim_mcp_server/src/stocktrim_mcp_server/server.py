@@ -366,7 +366,7 @@ from stocktrim_mcp_server.tools import register_all_tools  # noqa: E402
 register_all_tools(mcp)
 register_all_resources(mcp)
 register_all_prompts(mcp)
-logger.info("Prompts registered")
+logger.info("prompts_registered")
 
 
 def main(**kwargs: Any) -> None:
