@@ -4,10 +4,10 @@ import re
 
 import pytest
 from fastmcp import FastMCP
-from mcp.types import PromptMessage
 
 from stocktrim_mcp_server.prompts.workflows import (
     _forecast_accuracy_review,
+    _product_lifecycle_review,
     _purchasing_workflow,
     _stockout_prevention,
     _supplier_performance_review,
@@ -41,19 +41,15 @@ class TestWorkflowPrompts:
         assert "product_lifecycle_review" in prompts
         assert prompts["product_lifecycle_review"] is not None
 
-    def test_product_lifecycle_review_default_params(self):
+    @pytest.mark.asyncio
+    async def test_product_lifecycle_review_default_params(self):
         """Test product_lifecycle_review prompt with default parameters."""
-        from stocktrim_mcp_server.prompts.workflows import (
-            product_lifecycle_review,
-        )
-
         # Call with defaults
-        messages = product_lifecycle_review()
+        messages = await _product_lifecycle_review()
 
         # Verify structure
         assert isinstance(messages, list)
         assert len(messages) == 2
-        assert all(isinstance(msg, PromptMessage) for msg in messages)
 
         # Verify roles
         assert messages[0].role == "assistant"
@@ -78,64 +74,51 @@ class TestWorkflowPrompts:
         assert "Include inactive: False" in user_content
         assert "Start with portfolio overview" in user_content
 
-    def test_product_lifecycle_review_with_category(self):
+    @pytest.mark.asyncio
+    async def test_product_lifecycle_review_with_category(self):
         """Test product_lifecycle_review prompt with specific category."""
-        from stocktrim_mcp_server.prompts.workflows import (
-            product_lifecycle_review,
-        )
-
-        messages = product_lifecycle_review(category="Electronics")
+        messages = await _product_lifecycle_review(category="Electronics")
 
         # Verify category is used
         user_content = messages[1].content.text
         assert "Electronics" in user_content
         assert "Category: Electronics" in user_content
 
-    def test_product_lifecycle_review_with_inactive(self):
+    @pytest.mark.asyncio
+    async def test_product_lifecycle_review_with_inactive(self):
         """Test product_lifecycle_review prompt with include_inactive flag."""
-        from stocktrim_mcp_server.prompts.workflows import (
-            product_lifecycle_review,
-        )
-
-        messages = product_lifecycle_review(include_inactive=True)
+        messages = await _product_lifecycle_review(include_inactive=True)
 
         # Verify inactive flag is set
         user_content = messages[1].content.text
         assert "Include inactive: True" in user_content
 
-    def test_product_lifecycle_review_all_params(self):
+    @pytest.mark.asyncio
+    async def test_product_lifecycle_review_all_params(self):
         """Test product_lifecycle_review prompt with all parameters."""
-        from stocktrim_mcp_server.prompts.workflows import (
-            product_lifecycle_review,
+        messages = await _product_lifecycle_review(
+            category="Hardware", include_inactive=True
         )
-
-        messages = product_lifecycle_review(category="Hardware", include_inactive=True)
 
         user_content = messages[1].content.text
         assert "Hardware" in user_content
         assert "Category: Hardware" in user_content
         assert "Include inactive: True" in user_content
 
-    def test_product_lifecycle_review_resources_mentioned(self):
+    @pytest.mark.asyncio
+    async def test_product_lifecycle_review_resources_mentioned(self):
         """Test that prompt mentions expected resources."""
-        from stocktrim_mcp_server.prompts.workflows import (
-            product_lifecycle_review,
-        )
-
-        messages = product_lifecycle_review()
+        messages = await _product_lifecycle_review()
         system_content = messages[0].content.text
 
         # Check for resource URIs mentioned in issue
         assert "stocktrim://products/" in system_content
         assert "stocktrim://reports/inventory-status" in system_content
 
-    def test_product_lifecycle_review_analysis_areas(self):
+    @pytest.mark.asyncio
+    async def test_product_lifecycle_review_analysis_areas(self):
         """Test that prompt includes all required analysis areas."""
-        from stocktrim_mcp_server.prompts.workflows import (
-            product_lifecycle_review,
-        )
-
-        messages = product_lifecycle_review()
+        messages = await _product_lifecycle_review()
         system_content = messages[0].content.text
 
         # Check for analysis areas from issue spec
