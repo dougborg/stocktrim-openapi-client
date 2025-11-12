@@ -1,5 +1,7 @@
 """Tests for workflow prompts."""
 
+import re
+
 import pytest
 
 from stocktrim_mcp_server.prompts.workflows import _forecast_accuracy_review
@@ -85,8 +87,6 @@ class TestForecastAccuracyReview:
         prompt = await _forecast_accuracy_review(None, 90, None)
 
         # Should contain a date in YYYY-MM-DD format
-        import re
-
         date_pattern = r"\d{4}-\d{2}-\d{2}"
         assert re.search(date_pattern, prompt) is not None
 
