@@ -1,11 +1,276 @@
 # CHANGELOG
 
+## v0.12.0 (2025-11-12)
+
+### Build System
+
+- **deps**: Bump mdformat from 0.7.22 to 1.0.0
+  ([#97](https://github.com/dougborg/stocktrim-openapi-client/pull/97),
+  [`470d704`](https://github.com/dougborg/stocktrim-openapi-client/commit/470d7044606273923b77961f4e36efe9e2de5e7f))
+
+Bumps [mdformat](https://github.com/hukkin/mdformat) from 0.7.22 to 1.0.0. -
+[Commits](https://github.com/hukkin/mdformat/compare/0.7.22...1.0.0)
+
+--- updated-dependencies: - dependency-name: mdformat dependency-version: 1.0.0
+
+dependency-type: direct:production
+
+update-type: version-update:semver-major
+
+...
+
+Signed-off-by: dependabot[bot] <support@github.com>
+
+Co-authored-by: Doug Borg <dougborg@dougborg.org>
+
+- **deps**: Bump openapi-python-client from 0.27.0 to 0.27.1
+  ([`4749d3f`](https://github.com/dougborg/stocktrim-openapi-client/commit/4749d3fa5550dee1fa8f36b7262579601c22d1dc))
+
+Bumps
+[openapi-python-client](https://github.com/openapi-generators/openapi-python-client)
+from 0.27.0 to 0.27.1. -
+[Release notes](https://github.com/openapi-generators/openapi-python-client/releases) -
+[Changelog](https://github.com/openapi-generators/openapi-python-client/blob/main/CHANGELOG.md)
+\-
+[Commits](https://github.com/openapi-generators/openapi-python-client/compare/v0.27.0...v0.27.1)
+
+--- updated-dependencies: - dependency-name: openapi-python-client dependency-version:
+0.27.1
+
+dependency-type: direct:production
+
+update-type: version-update:semver-patch
+
+...
+
+Signed-off-by: dependabot[bot] <support@github.com>
+
+- **deps**: Bump pre-commit from 4.3.0 to 4.4.0
+  ([`57c1849`](https://github.com/dougborg/stocktrim-openapi-client/commit/57c1849c09732a1a56a092b2f02f518ada1350c7))
+
+Bumps [pre-commit](https://github.com/pre-commit/pre-commit) from 4.3.0 to 4.4.0. -
+[Release notes](https://github.com/pre-commit/pre-commit/releases) -
+[Changelog](https://github.com/pre-commit/pre-commit/blob/main/CHANGELOG.md) -
+[Commits](https://github.com/pre-commit/pre-commit/compare/v4.3.0...v4.4.0)
+
+--- updated-dependencies: - dependency-name: pre-commit dependency-version: 4.4.0
+
+dependency-type: direct:production
+
+update-type: version-update:semver-minor
+
+...
+
+Signed-off-by: dependabot[bot] <support@github.com>
+
+- **deps**: Bump pydantic from 2.12.3 to 2.12.4
+  ([`3c4f712`](https://github.com/dougborg/stocktrim-openapi-client/commit/3c4f712f03458d5d7a3ccf82dd382d0620251666))
+
+Bumps [pydantic](https://github.com/pydantic/pydantic) from 2.12.3 to 2.12.4. -
+[Release notes](https://github.com/pydantic/pydantic/releases) -
+[Changelog](https://github.com/pydantic/pydantic/blob/v2.12.4/HISTORY.md) -
+[Commits](https://github.com/pydantic/pydantic/compare/v2.12.3...v2.12.4)
+
+--- updated-dependencies: - dependency-name: pydantic dependency-version: 2.12.4
+
+dependency-type: direct:production
+
+update-type: version-update:semver-patch
+
+...
+
+Signed-off-by: dependabot[bot] <support@github.com>
+
+- **deps**: Bump python-semantic-release from 10.4.1 to 10.5.0
+  ([`89a11ed`](https://github.com/dougborg/stocktrim-openapi-client/commit/89a11ed5011e7ff6cb371c94dca26fd6cd83e4f1))
+
+## Bumps [python-semantic-release](https://github.com/python-semantic-release/python-semantic-release) from 10.4.1 to 10.5.0. - [Release notes](https://github.com/python-semantic-release/python-semantic-release/releases) - [Changelog](https://github.com/python-semantic-release/python-semantic-release/blob/master/CHANGELOG.rst)
+
+[Commits](https://github.com/python-semantic-release/python-semantic-release/compare/v10.4.1...v10.5)
+
+--- updated-dependencies: - dependency-name: python-semantic-release dependency-version:
+10.5.0
+
+dependency-type: direct:production
+
+update-type: version-update:semver-minor
+
+...
+
+Signed-off-by: dependabot[bot] <support@github.com>
+
+### Chores
+
+- **release**: Client v0.11.0
+  ([`67d0e7d`](https://github.com/dougborg/stocktrim-openapi-client/commit/67d0e7dda591a25a37e7ddc738a0da0fc3dc3600))
+
+### Documentation
+
+- Clarify product search is exact match only, remove deprecated methods
+  ([`ec96bbc`](https://github.com/dougborg/stocktrim-openapi-client/commit/ec96bbc1d6111176bd813541028dbe55ad7402f0))
+
+This change documents and clarifies that the StockTrim Products API only supports exact
+code matching, not prefix or partial search. It also removes deprecated methods that had
+misleading names.
+
+## Changes
+
+### Documentation - Add API feedback section documenting Products endpoint 404 behavior - Document
+
+that `code` parameter only supports exact matching - Explain why 404 for query filtering
+is non-standard REST
+
+### API Client (`stocktrim_public_api_client`) - Update `get_all()` docs to clarify exact match only
+
+- Add `find_by_exact_code()` method with clear naming - Remove deprecated `search()`
+  method - Update tests to check for `find_by_exact_code()` instead of `search()`
+
+### MCP Server (`stocktrim_mcp_server`) - Update `find_by_exact_code()` docs with API limitation
+
+note - Remove deprecated `search()` method - Rename tests: `test_search_*` →
+`test_find_by_exact_code_*`
+
+## Testing - All 73 public API client tests pass - All 276 MCP server tests pass - Test function
+
+names now match the actual method names
+
+## Breaking Changes Since we're pre-1.0, deprecated methods were removed rather than kept for
+
+backward compatibility: - `ProductService.search()` → use `find_by_exact_code()` instead
+\- `Products.search()` → use `find_by_exact_code()` instead
+
+Note: For keyword search functionality across product names, codes, and
+
+categories, use the Order Plan API (implemented in PR #99).
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+
+### Features
+
+- Replace product search with keyword search using Order Plan API
+  ([#99](https://github.com/dougborg/stocktrim-openapi-client/pull/99),
+  [`102cae9`](https://github.com/dougborg/stocktrim-openapi-client/commit/102cae9d858581ae3c3cfbd7336ecbf64d53a851))
+
+* feat: replace product search with keyword search using Order Plan API
+
+Replace nearly-useless prefix-based product search with comprehensive keyword search
+that works across product names, codes, and categories.
+
+Changes: - tools/foundation/products.py: - Rename SearchProductsRequest.prefix →
+search_query - Replace Products API call with Order Plan API searchString - Update
+docstring with keyword search examples - tests: Update mocks to use Order Plan API and
+SkuOptimizedResultsDto
+
+Benefits: - Search by product name: "blue widget" - Search by category: "electronics" -
+Search by partial code: "WIDG" matches "WIDGET-001" - Much more useful than prefix-only
+search
+
+Before: search_products(prefix="WIDG") - must know exact prefix
+
+After: search_products(search_query="widget") - natural search
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+
+- fix: use OrderPlanFilterCriteria instead of DTO for 415 error
+
+The Order Plan API endpoint expects OrderPlanFilterCriteria, not
+OrderPlanFilterCriteriaDto. Using the DTO version caused 415 "Unsupported Media Type"
+errors.
+
+Changes: - Import OrderPlanFilterCriteria instead of OrderPlanFilterCriteriaDto - Update
+test to be more robust when checking call arguments
+
+Fixes the 415 errors seen in production logs.
+
+- feat: add unpack decorator for flattened MCP parameters
+
+Add @unpack_pydantic_params decorator to enable flattened parameter calls instead of
+nested request objects, matching the pattern from katana-mcp.
+
+Changes: - Add unpack.py module with Unpack marker and decorator - Apply decorator to
+search_products tool - Update tests to use flattened parameters
+
+Benefits: - Better DX: search_products(search_query="widget") instead of
+search_products(request={"search_query": "widget"}) - Maintains Pydantic validation
+while exposing flat params to MCP - Compatible with FastMCP's parameter introspection
+
+Pattern from: https://github.com/dougborg/katana-openapi-client
+
+- feat(mcp): implement parameter flattening for all tools
+
+Apply @unpack_pydantic_params decorator to all MCP tools to expose flattened parameters
+instead of nested objects. This improves compatibility with Claude Code and other MCP
+clients that have issues serializing nested parameter objects.
+
+Changes: - Add unpack.py module with @unpack_pydantic_params decorator (from Katana) -
+Apply decorator to all 27 tools across 11 tool files - Update all foundation tool tests
+to use flattened parameters - Add ADR 0001 documenting parameter flattening decision -
+Update README with parameter flattening pattern documentation
+
+Technical Details: The decorator transforms function signatures at import time: - Scans
+for Annotated[Model, Unpack()] parameters - Extracts Pydantic model fields as individual
+KEYWORD_ONLY params - Updates __signature__ and __annotations__ for FastMCP
+introspection - At runtime, reconstructs validated model instances from flat params
+
+This provides: - Flat parameters for MCP protocol compatibility - Pydantic validation
+for type safety - Clean tool code working with typed model objects - Automatic parameter
+documentation from Field descriptions
+
+All 276 tests passing.
+
+Related: Katana MCP implementation (ef59809, 862ce79, a025ca9)
+
+- fix: address PR review feedback
+
+Address review comments from PR #99:
+
+1. Revert nullable supplier code - The SupplierInfo.code field should remain required
+   (str) as it's fundamental for identifying suppliers and the underlying
+   SupplierResponseDto has it as non-nullable.
+
+1. Improve 404 handling documentation - Add detailed comment explaining why StockTrim
+   API returns 404 for "no results" instead of the more conventional 200 with empty
+   list, and why we treat it as expected behavior rather than an error.
+
+1. Fix empty product code handling - Instead of using empty string fallback which
+   violates ProductInfo schema, filter out order plan items that have missing/empty
+   product codes to prevent creating invalid product records.
+
+- **mcp**: Setup MCP Prompts infrastructure (Issue #101)
+  ([#107](https://github.com/dougborg/stocktrim-openapi-client/pull/107),
+  [`206db80`](https://github.com/dougborg/stocktrim-openapi-client/commit/206db80ce811d41830d341d9901ffa1b16384c43))
+
+* feat(mcp): implement MCP Prompts infrastructure
+
+- Create prompts directory structure with __init__.py and workflows.py - Add
+  register_all_prompts() and register_workflow_prompts() functions - Update server.py to
+  register prompts after resources - Add test infrastructure in tests/test_prompts/ -
+  All tests pass (280 total, including 2 new prompt tests) - Server imports successfully
+  with "Prompts registered" log message
+
+* style(mcp): fix formatting in test_workflows.py
+
+* fix: use structured logging for prompts registration
+
+Address review comment to use event-driven logging consistent with the rest of the file
+(e.g., 'server_ready', 'client_initialized').
+
+Changed 'Prompts registered' to 'prompts_registered' to match the structured logging
+pattern.
+
 ## v0.11.0 (2025-11-10)
 
 ### Chores
 
 - **release**: Client v0.10.0
   ([`e11ae0e`](https://github.com/dougborg/stocktrim-openapi-client/commit/e11ae0ea48abfd00b0108804e70c592ff715d5bc))
+
+- **release**: Mcp v0.11.0
+  ([`e129cbb`](https://github.com/dougborg/stocktrim-openapi-client/commit/e129cbb0baba6fd7a17d47e52312fadc43b5af88))
 
 ### Documentation
 
