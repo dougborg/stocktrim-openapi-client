@@ -50,9 +50,7 @@ async def _purchasing_workflow(
         # When implementing location lookup:
         # services = get_services(context)
         # location = await services.locations.get_by_code(location_code)
-        dynamic_context = (
-            f"Note: Analysis will proceed for location '{location_code}'."
-        )
+        dynamic_context = f"Note: Analysis will proceed for location '{location_code}'."
 
     current_date = datetime.now().strftime("%Y-%m-%d")
 
