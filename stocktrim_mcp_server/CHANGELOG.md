@@ -1,6 +1,78 @@
 # CHANGELOG
 
+## v0.15.0 (2025-11-12)
+
+### Features
+
+- **mcp**: Add stockout_prevention and product_lifecycle_review prompts
+  ([#113](https://github.com/dougborg/stocktrim-openapi-client/pull/113),
+  [`6dced97`](https://github.com/dougborg/stocktrim-openapi-client/commit/6dced977fa03e0d653a6daa82041b1da931633e2))
+
+* feat(mcp): consolidate stockout_prevention and product_lifecycle_review prompts
+
+Consolidates prompt implementations from PR #112 and PR #110 into a single feature
+branch. This adds two new workflow prompts to the existing three, bringing the total to
+five comprehensive inventory management workflows.
+
+**Added Prompts:**
+
+1. `stockout_prevention` (from PR #112) - Proactive stockout prevention workflow -
+   5-step process: Risk Analysis, Gap Identification, Forecast Review, Preventive
+   Action, and Recommendations - Parameters: location_code (required), days_ahead
+   (default: 14) - Tools: review_urgent_order_requirements,
+   generate_purchase_orders_from_urgent_items, forecasts_get_for_products
+
+1. `product_lifecycle_review` (from PR #110) - Product portfolio optimization workflow -
+   Covers: Portfolio Overview, Performance Analysis, Configuration Review, Optimization
+   Recommendations, and Configuration Changes - Parameters: category (default: "all"),
+   include_inactive (default: False) - Analysis areas: slow movers, overstock risks,
+   forecast accuracy, supplier consolidation, missing configurations
+
+**Complete Prompt Inventory (5 total):** - purchasing_workflow -
+forecast_accuracy_review - supplier_performance_review - stockout_prevention (new) -
+product_lifecycle_review (new)
+
+**Implementation Details:** - All imports consolidated (added mcp.types imports for
+product_lifecycle_review) - Added logger initialization for stockout_prevention error
+handling - All prompts properly registered in register_workflow_prompts() - Combined
+test suite with 42 tests covering all prompts - All tests passing (318 total in suite) -
+Linting and formatting clean
+
+**Supersedes:** - PR #112: Stockout Prevention prompt - PR #110: Product Lifecycle
+Review prompt
+
+Generated with [Claude Code](https://claude.com/claude-code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+
+- fix: update product_lifecycle_review tests to access .content.text
+
+Fixed test assertions to access message content via `.content.text` instead of
+`.content` directly. Message() factory function returns objects with TextContent in the
+content field, requiring the `.text` property access.
+
+Updated 6 test methods: - test_product_lifecycle_review_default_params -
+test_product_lifecycle_review_with_category -
+test_product_lifecycle_review_with_inactive - test_product_lifecycle_review_all_params -
+test_product_lifecycle_review_resources_mentioned -
+test_product_lifecycle_review_analysis_areas
+
+All 42 workflow prompt tests now passing.
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+______________________________________________________________________
+
+Co-authored-by: Doug Borg <dougborg@apple.com>
+
+Co-authored-by: Claude <noreply@anthropic.com>
+
 ## v0.14.0 (2025-11-12)
+
+### Chores
+
+- **release**: Mcp v0.14.0
+  ([`f529c40`](https://github.com/dougborg/stocktrim-openapi-client/commit/f529c40bad2961841ac78e9fc83cbcfa6557c8e6))
 
 ### Features
 
