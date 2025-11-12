@@ -2120,7 +2120,7 @@ wheels = [
 
 [[package]]
 name = "stocktrim-mcp-server"
-version = "0.11.0"
+version = "0.12.0"
 source = { editable = "stocktrim_mcp_server" }
 dependencies = [
     { name = "fastmcp" },
