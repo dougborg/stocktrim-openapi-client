@@ -1,6 +1,23 @@
 # CHANGELOG
 
+## v0.14.0 (2025-11-12)
+
+### Features
+
+- **mcp**: Implement forecast accuracy review prompt
+  ([#111](https://github.com/dougborg/stocktrim-openapi-client/pull/111),
+  [`c9962ba`](https://github.com/dougborg/stocktrim-openapi-client/commit/c9962ba4b579acf6116b34ec35a2c0924ece55f6))
+
+* feat(mcp): implement forecast accuracy review prompt (issue #106)
+
+Co-authored-by: Doug Borg <dougborg@dougborg.org>
+
 ## v0.13.0 (2025-11-12)
+
+### Chores
+
+- **release**: Mcp v0.13.0
+  ([`4d5c1a1`](https://github.com/dougborg/stocktrim-openapi-client/commit/4d5c1a1e6395daf4246aa901277f7482e78c3d01))
 
 ### Features
 
