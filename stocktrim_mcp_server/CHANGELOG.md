@@ -1,5 +1,22 @@
 # CHANGELOG
 
+## v0.13.0 (2025-11-12)
+
+### Features
+
+- **mcp**: Implement supplier_performance_review prompt
+  ([#109](https://github.com/dougborg/stocktrim-openapi-client/pull/109),
+  [`3a687a8`](https://github.com/dougborg/stocktrim-openapi-client/commit/3a687a8944b0d27bf4de9fbc95e513d65e1e2cc9))
+
+* feat(mcp): implement supplier_performance_review prompt
+
+Implement comprehensive supplier performance review prompt with: - Optional
+supplier_code parameter (defaults to None for all suppliers) - period_days parameter
+(defaults to 90 days) - Dynamic current date injection - Comprehensive system
+instructions for supply chain analysis - Guided multi-step workflow (overview, analysis,
+trends, recommendations) - Full test coverage (10 tests passing) - Token size validation
+(under 5KB)
+
 ## v0.12.0 (2025-11-12)
 
 ### Build System
@@ -103,6 +120,9 @@ Signed-off-by: dependabot[bot] <support@github.com>
 
 - **release**: Client v0.11.0
   ([`67d0e7d`](https://github.com/dougborg/stocktrim-openapi-client/commit/67d0e7dda591a25a37e7ddc738a0da0fc3dc3600))
+
+- **release**: Mcp v0.12.0
+  ([`3e9b436`](https://github.com/dougborg/stocktrim-openapi-client/commit/3e9b4362759a65305dca60448da1cce4d584459a))
 
 ### Documentation
 
