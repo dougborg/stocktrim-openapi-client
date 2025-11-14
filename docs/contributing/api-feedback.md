@@ -846,6 +846,216 @@ the exact product code.
 
 ______________________________________________________________________
 
+### v1 vs v2 Endpoint Availability Issues
+
+**Issue Discovered**: 2025-11-13 **Status**: 🔴 **CRITICAL** - Multiple endpoints return
+404 despite being in OpenAPI spec
+
+**Discovery**: Testing against production StockTrim API revealed that several v1
+endpoints return 404 Not Found, while v2 alternatives (where they exist) work correctly.
+This creates significant confusion as the OpenAPI spec includes both versions without
+clear deprecation notices.
+
+#### Purchase Orders: v1 Returns 404, v2 Works
+
+**Affected Endpoints**:
+
+- ❌ `GET /api/PurchaseOrders` - Returns 404
+- ✅ `GET /api/V2/PurchaseOrders` - Returns 200 with data
+
+**Test Results**:
+
+```bash
+# v1 endpoint - 404 Not Found
+$ curl -H "api-auth-id: <id>" -H "api-auth-signature: <sig>" \
+    https://api.stocktrim.com/api/PurchaseOrders
+{"type":"https://tools.ietf.org/html/rfc7231#section-6.5.4","title":"Not Found","status":404}
+
+# v2 endpoint - 200 OK
+$ curl -H "api-auth-id: <id>" -H "api-auth-signature: <sig>" \
+    https://api.stocktrim.com/api/v2/PurchaseOrders
+[... returns 10 purchase orders ...]
+```
+
+**OpenAPI Spec Endpoints**:
+
+Both versions are defined in the spec without deprecation notices:
+
+- `/api/PurchaseOrders` (GET, POST, DELETE) - Lines 528-605
+- `/api/V2/PurchaseOrders` (GET with pagination) - Lines 669-707
+- `/api/V2/PurchaseOrders/{referenceNumber}` (GET by ID) - Lines 606-627
+- `/api/V2/PurchaseOrders/OrderPlan` (POST generate from plan) - Lines 632-667
+
+**Impact**:
+
+- Client code using v1 endpoints fails with 404 errors
+- MCP tools non-functional (`list_purchase_orders`, `get_purchase_order`)
+- Workflow tools depending on purchase orders fail
+- No clear migration path without testing both versions
+
+#### Sales Orders: No Working GET Endpoint
+
+**Affected Endpoint**:
+
+- ❌ `GET /api/SalesOrders` - Returns 404 (with or without `productId` parameter)
+- ❌ No v2 alternative exists
+
+**Test Results**:
+
+```bash
+# Without productId - 404
+$ curl -H "api-auth-id: <id>" -H "api-auth-signature: <sig>" \
+    https://api.stocktrim.com/api/SalesOrders
+{"type":"https://tools.ietf.org/html/rfc7231#section-6.5.4","title":"Not Found","status":404}
+
+# With numeric productId - 404
+$ curl -H "api-auth-id: <id>" -H "api-auth-signature: <sig>" \
+    "https://api.stocktrim.com/api/SalesOrders?productId=35509896"
+{"type":"https://tools.ietf.org/html/rfc7231#section-6.5.4","title":"Not Found","status":404}
+
+# With code-based productId - Also 404
+$ curl -H "api-auth-id: <id>" -H "api-auth-signature: <sig>" \
+    "https://api.stocktrim.com/api/SalesOrders?productId=TEST-DEL-20251104142211"
+{"type":"https://tools.ietf.org/html/rfc7231#section-6.5.4","title":"Not Found","status":404}
+```
+
+**Note**: StockTrim's `productId` field can be either a numeric internal ID (e.g.,
+"35509896") or the product code/SKU (e.g., "TEST-DEL-20251104142211"). Both formats were
+tested and both return 404.
+
+**OpenAPI Spec Definition**:
+
+The spec defines GET with optional `productId` parameter (Lines 723-748):
+
+```yaml
+/api/SalesOrders:
+  get:
+    parameters:
+      - name: productId
+        in: query
+        schema:
+          type: string
+```
+
+**Impact**:
+
+- Cannot list sales orders via API
+- Cannot filter sales orders by product
+- Cannot verify sales order creation
+- Cannot query historical sales order data
+- MCP tools `get_sales_orders` and `list_sales_orders` non-functional
+
+**Questions**:
+
+1. Is sales order querying intentionally disabled?
+1. Is there an alternative endpoint we should use?
+1. Will a v2 sales orders GET endpoint be added?
+
+#### Locations: No Listing Endpoint
+
+**Affected Endpoints**:
+
+- ❌ `GET /api/Locations` - Returns 404
+- ❌ `GET /api/V2/Locations` - Not defined (v2 only has POST)
+
+**Test Results**:
+
+```bash
+# v1 GET - 404
+$ curl -H "api-auth-id: <id>" -H "api-auth-signature: <sig>" \
+    https://api.stocktrim.com/api/Locations
+{"type":"https://tools.ietf.org/html/rfc7231#section-6.5.4","title":"Not Found","status":404}
+```
+
+**OpenAPI Spec**:
+
+- `/api/Locations` (Lines 299-357) - Defines GET with optional `code` parameter, but
+  returns 404
+- `/api/V2/Locations` (Lines 358-390) - Only POST defined (create/update), no GET
+
+**Impact**:
+
+- Cannot list all locations programmatically
+- MCP tool `list_locations` non-functional
+- Multi-location workflows cannot enumerate locations
+- Must know location codes beforehand
+
+**Workaround**: The GET endpoint accepts a `code` parameter to retrieve a specific
+location, but this requires knowing the code exists first.
+
+#### Working Endpoints (Baseline for Comparison)
+
+For reference, these v1 endpoints work correctly:
+
+| Endpoint           | Status | Notes              |
+| ------------------ | ------ | ------------------ |
+| `/api/Products`    | ✅ 200 | Returns 50 items   |
+| `/api/Customers`   | ✅ 200 | Returns 14,766     |
+| `/api/Suppliers`   | ✅ 200 | Works (null codes) |
+| `/api/Inventory`   | ✅ 200 | POST works         |
+| \`/api/RunForecast | ✅ 201 | POST works         |
+
+#### Endpoint Status Summary
+
+| Endpoint                       | Version | Method | Status | Notes                       |
+| ------------------------------ | ------- | ------ | ------ | --------------------------- |
+| `/api/Products`                | v1      | GET    | ✅ 200 | 50 products                 |
+| `/api/Customers`               | v1      | GET    | ✅ 200 | 14,766 customers            |
+| `/api/Suppliers`               | v1      | GET    | ✅ 200 | Works (some null codes)     |
+| `/api/PurchaseOrders`          | v1      | GET    | ❌ 404 | Deprecated - use v2         |
+| `/api/V2/PurchaseOrders`       | v2      | GET    | ✅ 200 | 10 orders, pagination works |
+| `/api/SalesOrders`             | v1      | GET    | ❌ 404 | No alternative exists       |
+| `/api/Locations`               | v1      | GET    | ❌ 404 | No alternative exists       |
+| `/api/V2/Locations`            | v2      | POST   | ✅ 201 | Create/update only          |
+| `/api/SalesOrdersLocation`     | v1      | GET    | ❌ 405 | Method not allowed          |
+| `/api/SalesOrdersLocation`     | v1      | DELETE | ✅ 200 | Tested via spec             |
+| \`/api/RunForecastCalculations | v1      | POST   | ✅ 201 | Tested via MCP              |
+
+#### Recommendations
+
+**Immediate (Critical)**:
+
+1. **Document v1/v2 strategy**: Add clear deprecation notices to v1 endpoints in OpenAPI
+   spec
+1. **Fix or remove broken endpoints**: Either make v1 endpoints work or remove from spec
+1. **Add v2 alternatives**: Provide v2 GET endpoints for Sales Orders and Locations
+1. **Migration guide**: Document how to migrate from v1 to v2 endpoints
+
+**Short-term (Important)**:
+
+1. **HTTP status codes**: Return `410 Gone` instead of `404 Not Found` for deprecated
+   endpoints
+1. **API versioning documentation**: Publish clear versioning policy and deprecation
+   timeline
+1. **Endpoint consistency**: All entity types should have similar v2
+   list/get/create/delete operations
+
+**Medium-term (Enhancement)**:
+
+1. **Unified v2 API**: Complete v2 API with consistent patterns across all entities
+1. **Deprecation headers**: Add `Deprecation` and `Sunset` headers to v1 responses
+1. **Link headers**: Include `Link: <v2-url>; rel="successor-version"` on v1 endpoints
+
+#### Client Workarounds
+
+Our client library works around these issues:
+
+1. **Purchase Orders**: Helper methods updated to use v2 endpoints
+1. **Sales Orders**: Document as non-functional, return empty arrays
+1. **Locations**: Document limitation, require codes to be known beforehand
+1. **404 handling**: Special-case 404 responses to distinguish "not found" from "no
+   results"
+
+#### Questions for StockTrim Team
+
+1. **What is the timeline for deprecating v1 endpoints?**
+1. **Will v2 endpoints be added for Sales Orders and Locations?**
+1. **Is the 404 behavior on v1 endpoints intentional or a configuration issue?**
+1. **Should clients always use v2 when available?**
+1. **Are there other v1 endpoints that are deprecated but not documented?**
+
+______________________________________________________________________
+
 ## Closing Notes
 
 Thank you for providing a public API! These suggestions come from a place of wanting to
