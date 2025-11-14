@@ -987,29 +987,29 @@ location, but this requires knowing the code exists first.
 
 For reference, these v1 endpoints work correctly:
 
-| Endpoint           | Status | Notes              |
-| ------------------ | ------ | ------------------ |
-| `/api/Products`    | ✅ 200 | Returns 50 items   |
-| `/api/Customers`   | ✅ 200 | Returns 14,766     |
-| `/api/Suppliers`   | ✅ 200 | Works (null codes) |
-| `/api/Inventory`   | ✅ 200 | POST works         |
-| \`/api/RunForecast | ✅ 201 | POST works         |
+| Endpoint         | Status | Notes              |
+| ---------------- | ------ | ------------------ |
+| `/api/Products`  | ✅ 200 | Returns 50 items   |
+| `/api/Customers` | ✅ 200 | Returns 14,766     |
+| `/api/Suppliers` | ✅ 200 | Works (null codes) |
+| `/api/Inventory` | ✅ 200 | POST works         |
+| /api/RunForecast | ✅ 201 | POST works         |
 
 #### Endpoint Status Summary
 
-| Endpoint                       | Version | Method | Status | Notes                       |
-| ------------------------------ | ------- | ------ | ------ | --------------------------- |
-| `/api/Products`                | v1      | GET    | ✅ 200 | 50 products                 |
-| `/api/Customers`               | v1      | GET    | ✅ 200 | 14,766 customers            |
-| `/api/Suppliers`               | v1      | GET    | ✅ 200 | Works (some null codes)     |
-| `/api/PurchaseOrders`          | v1      | GET    | ❌ 404 | Deprecated - use v2         |
-| `/api/V2/PurchaseOrders`       | v2      | GET    | ✅ 200 | 10 orders, pagination works |
-| `/api/SalesOrders`             | v1      | GET    | ❌ 404 | No alternative exists       |
-| `/api/Locations`               | v1      | GET    | ❌ 404 | No alternative exists       |
-| `/api/V2/Locations`            | v2      | POST   | ✅ 201 | Create/update only          |
-| `/api/SalesOrdersLocation`     | v1      | GET    | ❌ 405 | Method not allowed          |
-| `/api/SalesOrdersLocation`     | v1      | DELETE | ✅ 200 | Tested via spec             |
-| \`/api/RunForecastCalculations | v1      | POST   | ✅ 201 | Tested via MCP              |
+| Endpoint                     | Version | Method | Status | Notes                       |
+| ---------------------------- | ------- | ------ | ------ | --------------------------- |
+| `/api/Products`              | v1      | GET    | ✅ 200 | 50 products                 |
+| `/api/Customers`             | v1      | GET    | ✅ 200 | 14,766 customers            |
+| `/api/Suppliers`             | v1      | GET    | ✅ 200 | Works (some null codes)     |
+| `/api/PurchaseOrders`        | v1      | GET    | ❌ 404 | Deprecated - use v2         |
+| `/api/V2/PurchaseOrders`     | v2      | GET    | ✅ 200 | 10 orders, pagination works |
+| `/api/SalesOrders`           | v1      | GET    | ❌ 404 | No alternative exists       |
+| `/api/Locations`             | v1      | GET    | ❌ 404 | No alternative exists       |
+| `/api/V2/Locations`          | v2      | POST   | ✅ 201 | Create/update only          |
+| `/api/SalesOrdersLocation`   | v1      | GET    | ❌ 405 | Method not allowed          |
+| `/api/SalesOrdersLocation`   | v1      | DELETE | ✅ 200 | Tested via spec             |
+| /api/RunForecastCalculations | v1      | POST   | ✅ 201 | Tested via MCP              |
 
 #### Recommendations
 

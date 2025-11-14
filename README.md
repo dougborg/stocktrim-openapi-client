@@ -36,7 +36,7 @@ MCP:
 
 - **🤖 AI Integration**: Natural language interface for Claude and other AI assistants
 - **⚡ FastMCP**: High-performance Model Context Protocol implementation
-- **🔧 Production Ready**: 43+ tools, 5 workflow prompts, and resource endpoints
+- **🔧 Production Ready**: 30 tools, 5 workflow prompts, and resource endpoints
 - **🎯 Type-Safe**: Full Pydantic validation for all operations
 - **🏗️ Service Architecture**: Clean service layer with dependency injection
 - **🛡️ Safety Patterns**: User confirmation for destructive operations
@@ -290,10 +290,9 @@ rationale.
 
 ## MCP Server Tools
 
-The MCP server provides **43+ tools** organized into foundation tools and workflow
-tools:
+The MCP server provides **30 tools** organized into foundation tools and workflow tools:
 
-### Foundation Tools (27 functions)
+### Foundation Tools (21 functions)
 
 Direct CRUD operations across all domains:
 
@@ -308,7 +307,7 @@ Direct CRUD operations across all domains:
 - **BOM**: list_boms, create_bom
 - **Configuration**: get_configuration
 
-### Workflow Tools (16 functions)
+### Workflow Tools (9 functions)
 
 High-level business operations combining multiple API calls:
 
