@@ -112,17 +112,17 @@ Update forecast parameters for a product (lead time, safety stock, service level
 
 #### `manage_forecast_group`
 
-Manage forecast settings for multiple products in a group.
+Create, update, or delete a forecast group for products. **Note:** This tool is a stub
+and only explains API limitations; it does not perform actual forecast group management.
 
 **Parameters:**
 
-- `product_codes` (array, required): List of product codes to manage
-- `lead_time_days` (integer, optional): Lead time in days to apply to all products
-- `safety_stock_days` (integer, optional): Safety stock in days to apply to all products
-- `service_level` (float, 0-100, optional): Service level percentage to apply to all
-  products
+- `operation` (string, required): One of `"create"`, `"update"`, or `"delete"`
+- `group_name` (string, required): Name of the forecast group
+- `description` (string, optional): Description of the group
+- `product_codes` (array, optional): List of product codes to include in the group
 
-**Returns:** Summary of updated products and success/failure counts
+**Returns:** Message describing the attempted operation and API limitations
 
 **Example:** See
 [Forecast Management Workflow](./examples.md#workflow-2-forecast-management-and-analysis)
