@@ -1,0 +1,180 @@
+# Cursor Rules for StockTrim OpenAPI Client
+
+## Project Overview
+
+This is a **Python client library and MCP server** for the StockTrim Inventory Management API. The repository contains:
+
+1. **Client Library** (`stocktrim_public_api_client/`): OpenAPI-generated client with transport-layer resilience
+2. **MCP Server** (`stocktrim_mcp_server/`): Model Context Protocol server for AI integration
+3. **Documentation** (`docs/`): Comprehensive guides and architecture decisions
+
+## Architecture
+
+### Transport-Layer Resilience
+
+**Key Pattern**: Resilience is implemented at the HTTP transport layer, providing:
+- Automatic retries with exponential backoff
+- Rate limiting handling
+- Transparent pagination
+- Error translation to domain exceptions
+
+### Core Components
+
+- `stocktrim_public_api_client/stocktrim_client.py` - Enhanced client with resilient transport
+- `stocktrim_public_api_client/generated/` - Generated API client (DO NOT EDIT)
+- `stocktrim_public_api_client/helpers/` - Domain helper classes (15+ convenience functions)
+- `stocktrim_public_api_client/utils.py` - Utility functions
+
+## File Organization Rules
+
+### DO NOT EDIT (Generated Files)
+
+- `stocktrim_public_api_client/generated/api/**/*.py`
+- `stocktrim_public_api_client/generated/models/**/*.py`
+- `stocktrim_public_api_client/generated/client.py`
+- `stocktrim_public_api_client/generated/errors.py`
+
+**To update generated code**: Use `uv run poe regenerate-client`
+
+### EDIT THESE FILES
+
+- `stocktrim_public_api_client/stocktrim_client.py` - Main resilient client
+- `stocktrim_public_api_client/helpers/` - Domain helper classes
+- `stocktrim_public_api_client/utils.py` - Utility functions
+- `tests/` - Test files
+- `scripts/` - Development scripts
+- `docs/` - Documentation
+- `stocktrim_mcp_server/` - MCP server code
+
+## Development Workflow
+
+### Essential Commands
+
+**Development**:
+- `uv sync --all-extras` - Install dependencies
+- `uv run poe format` - Format code
+- `uv run poe lint` - Lint code
+- `uv run poe test` - Run tests
+- `uv run poe check` - Full validation (format + lint + test)
+- `uv run poe fix` - Auto-fix issues
+
+**Testing**:
+- `uv run poe test` - All tests (excluding docs)
+- `uv run poe test-coverage` - With coverage report
+- `uv run poe test-unit` - Unit tests only
+- `uv run poe test-integration` - Integration tests
+
+**Client Regeneration**:
+- `uv run poe regenerate-client` - Regenerate from OpenAPI spec
+- `uv run poe validate-openapi` - Validate OpenAPI spec
+
+**Documentation**:
+- `uv run poe docs-build` - Build documentation
+- `uv run poe docs-serve` - Serve documentation locally
+
+## Code Style & Conventions
+
+### Python Style
+
+- **Type hints**: Required for all function parameters and return types
+- **Python versions**: 3.11, 3.12, 3.13 supported
+- **Package manager**: uv (required)
+- **Task runner**: poethepoet (poe) - all tasks via `uv run poe <task>`
+- **Code formatter**: Ruff
+- **Type checker**: ty (strict mode)
+- **Linter**: Ruff
+
+### Import Organization
+
+- Use **absolute imports** (no relative imports)
+- Group imports: stdlib, third-party, first-party
+- Ruff's `isort` handles import sorting automatically
+
+### Error Handling
+
+- Use **custom exception classes** from `stocktrim_public_api_client.generated.errors`
+- Provide **clear error messages** with context
+- Log errors appropriately (use logging module)
+- Structured error handling: AuthenticationError, ValidationError, ServerError, etc.
+
+### Testing
+
+- Use **pytest** for all tests
+- Tests in `tests/` directory
+- Use **pytest markers**: `@pytest.mark.unit`, `@pytest.mark.integration`, `@pytest.mark.docs`
+- Use **pytest fixtures** (defined in `conftest.py`)
+- Aim for **80%+ test coverage**
+
+### Documentation
+
+- **ADRs**: Architecture Decision Records in `docs/architecture/decisions/`
+- **Sphinx**: Documentation built with Sphinx
+- **Docstrings**: Google or NumPy style for public APIs
+
+## Domain Helpers
+
+The client provides **15+ convenience functions** organized by domain:
+
+- **Products**: `find_by_code()`, `search()`, `exists()`, `create()`, `update()`, etc.
+- **Customers**: `get()`, `find_or_create()`, `list_all()`, etc.
+- **Inventory**: `get_stock_levels()`, `adjust_stock()`, etc.
+- **Orders**: `create_purchase_order()`, `create_sales_order()`, etc.
+
+Use domain helpers for ergonomic API access:
+
+```python
+async with StockTrimClient(...) as client:
+    product = await client.products.find_by_code("WIDGET-001")
+    widgets = await client.products.search("WIDGET")
+```
+
+## MCP Server
+
+The MCP server is in `stocktrim_mcp_server/` and provides:
+- **5 Tools**: Product, customer, and inventory management
+- **Resources**: Product and inventory data
+- **Prompts**: Workflow prompts
+
+Built with **FastMCP** for high performance.
+
+## Authentication
+
+StockTrim uses custom authentication headers:
+- `api-auth-id`: Tenant ID
+- `api-auth-signature`: Tenant name
+
+The `StockTrimClient` handles authentication automatically:
+
+```python
+async with StockTrimClient(
+    api_auth_id="your_tenant_id",
+    api_auth_signature="your_tenant_name"
+) as client:
+    # API calls automatically include auth headers
+```
+
+## Common Pitfalls
+
+1. **Always use `uv run`** - Don't run commands outside uv environment
+2. **Generated code is read-only** - Use regeneration script instead of editing
+3. **Integration tests need credentials** - Set environment variables for API access
+4. **Use domain helpers** - Prefer helper methods over direct API calls
+5. **Type safety** - Strict type checking with ty
+
+## When Making Changes
+
+1. **Before changes**: Run `uv run poe check` and `uv run poe fix`
+2. **After changes**: Run `uv run poe format`, `uv run poe lint`, `uv run poe test`, `uv run poe check`
+3. **Client regeneration**: Validate spec first, then regenerate, then test
+4. **Documentation**: Update relevant docs when adding features
+5. **ADRs**: Consult ADRs first to understand architectural decisions
+
+## Important Notes
+
+- **Transport-layer resilience**: All API calls get automatic retries/pagination
+- **Generated code**: Never edit directly, use regeneration script
+- **Type safety**: Strict type checking with ty
+- **Lock files**: `uv.lock` should be committed for reproducibility
+- **Domain helpers**: Prefer helper methods for better ergonomics
+
+
