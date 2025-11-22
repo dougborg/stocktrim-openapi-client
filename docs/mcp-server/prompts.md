@@ -321,7 +321,7 @@ slow-moving or obsolete items, and making lifecycle decisions.
 
 #### Parameters
 
-| Name              | Type    | Default   | Description                                 |
+| Parameter         | Type    | Default   | Description                                 |
 |-------------------|---------|-----------|---------------------------------------------|
 | category          | str     | "all"     | Product category to review                  |
 | include_inactive  | bool    | False     | Include discontinued/inactive products      |
