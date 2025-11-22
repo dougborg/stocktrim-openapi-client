@@ -14,8 +14,6 @@ This is a **Python client library and MCP server** for the StockTrim Inventory M
 
 **Key Pattern**: Resilience is implemented at the HTTP transport layer, providing:
 - Automatic retries with exponential backoff
-- Rate limiting handling
-- Transparent pagination
 - Error translation to domain exceptions
 
 ### Core Components
@@ -108,7 +106,7 @@ This is a **Python client library and MCP server** for the StockTrim Inventory M
 ### Documentation
 
 - **ADRs**: Architecture Decision Records in `docs/architecture/decisions/`
-- **Sphinx**: Documentation built with Sphinx
+- **MkDocs**: Documentation built with MkDocs (Material theme)
 - **Docstrings**: Google or NumPy style for public APIs
 
 ## Domain Helpers
@@ -171,7 +169,7 @@ async with StockTrimClient(
 
 ## Important Notes
 
-- **Transport-layer resilience**: All API calls get automatic retries/pagination
+- **Transport-layer resilience**: All API calls get automatic retries
 - **Generated code**: Never edit directly, use regeneration script
 - **Type safety**: Strict type checking with ty
 - **Lock files**: `uv.lock` should be committed for reproducibility
