@@ -1,8 +1,8 @@
 # Available MCP Tools
 
-The StockTrim MCP Server provides 20+ tools for interacting with the StockTrim API,
-organized into **Foundation Tools** (direct API access) and **Workflow Tools**
-(high-level business operations).
+The StockTrim MCP Server provides **30 tools** for interacting with the StockTrim API,
+organized into **Foundation Tools** (21 direct API operations) and **Workflow Tools** (9
+high-level business operations).
 
 ## Safety and User Confirmation
 
@@ -106,6 +106,23 @@ Update forecast parameters for a product (lead time, safety stock, service level
 - `minimum_order_quantity` (float, optional): Minimum order quantity
 
 **Returns:** Updated settings and success message
+
+**Example:** See
+[Forecast Management Workflow](./examples.md#workflow-2-forecast-management-and-analysis)
+
+#### `manage_forecast_group`
+
+Create, update, or delete a forecast group for products. **Note:** This tool is a stub
+and only explains API limitations; it does not perform actual forecast group management.
+
+**Parameters:**
+
+- `operation` (string, required): One of `"create"`, `"update"`, or `"delete"`
+- `group_name` (string, required): Name of the forecast group
+- `description` (string, optional): Description of the group
+- `product_codes` (array, optional): List of product codes to include in the group
+
+**Returns:** Message describing the attempted operation and API limitations
 
 **Example:** See
 [Forecast Management Workflow](./examples.md#workflow-2-forecast-management-and-analysis)
