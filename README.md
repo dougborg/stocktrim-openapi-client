@@ -6,7 +6,15 @@ A production-ready Python client library and MCP server for the
 [![Python Version](https://img.shields.io/badge/python-3.11%2B-blue)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
+[![CI](https://github.com/dougborg/stocktrim-openapi-client/actions/workflows/ci.yml/badge.svg)](https://github.com/dougborg/stocktrim-openapi-client/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/dougborg/stocktrim-openapi-client/branch/main/graph/badge.svg)](https://codecov.io/gh/dougborg/stocktrim-openapi-client)
+[![Security](https://github.com/dougborg/stocktrim-openapi-client/actions/workflows/security.yml/badge.svg)](https://github.com/dougborg/stocktrim-openapi-client/actions/workflows/security.yml)
+[![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit)](https://github.com/pre-commit/pre-commit)
+
+Client:
 [![PyPI - Version](https://img.shields.io/pypi/v/stocktrim-openapi-client)](https://pypi.org/project/stocktrim-openapi-client/)
+
+MCP:
 [![PyPI - MCP Server](https://img.shields.io/pypi/v/stocktrim-mcp-server)](https://pypi.org/project/stocktrim-mcp-server/)
 
 ## Features
@@ -28,8 +36,10 @@ A production-ready Python client library and MCP server for the
 
 - **🤖 AI Integration**: Natural language interface for Claude and other AI assistants
 - **⚡ FastMCP**: High-performance Model Context Protocol implementation
-- **🔧 Production Ready**: 5 tools across product, customer, and inventory domains
+- **🔧 Production Ready**: 30 tools, 5 workflow prompts, and resource endpoints
 - **🎯 Type-Safe**: Full Pydantic validation for all operations
+- **🏗️ Service Architecture**: Clean service layer with dependency injection
+- **🛡️ Safety Patterns**: User confirmation for destructive operations
 - **📝 Well-Documented**: Comprehensive usage examples and troubleshooting
 
 ## Installation
@@ -261,15 +271,68 @@ Helper classes provide:
 - **Reduced boilerplate** for simple operations
 - **Full type safety** with comprehensive hints
 
+### MCP Server Architecture
+
+The MCP server is built with a clean, maintainable architecture:
+
+- **Service Layer**: Business logic separated from tool interfaces with dependency
+  injection
+- **Parameter Flattening**: MCP-compatible tool signatures while maintaining type safety
+  (ADR 002)
+- **User Confirmation Pattern**: Destructive operations require explicit confirmation
+  via MCP elicitation (ADR 001)
+- **Structured Logging**: Observability throughout with detailed operation tracking
+- **Template System**: Consistent, formatted responses for forecast operations
+- **Resource Discovery**: Read-only endpoints for context gathering without mutations
+
+See [Architecture Decision Records](docs/architecture/decisions/) for detailed design
+rationale.
+
 ## MCP Server Tools
 
-The MCP server provides 5 tools for AI assistant integration:
+The MCP server provides **30 tools** organized into foundation tools and workflow tools:
 
-1. **get_product** - Retrieve product by code
-1. **search_products** - Search products by prefix
-1. **get_customer** - Retrieve customer by code
-1. **list_customers** - List all customers
-1. **set_product_inventory** - Update inventory levels
+### Foundation Tools (21 functions)
+
+Direct CRUD operations across all domains:
+
+- **Products**: get, search, list, create, delete
+- **Customers**: get, list, create
+- **Suppliers**: get, list, create, delete
+- **Inventory**: get, set
+- **Sales Orders**: create, get, list, delete
+- **Purchase Orders**: get, list, create, delete
+- **Locations**: list, create
+- **Planning**: run_order_plan, run_forecast
+- **BOM**: list_boms, create_bom
+- **Configuration**: get_configuration
+
+### Workflow Tools (9 functions)
+
+High-level business operations combining multiple API calls:
+
+- **Forecast Management**: update_and_monitor, get_for_products, update_settings,
+  manage_group
+- **Urgent Orders**: review_requirements, generate_purchase_orders
+- **Product Management**: configure_product
+- **Supplier Management**: create_supplier_with_products
+
+### MCP Prompts (5 workflow prompts)
+
+Guided workflows for complex operations:
+
+- **purchasing_workflow**: Comprehensive purchase order generation workflow
+- **forecast_accuracy_review**: Analyze and improve forecast accuracy
+- **supplier_performance_review**: Comprehensive supplier analysis
+- **stockout_prevention**: Proactive inventory management and reordering
+- **product_lifecycle_review**: Product performance and lifecycle analysis
+
+### MCP Resources
+
+Read-only discovery endpoints for context:
+
+- **Foundation**: Products, customers, suppliers, locations, inventory
+- **Reports**: inventory-status, urgent-orders, supplier-directory
 
 Example conversation with Claude:
 
@@ -280,9 +343,60 @@ Found 3 products:
 - WIDGET-001: Standard Widget ($10.00)
 - WIDGET-002: Premium Widget ($15.00)
 - WIDGET-SPECIAL: Custom Widget ($25.00)
+
+You: Run the purchasing workflow to review urgent orders
+Claude: [uses purchasing_workflow prompt]
+Let me guide you through reviewing urgent orders and generating purchase orders...
 ```
 
 See [stocktrim_mcp_server/README.md](stocktrim_mcp_server/README.md) for detailed usage.
+
+## Code Quality & Testing
+
+This project maintains high code quality standards with comprehensive tooling:
+
+### Testing Infrastructure
+
+- **50+ test files** covering client library and MCP server
+- **Test categories**: unit, integration, docs markers for selective execution
+- **pytest** with async support, coverage reporting, and mocking
+- **Separate test suites** for client (17+ files) and MCP server (35+ files)
+- **Code coverage tracking** with pytest-cov (terminal, HTML, and XML reports)
+
+### Linting & Type Checking
+
+- **Ruff**: Fast Python linter and formatter with comprehensive rule sets
+- **ty**: Astral's strict type checker ensuring full type safety
+- **yamllint**: YAML validation for configuration files
+- **mdformat**: Markdown formatting with GFM and tables support
+
+### Security Scanning
+
+- **Trivy**: Vulnerability scanner (runs weekly and on PRs)
+- **Semgrep**: Static analysis for security patterns (runs weekly and on PRs)
+- **Dependency review**: Automated checks on pull requests
+- Results uploaded to GitHub Security tab for tracking
+
+### CI/CD Pipeline
+
+- **Matrix testing**: Python 3.11, 3.12, 3.13 across all tests
+- **Automated releases**: Semantic versioning with python-semantic-release
+- **Documentation**: Auto-deployed to GitHub Pages on releases
+- **Pre-commit hooks**: Full lint and test suite runs before commits
+- **Codecov integration**: Coverage tracking and reporting
+
+### Quality Commands
+
+```bash
+# Run full quality check suite
+uv run poe check
+
+# Individual checks
+uv run poe format        # Format code with Ruff
+uv run poe lint          # Lint with Ruff
+uv run ty check          # Type check with ty
+uv run poe test-coverage # Tests with coverage report
+```
 
 ## Development
 
