@@ -109,7 +109,6 @@ git branch                 # Verify you're on a feature branch
 ```bash
 uv run poe test                  # Run tests with pytest
 uv run poe test-coverage         # Run tests with coverage reports (HTML, terminal, XML)
-uv run poe test-watch            # Run tests in watch mode
 ```
 
 ### Documentation
@@ -117,7 +116,6 @@ uv run poe test-watch            # Run tests in watch mode
 ```bash
 uv run poe docs-serve            # Serve docs with hot reload (MkDocs)
 uv run poe docs-build            # Build static documentation
-uv run poe docs-deploy           # Deploy docs to GitHub Pages
 ```
 
 ### Combined Workflows
