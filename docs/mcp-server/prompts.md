@@ -321,7 +321,10 @@ slow-moving or obsolete items, and making lifecycle decisions.
 
 #### Parameters
 
-Product lifecycle review parameters are defined dynamically based on the analysis scope.
+| Parameter         | Type    | Required | Default   | Description                                 |
+|-------------------|---------|----------|-----------|---------------------------------------------|
+| category          | str     | No       | "all"     | Product category to review                  |
+| include_inactive  | bool    | No       | False     | Include discontinued/inactive products      |
 
 #### Workflow Steps
 
