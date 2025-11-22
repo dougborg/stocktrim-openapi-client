@@ -2,6 +2,359 @@
 
 <!-- version list -->
 
+## v0.12.0 (2025-11-22)
+
+### Bug Fixes
+
+- **mcp**: Configure logging at module level to prevent JSON parsing errors
+  ([#119](https://github.com/dougborg/stocktrim-openapi-client/pull/119),
+  [`65e6602`](https://github.com/dougborg/stocktrim-openapi-client/commit/65e66023c01dbfbaaa3cadda26c728fa3e2e5146))
+
+* docs: update documentation to accurately reflect project capabilities
+
+This commit comprehensively updates the documentation to showcase the project's
+production-ready quality and extensive feature set.
+
+## Main README.md Updates
+
+- Add code quality badges (CI, Codecov, Security, pre-commit) - Update MCP Server
+  features from "5 tools" to "43+ tools, 5 workflow prompts, and resource endpoints" -
+  Expand MCP Server Tools section with complete breakdown: - 27 Foundation Tools (CRUD
+  operations) - 16 Workflow Tools (high-level business operations) - 5 MCP Prompts
+  (guided workflows) - MCP Resources (read-only discovery) - Add new "Code Quality &
+  Testing" section highlighting: - 50+ test files with comprehensive coverage - Linting,
+  type checking, and security scanning - CI/CD pipeline with matrix testing - Quality
+  tooling commands - Enhance Architecture section with MCP Server Architecture details:
+  \- Service layer architecture - Parameter flattening and user confirmation patterns -
+  Structured logging and observability - Reference to Architecture Decision Records
+
+## Documentation Files Updates
+
+- Update tools.md header from "20+ tools" to "43+ tools" - Add missing
+  `manage_forecast_group` workflow tool documentation - Update prompts.md to document
+  all 5 workflow prompts: - purchasing_workflow (existing) - forecast_accuracy_review
+  (new) - supplier_performance_review (new) - stockout_prevention (new) -
+  product_lifecycle_review (new)
+
+## Impact
+
+The documentation now accurately represents the project as: - Production-ready with
+enterprise-grade quality infrastructure - Feature-rich with 43+ tools vs. previously
+understated "5 tools" - Well-tested with comprehensive CI/CD and security scanning -
+Architecturally sophisticated with clean patterns and safety measures
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+
+- fix(mcp): configure logging at module level to prevent JSON parsing errors
+
+## Problem When Claude Desktop connected to the MCP server, it reported: "Unexpected non-whitespace
+
+character after JSON at position 4 (line 1 column 5)"
+
+Root cause: `logger.info("prompts_registered")` at line 369 executed during module
+import (before main() ran), but logging wasn't configured yet. Log output went to
+stdout, polluting the MCP JSON-RPC protocol which requires clean JSON on stdout.
+
+## Solution 1. Move `configure_logging()` from `main()` to module level (line 27) - Ensures logging
+
+is configured before any module-level code executes - Runs at import time, before tool
+registration
+
+2. Re-enable `logger.info("prompts_registered")` at line 370 - Now safe because logging
+   is already configured - Output goes to stderr (verified in logging_config.py:39)
+
+1. Remove duplicate `configure_logging()` call from `main()`
+
+1. Add documentation explaining initialization order
+
+## Testing Verified server starts without JSON errors: \`\`\`bash timeout 3 uv run stocktrim-mcp-server
+
+2>&1 | head -30 \`\`\`
+
+- fix: correct tool counts and markdown formatting
+
+Address Copilot review feedback:
+
+1. Fix tool count discrepancies: - Actual count: 21 foundation + 9 workflow = 30 total
+   tools - Updated README.md (3 locations) - Updated docs/mcp-server/tools.md
+
+1. Fix escaped backtick formatting in api-feedback.md: - /api/RunForecast (line 996) -
+   /api/RunForecastCalculations (line 1012) - Removed backslash escapes for proper
+   markdown rendering
+
+Verified counts with: grep -r "mcp.tool()"
+stocktrim_mcp_server/src/stocktrim_mcp_server/tools/foundation/ | wc -l # 21 grep -r
+"mcp.tool()" stocktrim_mcp_server/src/stocktrim_mcp_server/tools/workflows/ | wc -l # 9
+
+- docs(mcp): fix manage_forecast_group parameter documentation (#120)
+
+- Initial plan
+
+- docs(mcp): fix manage_forecast_group parameters to match implementation
+
+Co-authored-by: dougborg <1261222+dougborg@users.noreply.github.com>
+
+______________________________________________________________________
+
+Co-authored-by: copilot-swe-agent[bot] <198982749+Copilot@users.noreply.github.com>
+
+Co-authored-by: Doug Borg <dougborg@apple.com>
+
+Co-authored-by: Claude <noreply@anthropic.com>
+
+Co-authored-by: Copilot <198982749+Copilot@users.noreply.github.com>
+
+### Chores
+
+- **release**: Mcp v0.12.0
+  ([`3e9b436`](https://github.com/dougborg/stocktrim-openapi-client/commit/3e9b4362759a65305dca60448da1cce4d584459a))
+
+- **release**: Mcp v0.13.0
+  ([`4d5c1a1`](https://github.com/dougborg/stocktrim-openapi-client/commit/4d5c1a1e6395daf4246aa901277f7482e78c3d01))
+
+- **release**: Mcp v0.14.0
+  ([`f529c40`](https://github.com/dougborg/stocktrim-openapi-client/commit/f529c40bad2961841ac78e9fc83cbcfa6557c8e6))
+
+- **release**: Mcp v0.15.0
+  ([`78dcfcc`](https://github.com/dougborg/stocktrim-openapi-client/commit/78dcfcc34dbb94819eebbf1b68c03e030f06c095))
+
+- **release**: Mcp v0.15.1
+  ([`3407b24`](https://github.com/dougborg/stocktrim-openapi-client/commit/3407b243779664058967fc30700214e3db4d6622))
+
+### Documentation
+
+- Clarify product search is exact match only, remove deprecated methods
+  ([`ec96bbc`](https://github.com/dougborg/stocktrim-openapi-client/commit/ec96bbc1d6111176bd813541028dbe55ad7402f0))
+
+This change documents and clarifies that the StockTrim Products API only supports exact
+code matching, not prefix or partial search. It also removes deprecated methods that had
+misleading names.
+
+## Changes
+
+### Documentation - Add API feedback section documenting Products endpoint 404 behavior - Document
+
+that `code` parameter only supports exact matching - Explain why 404 for query filtering
+is non-standard REST
+
+### API Client (`stocktrim_public_api_client`) - Update `get_all()` docs to clarify exact match only
+
+- Add `find_by_exact_code()` method with clear naming - Remove deprecated `search()`
+  method - Update tests to check for `find_by_exact_code()` instead of `search()`
+
+### MCP Server (`stocktrim_mcp_server`) - Update `find_by_exact_code()` docs with API limitation
+
+note - Remove deprecated `search()` method - Rename tests: `test_search_*` →
+`test_find_by_exact_code_*`
+
+## Testing - All 73 public API client tests pass - All 276 MCP server tests pass - Test function
+
+names now match the actual method names
+
+## Breaking Changes Since we're pre-1.0, deprecated methods were removed rather than kept for
+
+backward compatibility: - `ProductService.search()` → use `find_by_exact_code()` instead
+\- `Products.search()` → use `find_by_exact_code()` instead
+
+Note: For keyword search functionality across product names, codes, and
+
+categories, use the Order Plan API (implemented in PR #99).
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+
+- Update documentation to accurately reflect project capabilities
+  ([#114](https://github.com/dougborg/stocktrim-openapi-client/pull/114),
+  [`5a8f6dd`](https://github.com/dougborg/stocktrim-openapi-client/commit/5a8f6dd88cc9b2c0b57203187c7d7ef990e8e1a5))
+
+* docs: update documentation to accurately reflect project capabilities
+
+This commit comprehensively updates the documentation to showcase the project's
+production-ready quality and extensive feature set.
+
+## Main README.md Updates
+
+- Add code quality badges (CI, Codecov, Security, pre-commit) - Update MCP Server
+  features from "5 tools" to "43+ tools, 5 workflow prompts, and resource endpoints" -
+  Expand MCP Server Tools section with complete breakdown: - 27 Foundation Tools (CRUD
+  operations) - 16 Workflow Tools (high-level business operations) - 5 MCP Prompts
+  (guided workflows) - MCP Resources (read-only discovery) - Add new "Code Quality &
+  Testing" section highlighting: - 50+ test files with comprehensive coverage - Linting,
+  type checking, and security scanning - CI/CD pipeline with matrix testing - Quality
+  tooling commands - Enhance Architecture section with MCP Server Architecture details:
+  \- Service layer architecture - Parameter flattening and user confirmation patterns -
+  Structured logging and observability - Reference to Architecture Decision Records
+
+## Documentation Files Updates
+
+- Update tools.md header from "20+ tools" to "43+ tools" - Add missing
+  `manage_forecast_group` workflow tool documentation - Update prompts.md to document
+  all 5 workflow prompts: - purchasing_workflow (existing) - forecast_accuracy_review
+  (new) - supplier_performance_review (new) - stockout_prevention (new) -
+  product_lifecycle_review (new)
+
+## Impact
+
+The documentation now accurately represents the project as: - Production-ready with
+enterprise-grade quality infrastructure - Feature-rich with 43+ tools vs. previously
+understated "5 tools" - Well-tested with comprehensive CI/CD and security scanning -
+Architecturally sophisticated with clean patterns and safety measures
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+
+- Apply suggestions from code review
+
+Co-authored-by: Copilot <175728472+Copilot@users.noreply.github.com>
+
+- Update docs/mcp-server/prompts.md
+
+______________________________________________________________________
+
+Co-authored-by: Doug Borg <dougborg@apple.com>
+
+Co-authored-by: Claude <noreply@anthropic.com>
+
+### Features
+
+- Add Cursor rules for better AI assistance
+  ([#121](https://github.com/dougborg/stocktrim-openapi-client/pull/121),
+  [`c4cb12d`](https://github.com/dougborg/stocktrim-openapi-client/commit/c4cb12db8f0f27ff2aaafaf765acc93cef7c4ac4))
+
+* feat: add Cursor rules for better AI assistance
+
+- Add comprehensive .cursorrules file with project architecture - Document
+  transport-layer resilience pattern - Include domain helpers documentation - Specify
+  generated code rules (DO NOT EDIT) - Add development workflow and testing patterns
+
+* chore: update uv.lock after dependency sync
+
+* Apply suggestions from code review
+
+Co-authored-by: Copilot <175728472+Copilot@users.noreply.github.com>
+
+- fix: address PR review comments for .cursorrules
+
+* Add comprehensive domain helpers section with all 12 helper modules - Fix method names
+  (get_all() not list_all() for Customers) - Document all helper modules with accurate
+  method lists - Add reference to helpers documentation
+
+- Update .cursorrules
+
+______________________________________________________________________
+
+Co-authored-by: Doug Borg <dougborg@apple.com>
+
+- **mcp**: Add stockout_prevention and product_lifecycle_review prompts
+  ([#113](https://github.com/dougborg/stocktrim-openapi-client/pull/113),
+  [`6dced97`](https://github.com/dougborg/stocktrim-openapi-client/commit/6dced977fa03e0d653a6daa82041b1da931633e2))
+
+* feat(mcp): consolidate stockout_prevention and product_lifecycle_review prompts
+
+Consolidates prompt implementations from PR #112 and PR #110 into a single feature
+branch. This adds two new workflow prompts to the existing three, bringing the total to
+five comprehensive inventory management workflows.
+
+**Added Prompts:**
+
+1. `stockout_prevention` (from PR #112) - Proactive stockout prevention workflow -
+   5-step process: Risk Analysis, Gap Identification, Forecast Review, Preventive
+   Action, and Recommendations - Parameters: location_code (required), days_ahead
+   (default: 14) - Tools: review_urgent_order_requirements,
+   generate_purchase_orders_from_urgent_items, forecasts_get_for_products
+
+1. `product_lifecycle_review` (from PR #110) - Product portfolio optimization workflow -
+   Covers: Portfolio Overview, Performance Analysis, Configuration Review, Optimization
+   Recommendations, and Configuration Changes - Parameters: category (default: "all"),
+   include_inactive (default: False) - Analysis areas: slow movers, overstock risks,
+   forecast accuracy, supplier consolidation, missing configurations
+
+**Complete Prompt Inventory (5 total):** - purchasing_workflow -
+forecast_accuracy_review - supplier_performance_review - stockout_prevention (new) -
+product_lifecycle_review (new)
+
+**Implementation Details:** - All imports consolidated (added mcp.types imports for
+product_lifecycle_review) - Added logger initialization for stockout_prevention error
+handling - All prompts properly registered in register_workflow_prompts() - Combined
+test suite with 42 tests covering all prompts - All tests passing (318 total in suite) -
+Linting and formatting clean
+
+**Supersedes:** - PR #112: Stockout Prevention prompt - PR #110: Product Lifecycle
+Review prompt
+
+Generated with [Claude Code](https://claude.com/claude-code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+
+- fix: update product_lifecycle_review tests to access .content.text
+
+Fixed test assertions to access message content via `.content.text` instead of
+`.content` directly. Message() factory function returns objects with TextContent in the
+content field, requiring the `.text` property access.
+
+Updated 6 test methods: - test_product_lifecycle_review_default_params -
+test_product_lifecycle_review_with_category -
+test_product_lifecycle_review_with_inactive - test_product_lifecycle_review_all_params -
+test_product_lifecycle_review_resources_mentioned -
+test_product_lifecycle_review_analysis_areas
+
+All 42 workflow prompt tests now passing.
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+______________________________________________________________________
+
+Co-authored-by: Doug Borg <dougborg@apple.com>
+
+Co-authored-by: Claude <noreply@anthropic.com>
+
+- **mcp**: Implement forecast accuracy review prompt
+  ([#111](https://github.com/dougborg/stocktrim-openapi-client/pull/111),
+  [`c9962ba`](https://github.com/dougborg/stocktrim-openapi-client/commit/c9962ba4b579acf6116b34ec35a2c0924ece55f6))
+
+* feat(mcp): implement forecast accuracy review prompt (issue #106)
+
+Co-authored-by: Doug Borg <dougborg@dougborg.org>
+
+- **mcp**: Implement supplier_performance_review prompt
+  ([#109](https://github.com/dougborg/stocktrim-openapi-client/pull/109),
+  [`3a687a8`](https://github.com/dougborg/stocktrim-openapi-client/commit/3a687a8944b0d27bf4de9fbc95e513d65e1e2cc9))
+
+* feat(mcp): implement supplier_performance_review prompt
+
+Implement comprehensive supplier performance review prompt with: - Optional
+supplier_code parameter (defaults to None for all suppliers) - period_days parameter
+(defaults to 90 days) - Dynamic current date injection - Comprehensive system
+instructions for supply chain analysis - Guided multi-step workflow (overview, analysis,
+trends, recommendations) - Full test coverage (10 tests passing) - Token size validation
+(under 5KB)
+
+- **mcp**: Setup MCP Prompts infrastructure (Issue #101)
+  ([#107](https://github.com/dougborg/stocktrim-openapi-client/pull/107),
+  [`206db80`](https://github.com/dougborg/stocktrim-openapi-client/commit/206db80ce811d41830d341d9901ffa1b16384c43))
+
+* feat(mcp): implement MCP Prompts infrastructure
+
+- Create prompts directory structure with __init__.py and workflows.py - Add
+  register_all_prompts() and register_workflow_prompts() functions - Update server.py to
+  register prompts after resources - Add test infrastructure in tests/test_prompts/ -
+  All tests pass (280 total, including 2 new prompt tests) - Server imports successfully
+  with "Prompts registered" log message
+
+* style(mcp): fix formatting in test_workflows.py
+
+* fix: use structured logging for prompts registration
+
+Address review comment to use event-driven logging consistent with the rest of the file
+(e.g., 'server_ready', 'client_initialized').
+
+Changed 'Prompts registered' to 'prompts_registered' to match the structured logging
+pattern.
+
 ## v0.11.0 (2025-11-11)
 
 ### Build System
