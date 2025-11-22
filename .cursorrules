@@ -111,19 +111,28 @@ This is a **Python client library and MCP server** for the StockTrim Inventory M
 
 ## Domain Helpers
 
-The client provides **15+ convenience functions** organized by domain:
+The client provides **12+ domain helper modules** for ergonomic API access, each with distinct APIs:
 
-- **Products**: `find_by_code()`, `search()`, `exists()`, `create()`, `update()`, etc.
-- **Customers**: `get()`, `find_or_create()`, `list_all()`, etc.
-- **Inventory**: `get_stock_levels()`, `adjust_stock()`, etc.
-- **Orders**: `create_purchase_order()`, `create_sales_order()`, etc.
+- **Products**: `get_all()`, `create()`, `delete()`, `find_by_code()`, `exists()`, `get_all_paginated()`, etc.
+- **Customers**: `get_all()`, `get()`, `update()`, `find_or_create()`, `exists()`
+- **Inventory**: `set()`, `set_for_product()`
+- **Suppliers**: `get_all()`, `get()`, `create()`, `exists()`, `find_by_code()`, `create_one()`, `delete()`
+- **Locations**: `get_all()`, `get()`, `create()`, `exists()`
+- **Bill of Materials**: `get()`, `create()`, `delete()`, `get_for_product()`, `get_uses_of_component()`
+- **Forecasting**: `run_calculations()`, `get_processing_status()`, `wait_for_completion()`
+- **Order Plan**: `query()`, `get_urgent_items()`, `get_by_supplier()`, `get_by_category()`
+- **Purchase Orders**: `get_all()`, `create()`, `delete()`, `find_by_reference()`, `exists()` (accessed via `client.purchase_orders`)
+- **Purchase Orders V2**: `generate_from_order_plan()`, `get_all_paginated()`, `get_by_reference()`, `find_by_supplier()` (accessed via `client.purchase_orders_v2`)
+- **Sales Orders**: `get_all()`, `create()`, `delete()`, `get_for_product()`, `delete_for_product()` (accessed via `client.sales_orders`)
+
+For a full list of helpers and their APIs, see the [helpers documentation](docs/api/helpers.md).
 
 Use domain helpers for ergonomic API access:
 
 ```python
 async with StockTrimClient(...) as client:
     product = await client.products.find_by_code("WIDGET-001")
-    widgets = await client.products.search("WIDGET")
+    customers = await client.customers.get_all()
 ```
 
 ## MCP Server
@@ -174,5 +183,3 @@ async with StockTrimClient(
 - **Type safety**: Strict type checking with ty
 - **Lock files**: `uv.lock` should be committed for reproducibility
 - **Domain helpers**: Prefer helper methods for better ergonomics
-
-
