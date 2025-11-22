@@ -1,0 +1,176 @@
+# Cursor Rules for StockTrim OpenAPI Client
+
+This file provides guidance to Cursor AI agents when working in this repository.
+
+## Project Overview
+
+This is a **Python client library and MCP server** for the StockTrim Inventory Management API.
+
+## Quick Reference
+
+### Essential Commands
+
+```bash
+# Setup
+uv sync                          # Install all dependencies
+uv run poe setup-dev          # Setup pre-commit hooks
+
+# Code Quality (REQUIRED before PR)
+uv run poe lint               # Check for linting issues
+uv run poe lint-fix           # Auto-fix linting issues
+uv run poe format             # Format code with ruff
+uv run poe type-check         # Type check with ty
+uv run poe test               # Run all tests
+uv run poe test-cov           # Run tests with coverage
+
+# Combined Workflows
+uv run poe check              # Run lint, type-check, and test
+uv run poe build              # Full build pipeline
+```
+
+## CRITICAL: Zero Tolerance for Ignoring Errors - ABSOLUTE REQUIREMENT
+
+**NEVER say "but these were pre-existing issues so they are fine to ignore" or ANYTHING like that. This is FORBIDDEN.**
+
+When fixing linting, type checking, or test errors:
+
+- ✅ **FIX THE ACTUAL ISSUES** - do not use `noqa`, `type: ignore`, exclusions, or skips
+- ✅ **NO SHORTCUTS** - do not exclude files from linting, skip tests, or ignore type errors
+- ✅ **NO EXCUSES** - "unrelated to my changes" is not a valid reason to ignore errors
+- ✅ **REFACTOR INSTEAD** - if a function has too many parameters, use a dataclass; if a name conflicts with a built-in, rename it
+- ✅ **PRE-EXISTING ISSUES ARE NOT EXCUSES** - ALL tests must pass, ALL linting must pass, regardless of when the issues were introduced
+
+### MANDATORY COMPLETION CHECKLIST
+
+**Before ANY coding task is considered complete, ALL of the following MUST be true:**
+
+1. **ALL tests pass** - This includes:
+
+   - Tests for new code you wrote
+   - ALL existing tests (even if they were broken before)
+   - Tests that seem unrelated to your changes
+   - Integration tests, unit tests, all test suites
+   - **NO EXCEPTIONS** - if a test was broken before, fix it
+
+1. **ALL linting and formatting pass** - This includes:
+
+   - Ruff linting with zero errors
+   - Code formatting with zero issues
+   - Type checking with zero errors
+   - **NO EXCEPTIONS** - if there were linting errors before, fix them
+
+1. **Code is committed** - All changes must be committed to git with appropriate commit messages
+
+1. **Code is pushed to a feature branch** - If not already on a feature branch, create one and push the changes
+
+**Verification commands:**
+
+```bash
+# Run these and ensure ALL pass with zero errors
+uv run poe check          # Lint, type-check, and test
+uv run poe test           # All tests must pass
+uv run poe lint           # All linting must pass
+git status                 # Verify all changes are committed
+git branch                 # Verify you're on a feature branch
+```
+
+## Development Patterns
+
+### Test Isolation Pattern
+
+**All tests must work without external dependencies.** Never depend on:
+
+- External API connectivity
+- Environment variables (like API keys)
+- Network services
+- Real database connections
+
+**Implementation:**
+
+```python
+# ❌ Bad - requires API key
+async def test_get_product():
+    result = await get_product_by_sku("TEST-001")
+    assert result is not None
+
+# ✅ Good - mocked client
+async def test_get_product():
+    mock_client = MagicMock()
+    mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+    mock_client.__aexit__ = AsyncMock(return_value=None)
+
+    with patch("module.StockTrimClient", return_value=mock_client):
+        result = await get_product_by_sku("TEST-001")
+        assert result is not None
+```
+
+### Async/Await Pattern
+
+Use async/await throughout for API calls and I/O operations:
+
+```python
+# Client context managers
+async with StockTrimClient() as client:
+    result = await client.get_product(product_id)
+```
+
+**Testing Async Code:**
+
+- Use `@pytest.mark.asyncio` decorator
+- Mock async context managers with `AsyncMock`
+- Always await mock calls in async tests
+
+## Project Structure
+
+```
+stocktrim-openapi-client/
+├── stocktrim_public_api_client/  # Client library
+│   ├── stocktrim_client.py       # Main client
+│   ├── helpers/                  # Domain helpers
+│   └── generated/                # Generated API client (DO NOT EDIT)
+├── stocktrim_mcp_server/         # MCP server
+│   └── src/stocktrim_mcp_server/
+├── docs/                         # Documentation
+└── tests/                        # Test suite
+```
+
+## File Organization Rules
+
+### DO NOT EDIT (Generated Files)
+
+- `stocktrim_public_api_client/generated/**/*.py`
+
+**To update generated code**: Use `uv run poe regenerate-client` (if available)
+
+### EDIT THESE FILES
+
+- `stocktrim_public_api_client/stocktrim_client.py` - Main client
+- `stocktrim_public_api_client/helpers/` - Domain helpers
+- `stocktrim_mcp_server/` - MCP server code
+- `tests/` - Test files
+- `docs/` - Documentation
+
+## Before Creating PR
+
+1. **Run full build**: `uv run poe build` (if available) or `uv run poe check`
+1. **Verify all checks pass**: No errors in lint, type-check, test
+1. **Review your changes**: Look for debug code, commented sections, TODOs
+1. **Update tests**: Ensure new code is covered
+1. **Update docs**: Add docstrings, update relevant documentation
+1. **Complete checklist**: Ensure ALL tests pass, ALL linting passes, code is committed, and pushed to feature branch
+
+## Project Standards
+
+- **Python 3.11+** with strict typing (ty - Astral's fast type checker)
+- **Ruff** for linting/formatting (comprehensive rule set)
+- **Async/await** patterns for API calls
+- **Semantic commits** with commitizen
+- **UV** for dependency management
+- **Poethepoet** for task running
+- **100% CI isolation** - no external dependencies in tests
+
+## Getting Help
+
+- **Documentation**: See `docs/` directory for comprehensive guides
+- **Code examples**: Look at existing helpers and tests for patterns
+- **Standards**: See CLAUDE.md for detailed development patterns
