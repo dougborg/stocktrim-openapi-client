@@ -321,10 +321,10 @@ slow-moving or obsolete items, and making lifecycle decisions.
 
 #### Parameters
 
-| Parameter         | Type    | Default   | Description                                 |
-|-------------------|---------|-----------|---------------------------------------------|
-| category          | str     | "all"     | Product category to review                  |
-| include_inactive  | bool    | False     | Include discontinued/inactive products      |
+| Parameter         | Type    | Required | Default   | Description                                 |
+|-------------------|---------|----------|-----------|---------------------------------------------|
+| category          | str     | No       | "all"     | Product category to review                  |
+| include_inactive  | bool    | No       | False     | Include discontinued/inactive products      |
 
 #### Workflow Steps
 

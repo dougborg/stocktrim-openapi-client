@@ -298,12 +298,12 @@ tools:
 Direct CRUD operations across all domains:
 
 - **Products**: get, search, create, delete
-- **Customers**: get, update
-- **Suppliers**: get, update, create, delete
+- **Customers**: get_customer, list_customers
+- **Suppliers**: get, list, create, delete
 - **Inventory**: set
-- **Sales Orders**: create, get, update, delete
-- **Purchase Orders**: get, update, create, delete
-- **Locations**: get, update
+- **Sales Orders**: create, get, list, delete
+- **Purchase Orders**: get, list, create, delete
+- **Locations**: list, create
 
 ### Workflow Tools (9 functions)
 
