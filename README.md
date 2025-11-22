@@ -296,25 +296,21 @@ The MCP server provides **30 tools** organized into foundation tools and workflo
 
 Direct CRUD operations across all domains:
 
-- **Products**: get, search, list, create, delete
-- **Customers**: get, list, create
+- **Products**: get, search, create, delete
+- **Customers**: get_customer, list_customers
 - **Suppliers**: get, list, create, delete
-- **Inventory**: get, set
+- **Inventory**: set
 - **Sales Orders**: create, get, list, delete
 - **Purchase Orders**: get, list, create, delete
 - **Locations**: list, create
-- **Planning**: run_order_plan, run_forecast
-- **BOM**: list_boms, create_bom
-- **Configuration**: get_configuration
 
 ### Workflow Tools (9 functions)
 
 High-level business operations combining multiple API calls:
 
-- **Forecast Management**: update_and_monitor, get_for_products, update_settings,
-  manage_group
+- **Forecast Management**: update_and_monitor, get_for_products, update_settings, manage_group
 - **Urgent Orders**: review_requirements, generate_purchase_orders
-- **Product Management**: configure_product
+- **Product Management**: configure_lifecycle, configure_product
 - **Supplier Management**: create_supplier_with_products
 
 ### MCP Prompts (5 workflow prompts)
@@ -357,10 +353,10 @@ This project maintains high code quality standards with comprehensive tooling:
 
 ### Testing Infrastructure
 
-- **50+ test files** covering client library and MCP server
+- **30+ test files** covering client library and MCP server
 - **Test categories**: unit, integration, docs markers for selective execution
 - **pytest** with async support, coverage reporting, and mocking
-- **Separate test suites** for client (17+ files) and MCP server (35+ files)
+- **Separate test suites** for client (~6 files) and MCP server (~23 files)
 - **Code coverage tracking** with pytest-cov (terminal, HTML, and XML reports)
 
 ### Linting & Type Checking
@@ -394,7 +390,7 @@ uv run poe check
 # Individual checks
 uv run poe format        # Format code with Ruff
 uv run poe lint          # Lint with Ruff
-uv run ty check          # Type check with ty
+uv run poe lint-ty       # Type check with ty
 uv run poe test-coverage # Tests with coverage report
 ```
 
