@@ -90,7 +90,7 @@ This is a **Python client library and MCP server** for the StockTrim Inventory M
 
 ### Error Handling
 
-- Use **custom exception classes** from `stocktrim_public_api_client.generated.errors`
+- Use **custom exception classes** from `stocktrim_public_api_client.utils`
 - Provide **clear error messages** with context
 - Log errors appropriately (use logging module)
 - Structured error handling: AuthenticationError, ValidationError, ServerError, etc.
@@ -138,9 +138,26 @@ async with StockTrimClient(...) as client:
 ## MCP Server
 
 The MCP server is in `stocktrim_mcp_server/` and provides:
-- **5 Tools**: Product, customer, and inventory management
-- **Resources**: Product and inventory data
-- **Prompts**: Workflow prompts
+- **Tools** (core actions, >5 implemented):
+    - `review_urgent_order_requirements`
+    - `generate_purchase_orders_from_urgent_items`
+    - `forecast_accuracy_review`
+    - `supplier_performance_review`
+    - `stockout_prevention`
+    - `product_lifecycle_review`
+    - (see `stocktrim_mcp_server/tools/` for full list)
+- **Prompts** (5 workflow prompts):
+    - `purchasing_workflow`
+    - `forecast_accuracy_review`
+    - `supplier_performance_review`
+    - `stockout_prevention`
+    - `product_lifecycle_review`
+- **Resources**:
+    - Product data
+    - Inventory data
+    - Supplier data
+    - Customer data
+    - (see `stocktrim_mcp_server/resources/` for details)
 
 Built with **FastMCP** for high performance.
 
