@@ -16,7 +16,7 @@ uv sync                          # Install all dependencies
 uv run poe pre-commit-install    # Setup pre-commit hooks
 
 # Code Quality (REQUIRED before PR)
-uv run poe lint               # Check for linting issues
+uv run poe lint               # Run ruff linting, ty type checking, and YAML linting
 uv run poe lint-ruff-fix      # Auto-fix linting issues
 uv run poe format             # Format code with ruff
 uv run poe lint-ty            # Type check with ty

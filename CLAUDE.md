@@ -29,7 +29,7 @@ uv run poe pre-commit-install    # Setup pre-commit hooks
 ### Code Quality
 
 ```bash
-uv run poe lint                  # Lint code with ruff
+uv run poe lint                  # Lint code with ruff, type check with ty, and lint YAML files
 uv run poe lint-ruff-fix         # Auto-fix linting issues
 uv run poe format                # Format code with ruff
 uv run poe lint-ty               # Type check with ty (Astral's fast type checker)
@@ -97,7 +97,7 @@ When asked to fix linting, type checking, or test errors:
 
 ```bash
 # Run these and ensure ALL pass with zero errors
-uv run poe check          # Lint, type-check, and test (if available)
+uv run poe check          # Lint, type-check, and test
 uv run poe test           # All tests must pass
 uv run poe lint           # All linting must pass
 git status                 # Verify all changes are committed
@@ -146,8 +146,6 @@ this format for consistency.
 **Transport-Layer Resilience**:
 
 - Automatic retries with exponential backoff
-- Rate limiting (429) handling with `Retry-After` support
-- Transparent pagination
 - Error translation to domain exceptions
 
 **Domain Helpers**:
