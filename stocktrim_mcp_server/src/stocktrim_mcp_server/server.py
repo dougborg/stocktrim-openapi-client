@@ -23,7 +23,8 @@ from stocktrim_mcp_server.context import ServerContext
 from stocktrim_mcp_server.logging_config import configure_logging, get_logger
 from stocktrim_public_api_client import StockTrimClient
 
-# Configure structured logging (will be called in lifespan)
+# Configure structured logging at module level before any logging calls
+configure_logging()
 logger = get_logger(__name__)
 
 
@@ -379,10 +380,11 @@ def main(**kwargs: Any) -> None:
 
     Args:
         **kwargs: Additional arguments passed to mcp.run()
-    """
-    # Configure structured logging before anything else
-    configure_logging()
 
+    Note:
+        Logging is configured at module level (line 27) to ensure it's ready
+        before any module-level code (like tool registration) executes.
+    """
     logger.info("server_starting", version=__version__)
     mcp.run(**kwargs)
 
