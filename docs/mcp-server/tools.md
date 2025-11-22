@@ -1,8 +1,8 @@
 # Available MCP Tools
 
-The StockTrim MCP Server provides **43+ tools** for interacting with the StockTrim API,
-organized into **Foundation Tools** (27 direct API operations) and **Workflow Tools**
-(16 high-level business operations).
+The StockTrim MCP Server provides **30 tools** for interacting with the StockTrim API,
+organized into **Foundation Tools** (21 direct API operations) and **Workflow Tools**
+(9 high-level business operations).
 
 ## Safety and User Confirmation
 

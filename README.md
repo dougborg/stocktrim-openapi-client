@@ -36,7 +36,7 @@ MCP:
 
 - **🤖 AI Integration**: Natural language interface for Claude and other AI assistants
 - **⚡ FastMCP**: High-performance Model Context Protocol implementation
-- **🔧 Production Ready**: 43+ tools, 5 workflow prompts, and resource endpoints
+- **🔧 Production Ready**: 30+ tools, 5 workflow prompts, and resource endpoints
 - **🎯 Type-Safe**: Full Pydantic validation for all operations
 - **🏗️ Service Architecture**: Clean service layer with dependency injection
 - **🛡️ Safety Patterns**: User confirmation for destructive operations
@@ -290,32 +290,28 @@ rationale.
 
 ## MCP Server Tools
 
-The MCP server provides **43+ tools** organized into foundation tools and workflow
+The MCP server provides **30 tools** organized into foundation tools and workflow
 tools:
 
-### Foundation Tools (27 functions)
+### Foundation Tools (21 functions)
 
 Direct CRUD operations across all domains:
 
-- **Products**: get, search, list, create, delete
-- **Customers**: get, list, create
-- **Suppliers**: get, list, create, delete
-- **Inventory**: get, set
-- **Sales Orders**: create, get, list, delete
-- **Purchase Orders**: get, list, create, delete
-- **Locations**: list, create
-- **Planning**: run_order_plan, run_forecast
-- **BOM**: list_boms, create_bom
-- **Configuration**: get_configuration
+- **Products**: get, search, create, delete
+- **Customers**: get, update
+- **Suppliers**: get, update, create, delete
+- **Inventory**: set
+- **Sales Orders**: create, get, update, delete
+- **Purchase Orders**: get, update, create, delete
+- **Locations**: get, update
 
-### Workflow Tools (16 functions)
+### Workflow Tools (9 functions)
 
 High-level business operations combining multiple API calls:
 
-- **Forecast Management**: update_and_monitor, get_for_products, update_settings,
-  manage_group
+- **Forecast Management**: update_and_monitor, get_for_products, update_settings, manage_group
 - **Urgent Orders**: review_requirements, generate_purchase_orders
-- **Product Management**: configure_product
+- **Product Management**: configure_lifecycle, configure_product
 - **Supplier Management**: create_supplier_with_products
 
 ### MCP Prompts (5 workflow prompts)
@@ -358,10 +354,10 @@ This project maintains high code quality standards with comprehensive tooling:
 
 ### Testing Infrastructure
 
-- **50+ test files** covering client library and MCP server
+- **30+ test files** covering client library and MCP server
 - **Test categories**: unit, integration, docs markers for selective execution
 - **pytest** with async support, coverage reporting, and mocking
-- **Separate test suites** for client (17+ files) and MCP server (35+ files)
+- **Separate test suites** for client (~6 files) and MCP server (~23 files)
 - **Code coverage tracking** with pytest-cov (terminal, HTML, and XML reports)
 
 ### Linting & Type Checking
@@ -395,7 +391,7 @@ uv run poe check
 # Individual checks
 uv run poe format        # Format code with Ruff
 uv run poe lint          # Lint with Ruff
-uv run ty check          # Type check with ty
+uv run poe lint-ty       # Type check with ty
 uv run poe test-coverage # Tests with coverage report
 ```
 
