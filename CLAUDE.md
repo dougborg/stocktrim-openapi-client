@@ -23,16 +23,16 @@ defined in `[tool.poe.tasks]` section of `pyproject.toml`.
 
 ```bash
 uv sync                          # Install all dependencies (includes poethepoet)
-uv run poe setup-dev             # Setup pre-commit hooks
+uv run poe pre-commit-install    # Setup pre-commit hooks
 ```
 
 ### Code Quality
 
 ```bash
 uv run poe lint                  # Lint code with ruff
-uv run poe lint-fix              # Auto-fix linting issues
+uv run poe lint-ruff-fix         # Auto-fix linting issues
 uv run poe format                # Format code with ruff
-uv run poe type-check            # Type check with ty (Astral's fast type checker)
+uv run poe lint-ty               # Type check with ty (Astral's fast type checker)
 ```
 
 ## CRITICAL: Zero Tolerance for Ignoring Errors - ABSOLUTE REQUIREMENT
@@ -108,7 +108,7 @@ git branch                 # Verify you're on a feature branch
 
 ```bash
 uv run poe test                  # Run tests with pytest
-uv run poe test-cov              # Run tests with coverage reports (HTML, terminal, XML)
+uv run poe test-coverage         # Run tests with coverage reports (HTML, terminal, XML)
 uv run poe test-watch            # Run tests in watch mode
 ```
 
@@ -124,7 +124,7 @@ uv run poe docs-deploy           # Deploy docs to GitHub Pages
 
 ```bash
 uv run poe check                 # Run lint, type-check, and test
-uv run poe build                 # Full build pipeline (lint-fix, format, type-check, test-cov, docs-build)
+uv run poe ci                    # Full build pipeline (format-check, lint, test-coverage, docs-build)
 uv run poe clean                 # Clean build artifacts and cache directories
 ```
 

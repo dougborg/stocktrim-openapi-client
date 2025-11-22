@@ -13,19 +13,19 @@ This is a **Python client library and MCP server** for the StockTrim Inventory M
 ```bash
 # Setup
 uv sync                          # Install all dependencies
-uv run poe setup-dev          # Setup pre-commit hooks
+uv run poe pre-commit-install    # Setup pre-commit hooks
 
 # Code Quality (REQUIRED before PR)
 uv run poe lint               # Check for linting issues
-uv run poe lint-fix           # Auto-fix linting issues
+uv run poe lint-ruff-fix      # Auto-fix linting issues
 uv run poe format             # Format code with ruff
-uv run poe type-check         # Type check with ty
+uv run poe lint-ty            # Type check with ty
 uv run poe test               # Run all tests
-uv run poe test-cov           # Run tests with coverage
+uv run poe test-coverage      # Run tests with coverage
 
 # Combined Workflows
 uv run poe check              # Run lint, type-check, and test
-uv run poe build              # Full build pipeline
+uv run poe ci                 # Full build pipeline
 ```
 
 ## CRITICAL: Zero Tolerance for Ignoring Errors - ABSOLUTE REQUIREMENT
@@ -152,7 +152,7 @@ stocktrim-openapi-client/
 
 ## Before Creating PR
 
-1. **Run full build**: `uv run poe build` (if available) or `uv run poe check`
+1. **Run full build**: `uv run poe ci` (or `uv run poe check`)
 1. **Verify all checks pass**: No errors in lint, type-check, test
 1. **Review your changes**: Look for debug code, commented sections, TODOs
 1. **Update tests**: Ensure new code is covered
