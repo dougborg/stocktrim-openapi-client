@@ -1,198 +1,176 @@
 # Cursor Rules for StockTrim OpenAPI Client
 
+This file provides guidance to Cursor AI agents when working in this repository.
+
 ## Project Overview
 
-This is a **Python client library and MCP server** for the StockTrim Inventory Management API. The repository contains:
+This is a **Python client library and MCP server** for the StockTrim Inventory Management API.
 
-1. **Client Library** (`stocktrim_public_api_client/`): OpenAPI-generated client with transport-layer resilience
-2. **MCP Server** (`stocktrim_mcp_server/`): Model Context Protocol server for AI integration
-3. **Documentation** (`docs/`): Comprehensive guides and architecture decisions
+## Quick Reference
 
-## Architecture
+### Essential Commands
 
-### Transport-Layer Resilience
+```bash
+# Setup
+uv sync                          # Install all dependencies
+uv run poe pre-commit-install    # Setup pre-commit hooks
 
-**Key Pattern**: Resilience is implemented at the HTTP transport layer, providing:
-- Automatic retries with exponential backoff
-- Error translation to domain exceptions
+# Code Quality (REQUIRED before PR)
+uv run poe lint               # Run ruff linting, ty type checking, and YAML linting
+uv run poe lint-ruff-fix      # Auto-fix linting issues
+uv run poe format             # Format code with ruff
+uv run poe lint-ty            # Type check with ty
+uv run poe test               # Run all tests
+uv run poe test-coverage      # Run tests with coverage
 
-### Core Components
+# Combined Workflows
+uv run poe check              # Run lint, type-check, and test
+uv run poe ci                 # Full build pipeline
+```
 
-- `stocktrim_public_api_client/stocktrim_client.py` - Enhanced client with resilient transport
-- `stocktrim_public_api_client/generated/` - Generated API client (DO NOT EDIT)
-- `stocktrim_public_api_client/helpers/` - Domain helper classes (15+ convenience functions)
-- `stocktrim_public_api_client/utils.py` - Utility functions
+## CRITICAL: Zero Tolerance for Ignoring Errors - ABSOLUTE REQUIREMENT
+
+**NEVER say "but these were pre-existing issues so they are fine to ignore" or ANYTHING like that. This is FORBIDDEN.**
+
+When fixing linting, type checking, or test errors:
+
+- ✅ **FIX THE ACTUAL ISSUES** - do not use `noqa`, `type: ignore`, exclusions, or skips
+- ✅ **NO SHORTCUTS** - do not exclude files from linting, skip tests, or ignore type errors
+- ✅ **NO EXCUSES** - "unrelated to my changes" is not a valid reason to ignore errors
+- ✅ **REFACTOR INSTEAD** - if a function has too many parameters, use a dataclass; if a name conflicts with a built-in, rename it
+- ✅ **PRE-EXISTING ISSUES ARE NOT EXCUSES** - ALL tests must pass, ALL linting must pass, regardless of when the issues were introduced
+
+### MANDATORY COMPLETION CHECKLIST
+
+**Before ANY coding task is considered complete, ALL of the following MUST be true:**
+
+1. **ALL tests pass** - This includes:
+
+   - Tests for new code you wrote
+   - ALL existing tests (even if they were broken before)
+   - Tests that seem unrelated to your changes
+   - Integration tests, unit tests, all test suites
+   - **NO EXCEPTIONS** - if a test was broken before, fix it
+
+1. **ALL linting and formatting pass** - This includes:
+
+   - Ruff linting with zero errors
+   - Code formatting with zero issues
+   - Type checking with zero errors
+   - **NO EXCEPTIONS** - if there were linting errors before, fix them
+
+1. **Code is committed** - All changes must be committed to git with appropriate commit messages
+
+1. **Code is pushed to a feature branch** - If not already on a feature branch, create one and push the changes
+
+**Verification commands:**
+
+```bash
+# Run these and ensure ALL pass with zero errors
+uv run poe check          # Lint, type-check, and test
+uv run poe test           # All tests must pass
+uv run poe lint           # All linting must pass
+git status                 # Verify all changes are committed
+git branch                 # Verify you're on a feature branch
+```
+
+## Development Patterns
+
+### Test Isolation Pattern
+
+**All tests must work without external dependencies.** Never depend on:
+
+- External API connectivity
+- Environment variables (like API keys)
+- Network services
+- Real database connections
+
+**Implementation:**
+
+```python
+# ❌ Bad - requires API key
+async def test_get_product():
+    result = await get_product_by_sku("TEST-001")
+    assert result is not None
+
+# ✅ Good - mocked client
+async def test_get_product():
+    mock_client = MagicMock()
+    mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+    mock_client.__aexit__ = AsyncMock(return_value=None)
+
+    with patch("module.StockTrimClient", return_value=mock_client):
+        result = await get_product_by_sku("TEST-001")
+        assert result is not None
+```
+
+### Async/Await Pattern
+
+Use async/await throughout for API calls and I/O operations:
+
+```python
+# Client context managers
+async with StockTrimClient() as client:
+    result = await client.get_product(product_id)
+```
+
+**Testing Async Code:**
+
+- Use `@pytest.mark.asyncio` decorator
+- Mock async context managers with `AsyncMock`
+- Always await mock calls in async tests
+
+## Project Structure
+
+```
+stocktrim-openapi-client/
+├── stocktrim_public_api_client/  # Client library
+│   ├── stocktrim_client.py       # Main client
+│   ├── helpers/                  # Domain helpers
+│   └── generated/                # Generated API client (DO NOT EDIT)
+├── stocktrim_mcp_server/         # MCP server
+│   └── src/stocktrim_mcp_server/
+├── docs/                         # Documentation
+└── tests/                        # Test suite
+```
 
 ## File Organization Rules
 
 ### DO NOT EDIT (Generated Files)
 
-- `stocktrim_public_api_client/generated/api/**/*.py`
-- `stocktrim_public_api_client/generated/models/**/*.py`
-- `stocktrim_public_api_client/generated/client.py`
-- `stocktrim_public_api_client/generated/errors.py`
+- `stocktrim_public_api_client/generated/**/*.py`
 
-**To update generated code**: Use `uv run poe regenerate-client`
+**To update generated code**: Use `uv run poe regenerate-client` (if available)
 
 ### EDIT THESE FILES
 
-- `stocktrim_public_api_client/stocktrim_client.py` - Main resilient client
-- `stocktrim_public_api_client/helpers/` - Domain helper classes
-- `stocktrim_public_api_client/utils.py` - Utility functions
-- `tests/` - Test files
-- `scripts/` - Development scripts
-- `docs/` - Documentation
+- `stocktrim_public_api_client/stocktrim_client.py` - Main client
+- `stocktrim_public_api_client/helpers/` - Domain helpers
 - `stocktrim_mcp_server/` - MCP server code
+- `tests/` - Test files
+- `docs/` - Documentation
 
-## Development Workflow
+## Before Creating PR
 
-### Essential Commands
+1. **Run full build**: `uv run poe ci` (or `uv run poe check`)
+1. **Verify all checks pass**: No errors in lint, type-check, test
+1. **Review your changes**: Look for debug code, commented sections, TODOs
+1. **Update tests**: Ensure new code is covered
+1. **Update docs**: Add docstrings, update relevant documentation
+1. **Complete checklist**: Ensure ALL tests pass, ALL linting passes, code is committed, and pushed to feature branch
 
-**Development**:
-- `uv sync --all-extras` - Install dependencies
-- `uv run poe format` - Format code
-- `uv run poe lint` - Lint code
-- `uv run poe test` - Run tests
-- `uv run poe check` - Full validation (format + lint + test)
-- `uv run poe fix` - Auto-fix issues
+## Project Standards
 
-**Testing**:
-- `uv run poe test` - All tests (excluding docs)
-- `uv run poe test-coverage` - With coverage report
-- `uv run poe test-unit` - Unit tests only
-- `uv run poe test-integration` - Integration tests
+- **Python 3.11+** with strict typing (ty - Astral's fast type checker)
+- **Ruff** for linting/formatting (comprehensive rule set)
+- **Async/await** patterns for API calls
+- **Semantic commits** with commitizen
+- **UV** for dependency management
+- **Poethepoet** for task running
+- **100% CI isolation** - no external dependencies in tests
 
-**Client Regeneration**:
-- `uv run poe regenerate-client` - Regenerate from OpenAPI spec
-- `uv run poe validate-openapi` - Validate OpenAPI spec
+## Getting Help
 
-**Documentation**:
-- `uv run poe docs-build` - Build documentation
-- `uv run poe docs-serve` - Serve documentation locally
-
-## Code Style & Conventions
-
-### Python Style
-
-- **Type hints**: Required for all function parameters and return types
-- **Python versions**: 3.11, 3.12, 3.13 supported
-- **Package manager**: uv (required)
-- **Task runner**: poethepoet (poe) - all tasks via `uv run poe <task>`
-- **Code formatter**: Ruff
-- **Type checker**: ty (strict mode)
-- **Linter**: Ruff
-
-### Import Organization
-
-- Use **absolute imports** (no relative imports)
-- Group imports: stdlib, third-party, first-party
-- Ruff's `isort` handles import sorting automatically
-
-### Error Handling
-
-- Use **custom exception classes** from `stocktrim_public_api_client.utils`
-- Provide **clear error messages** with context
-- Log errors appropriately (use logging module)
-- Structured error handling: AuthenticationError, ValidationError, ServerError, etc.
-
-### Testing
-
-- Use **pytest** for all tests
-- Tests in `tests/` directory
-- Use **pytest markers**: `@pytest.mark.unit`, `@pytest.mark.integration`, `@pytest.mark.docs`
-- Use **pytest fixtures** (defined in `conftest.py`)
-- Aim for **80%+ test coverage**
-
-### Documentation
-
-- **ADRs**: Architecture Decision Records in `docs/architecture/decisions/`
-- **MkDocs**: Documentation built with MkDocs (Material theme)
-- **Docstrings**: Google or NumPy style for public APIs
-
-## Domain Helpers
-
-The client provides **12+ domain helper modules** for ergonomic API access, each with distinct APIs:
-
-- **Products**: `get_all()`, `create()`, `delete()`, `find_by_code()`, `exists()`, `get_all_paginated()`, etc.
-- **Customers**: `get_all()`, `get()`, `update()`, `find_or_create()`, `exists()`
-- **Inventory**: `set()`, `set_for_product()`
-- **Suppliers**: `get_all()`, `get()`, `create()`, `exists()`, `find_by_code()`, `create_one()`, `delete()`
-- **Locations**: `get_all()`, `get()`, `create()`, `exists()`
-- **Bill of Materials**: `get()`, `create()`, `delete()`, `get_for_product()`, `get_uses_of_component()`
-- **Forecasting**: `run_calculations()`, `get_processing_status()`, `wait_for_completion()`
-- **Order Plan**: `query()`, `get_urgent_items()`, `get_by_supplier()`, `get_by_category()`
-- **Purchase Orders**: `get_all()`, `create()`, `delete()`, `find_by_reference()`, `exists()` (accessed via `client.purchase_orders`)
-- **Purchase Orders V2**: `generate_from_order_plan()`, `get_all_paginated()`, `get_by_reference()`, `find_by_supplier()` (accessed via `client.purchase_orders_v2`)
-- **Sales Orders**: `get_all()`, `create()`, `delete()`, `get_for_product()`, `delete_for_product()` (accessed via `client.sales_orders`)
-
-For a full list of helpers and their APIs, see the [helpers documentation](docs/api/helpers.md).
-
-Use domain helpers for ergonomic API access:
-
-```python
-async with StockTrimClient(...) as client:
-    product = await client.products.find_by_code("WIDGET-001")
-    customers = await client.customers.get_all()
-```
-
-## MCP Server
-
-The MCP server is in `stocktrim_mcp_server/` and provides:
-- **Tools** (core actions, >5 implemented):
-    - `review_urgent_order_requirements`
-    - `generate_purchase_orders_from_urgent_items`
-    - (see `stocktrim_mcp_server/tools/` for full list)
-- **Prompts** (5 workflow prompts):
-    - `purchasing_workflow`
-    - `forecast_accuracy_review`
-    - `supplier_performance_review`
-    - `stockout_prevention`
-    - `product_lifecycle_review`
-- **Resources**:
-    - Product data
-    - Inventory data
-    - Supplier data
-    - Customer data
-    - (see `stocktrim_mcp_server/resources/` for details)
-
-Built with **FastMCP** for high performance.
-
-## Authentication
-
-StockTrim uses custom authentication headers:
-- `api-auth-id`: Tenant ID
-- `api-auth-signature`: Tenant name
-
-The `StockTrimClient` handles authentication automatically:
-
-```python
-async with StockTrimClient(
-    api_auth_id="your_tenant_id",
-    api_auth_signature="your_tenant_name"
-) as client:
-    # API calls automatically include auth headers
-```
-
-## Common Pitfalls
-
-1. **Always use `uv run`** - Don't run commands outside uv environment
-2. **Generated code is read-only** - Use regeneration script instead of editing
-3. **Integration tests need credentials** - Set environment variables for API access
-4. **Use domain helpers** - Prefer helper methods over direct API calls
-5. **Type safety** - Strict type checking with ty
-
-## When Making Changes
-
-1. **Before changes**: Run `uv run poe check` and `uv run poe fix`
-2. **After changes**: Run `uv run poe format`, `uv run poe lint`, `uv run poe test`, `uv run poe check`
-3. **Client regeneration**: Validate spec first, then regenerate, then test
-4. **Documentation**: Update relevant docs when adding features
-5. **ADRs**: Consult ADRs first to understand architectural decisions
-
-## Important Notes
-
-- **Transport-layer resilience**: All API calls get automatic retries
-- **Generated code**: Never edit directly, use regeneration script
-- **Type safety**: Strict type checking with ty
-- **Lock files**: `uv.lock` should be committed for reproducibility
-- **Domain helpers**: Prefer helper methods for better ergonomics
+- **Documentation**: See `docs/` directory for comprehensive guides
+- **Code examples**: Look at existing helpers and tests for patterns
+- **Standards**: See CLAUDE.md for detailed development patterns
