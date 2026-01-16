@@ -73,7 +73,7 @@ dev = [
   "pytest-timeout>=2.1.0",
   "tox>=4.0.0",
   # Code quality and linting
-  "ruff>=0.12.4,<0.13",
+  "ruff>=0.14.0",
 
   "pre-commit>=4.2.0",
   # Build tools
