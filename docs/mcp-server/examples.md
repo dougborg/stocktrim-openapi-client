@@ -910,6 +910,6 @@ ______________________________________________________________________
 ## Next Steps
 
 - Review [MCP Server Tools Reference](./tools.md) for complete API documentation
-- See [Logging Guide](./logging.md) for observability features
-- Check [FastMCP Documentation](https://github.com/jlowin/fastmcp) for server internals
+- See [Observability Guide](./observability.md) for OTel + middleware setup
+- Check [FastMCP Documentation](https://github.com/PrefectHQ/fastmcp) for server internals
 - Report issues at https://github.com/dougborg/stocktrim-openapi-client/issues

@@ -15,7 +15,6 @@ from pydantic import BaseModel, Field
 
 from stocktrim_mcp_server.dependencies import get_services
 from stocktrim_mcp_server.logging_config import get_logger
-from stocktrim_mcp_server.observability import observe_tool
 from stocktrim_mcp_server.templates import format_template, load_template
 from stocktrim_public_api_client.client_types import UNSET
 from stocktrim_public_api_client.generated.models.order_plan_filter_criteria import (
@@ -110,7 +109,6 @@ async def _manage_forecast_group_impl(
     )
 
 
-@observe_tool
 async def manage_forecast_group(
     request: ManageForecastGroupRequest, ctx: Context
 ) -> ManageForecastGroupResponse:
@@ -275,7 +273,6 @@ async def _update_forecast_settings_impl(
         raise
 
 
-@observe_tool
 async def update_forecast_settings(
     request: UpdateForecastSettingsRequest, ctx: Context
 ) -> UpdateForecastSettingsResponse:
@@ -347,7 +344,6 @@ class ForecastsUpdateAndMonitorResponse(BaseModel):
     )
 
 
-@observe_tool
 async def forecasts_update_and_monitor(
     request: ForecastsUpdateAndMonitorRequest, ctx: Context
 ) -> str:
@@ -489,7 +485,6 @@ class ForecastsGetForProductsRequest(BaseModel):
     max_results: int = Field(default=50, description="Limit results", ge=1, le=500)
 
 
-@observe_tool
 async def forecasts_get_for_products(
     request: ForecastsGetForProductsRequest, ctx: Context
 ) -> str:

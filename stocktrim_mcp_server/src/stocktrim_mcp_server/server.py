@@ -323,14 +323,17 @@ generate_purchase_orders_from_urgent_items(supplier_codes=["SUP-001"])
 
 ## Observability
 
-All tools are automatically instrumented with structured logging:
-- Tool invocations logged with parameters
-- Execution time tracked (duration_ms)
-- Success/failure status recorded
-- Errors logged with full context
+The server emits OpenTelemetry spans natively via FastMCP — no built-in tracing
+decorators or structured-logging layer. Operators choose their own stack:
 
-Set `LOG_FORMAT=json` for machine-readable logs in production.
-Set `LOG_LEVEL=DEBUG` to see service-layer operations.
+- **OTel traces**: set `OTEL_EXPORTER_OTLP_ENDPOINT` and friends; FastMCP emits
+  per-tool spans with MCP semantic conventions.
+- **Tool-boundary logs**: add a FastMCP `LoggingMiddleware` (or your own) at
+  server construction time.
+- **HTTP-level traces**: install `opentelemetry-instrumentation-httpx` to trace
+  outbound StockTrim API calls.
+
+See `docs/mcp-server/observability.md` for full setup.
 
 ## Rate Limiting & Performance
 
@@ -352,7 +355,7 @@ See individual tool documentation for specific field requirements.
 ## Need Help?
 
 - Tool Documentation: See docs/mcp-server/tools.md for detailed tool reference
-- Logging Guide: See docs/mcp-server/logging.md for observability features
+- Observability: See docs/mcp-server/observability.md for OTel + middleware setup
 - Examples: See docs/mcp-server/examples.md for complete workflow examples
 - Issues: Report bugs at https://github.com/dougborg/stocktrim-openapi-client/issues
     """,

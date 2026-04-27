@@ -11,7 +11,6 @@ from pydantic import BaseModel, Field
 
 from stocktrim_mcp_server.dependencies import get_services
 from stocktrim_mcp_server.logging_config import get_logger
-from stocktrim_mcp_server.observability import observe_tool
 from stocktrim_public_api_client.client_types import UNSET
 from stocktrim_public_api_client.generated.models.products_request_dto import (
     ProductsRequestDto,
@@ -115,7 +114,6 @@ async def _configure_product_impl(
         raise
 
 
-@observe_tool
 async def configure_product(
     request: ConfigureProductRequest, ctx: Context
 ) -> ConfigureProductResponse:
@@ -357,7 +355,6 @@ async def _products_configure_lifecycle_impl(
         raise
 
 
-@observe_tool
 async def products_configure_lifecycle(
     request: ProductLifecycleRequest, ctx: Context
 ) -> str:
