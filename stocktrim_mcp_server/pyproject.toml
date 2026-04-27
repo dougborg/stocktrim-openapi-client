@@ -31,7 +31,7 @@ classifiers = [
 ]
 dependencies = [
   "stocktrim-openapi-client",
-  "fastmcp>=0.3.0",
+  "fastmcp>=3.0.0,<4.0.0",
   "python-dotenv>=1.0.0",
   "structlog>=24.1.0",
 ]

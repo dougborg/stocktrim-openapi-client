@@ -7,8 +7,7 @@ inventory management tasks.
 from datetime import datetime
 
 from fastmcp import Context, FastMCP
-from fastmcp.prompts.prompt import Message
-from mcp.types import PromptMessage, TextContent
+from fastmcp.prompts import Message
 from pydantic import Field
 
 from stocktrim_mcp_server.dependencies import get_services
@@ -601,7 +600,7 @@ Focus on prevention and proactive measures rather than reactive responses.
 
 def product_lifecycle_review(
     category: str = "all", include_inactive: bool = False
-) -> list[PromptMessage]:
+) -> list[Message]:
     """Review product portfolio, identify optimization opportunities, and configure products.
 
     Guide AI through portfolio optimization and product configuration workflow:
@@ -700,10 +699,8 @@ Your goal is to optimize the product portfolio through systematic analysis and c
 Start with portfolio overview using the `list_products` tool."""
 
     return [
-        PromptMessage(
-            role="assistant", content=TextContent(type="text", text=system_message)
-        ),
-        PromptMessage(role="user", content=TextContent(type="text", text=user_message)),
+        Message(content=system_message, role="assistant"),
+        Message(content=user_message, role="user"),
     ]
 
 
