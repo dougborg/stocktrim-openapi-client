@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class ApiEnum(str, Enum):
+class ApiEnum(StrEnum):
     ACUMATICA = "Acumatica"
     AMAZONFBA = "AmazonFba"
     BIGCOMMERCE = "BigCommerce"

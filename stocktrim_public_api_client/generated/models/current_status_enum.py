@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class CurrentStatusEnum(str, Enum):
+class CurrentStatusEnum(StrEnum):
     ALL = "All"
     CURRENT = "Current"
     DISCONTINUED = "Discontinued"

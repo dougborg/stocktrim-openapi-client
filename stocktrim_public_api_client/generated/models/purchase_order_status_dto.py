@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class PurchaseOrderStatusDto(str, Enum):
+class PurchaseOrderStatusDto(StrEnum):
     APPROVED = "Approved"
     DRAFT = "Draft"
     RECEIVED = "Received"

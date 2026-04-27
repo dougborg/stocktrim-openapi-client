@@ -746,8 +746,43 @@ def fix_specific_generated_issues(workspace_path: Path) -> bool:
     # Fix .from_dict() type issues in generated models
     _fix_from_dict_type_issues(workspace_path)
 
+    # Modernize (str, Enum) → StrEnum (Python 3.11+; satisfies ruff UP042)
+    _modernize_str_enum_classes(workspace_path)
+
     logger.info("✅ Fixed specific generated code issues")
     return True
+
+
+def _modernize_str_enum_classes(workspace_path: Path) -> None:
+    """Convert `class X(str, Enum):` → `class X(StrEnum):` in generated models.
+
+    Python 3.11 added `enum.StrEnum`. ruff UP042 flags the older multi-inheritance
+    form. openapi-python-client still emits `(str, Enum)`, so we modernize during
+    post-processing.
+    """
+    logger.info("Modernizing (str, Enum) → StrEnum in generated models")
+
+    models_dir = workspace_path / "stocktrim_public_api_client" / "generated" / "models"
+    if not models_dir.exists():
+        logger.warning(f"⚠️  Models directory not found: {models_dir}")
+        return
+
+    pattern = re.compile(r"^class (\w+)\(str, Enum\):", re.MULTILINE)
+    converted = 0
+    for model_file in models_dir.glob("*.py"):
+        content = model_file.read_text()
+        if not pattern.search(content):
+            continue
+        new_content = pattern.sub(r"class \1(StrEnum):", content)
+        new_content = new_content.replace(
+            "from enum import Enum",
+            "from enum import StrEnum",
+        )
+        model_file.write_text(new_content)
+        converted += 1
+
+    if converted:
+        logger.info(f"   ✅ Modernized {converted} enum class(es) to StrEnum")
 
 
 def _fix_from_dict_type_issues(workspace_path: Path) -> None:
