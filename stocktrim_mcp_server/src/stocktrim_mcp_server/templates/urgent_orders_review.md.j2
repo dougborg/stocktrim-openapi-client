@@ -1,0 +1,29 @@
+# Urgent Order Requirements
+
+{% if r.total_items == 0 -%}
+No urgent items found below the {{ days_threshold }}-day stock-out threshold.
+{% else -%}
+**Threshold**: items with less than **{{ days_threshold }} days** of stock remaining
+
+**Total urgent items**: {{ r.total_items }} across {{ r.suppliers | length }} supplier{{ '' if r.suppliers | length == 1 else 's' }}
+{% if r.total_estimated_cost is not none -%}
+**Total estimated cost**: ${{ "%.2f" | format(r.total_estimated_cost) }}
+{% endif %}
+
+## Items by supplier
+
+{% for supplier in r.suppliers %}
+### {{ supplier.supplier_code }} — {{ supplier.total_items }} item{{ '' if supplier.total_items == 1 else 's' }}{% if supplier.total_estimated_cost is not none %} (~${{ "%.2f" | format(supplier.total_estimated_cost) }}){% endif %}
+
+| Product | Stock | Days left | Recommended qty | Unit cost | Location |
+| --- | ---: | ---: | ---: | ---: | --- |
+{% for item in supplier.items -%}
+| {{ item.product_code or '?' }}{% if item.description %} — {{ item.description }}{% endif %} | {{ item.current_stock if item.current_stock is not none else '—' }} | {{ item.days_until_stock_out if item.days_until_stock_out is not none else '—' }} | {{ item.recommended_order_qty if item.recommended_order_qty is not none else '—' }} | {% if item.estimated_unit_cost is not none %}${{ "%.2f" | format(item.estimated_unit_cost) }}{% else %}—{% endif %} | {{ item.location_name or '—' }} |
+{% endfor %}
+
+{% endfor %}
+## Next steps
+
+- Review the items above and adjust quantities as needed.
+- Use `generate_purchase_orders_from_urgent_items` with selected supplier codes to draft POs.
+{% endif %}

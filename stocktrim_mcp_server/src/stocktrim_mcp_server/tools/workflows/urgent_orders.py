@@ -9,10 +9,12 @@ from __future__ import annotations
 from collections import defaultdict
 
 from fastmcp import Context, FastMCP
+from fastmcp.tools import ToolResult
 from pydantic import BaseModel, Field
 
 from stocktrim_mcp_server.dependencies import get_services
 from stocktrim_mcp_server.logging_config import get_logger
+from stocktrim_mcp_server.tools.tool_result_utils import make_tool_result
 from stocktrim_public_api_client.client_types import UNSET
 from stocktrim_public_api_client.generated.models.order_plan_filter_criteria_dto import (
     OrderPlanFilterCriteriaDto,
@@ -266,7 +268,7 @@ async def _review_urgent_order_requirements_impl(
 
 async def review_urgent_order_requirements(
     request: ReviewUrgentOrdersRequest, ctx: Context
-) -> ReviewUrgentOrdersResponse:
+) -> ToolResult:
     """Review items that need urgent reordering based on forecast data.
 
     This workflow tool analyzes StockTrim's forecast and order plan data to identify
@@ -338,7 +340,12 @@ async def review_urgent_order_requirements(
         - `generate_purchase_orders_from_urgent_items`: Auto-generate POs from this data
         - `forecasts_update_and_monitor`: Ensure forecasts are current before using this tool
     """
-    return await _review_urgent_order_requirements_impl(request, ctx)
+    response = await _review_urgent_order_requirements_impl(request, ctx)
+    return make_tool_result(
+        response,
+        template_name="urgent_orders_review",
+        days_threshold=request.days_threshold,
+    )
 
 
 # ============================================================================
