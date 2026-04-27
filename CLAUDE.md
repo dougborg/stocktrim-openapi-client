@@ -186,3 +186,51 @@ this format for consistency.
 - Mock all external dependencies
 - Remove all debug code before PR
 - Fix ALL tests and linting issues, regardless of when they were introduced
+
+## Agent Harness
+
+This repo uses the [harness-kit](https://github.com/dougborg/harness-kit) plugin
+for Claude Code, with project-specific extensions in `.claude/`. Provenance is
+tracked in `.harness-lock.json`. Run `/harness-kit:harness` to audit, update, or
+retro the harness.
+
+### Skills
+
+| Skill | Purpose |
+| --- | --- |
+| `/commit` | Quality-gated conventional commits (upstream) |
+| `/feature-spec` | Spec before multi-file implementations (upstream) |
+| `/open-pr` | Push, create PR, wait for CI, address first round (upstream) |
+| `/code-reviewer` | Six-dimension review with project-specific BLOCKING rules |
+| `/skill-writer` | Author new skills with progressive disclosure (upstream) |
+| `/standup` | Git/GitHub activity recap (upstream) |
+| `/regenerate-client` | Run the OpenAPI regeneration pipeline + commit |
+| `/add-nullable-field` | Patch `NULLABLE_FIELDS` and regenerate (no `# type: ignore`) |
+| `/add-helper-method` | Add a typed helper that wraps a generated call |
+| `/add-mcp-tool` | Add an MCP tool + service + test |
+| `/quality-gate` | CLAUDE.md zero-tolerance pre-done checklist |
+
+### Agents
+
+| Agent | Purpose | Model |
+| --- | --- | --- |
+| `code-reviewer` | Pre-PR review (6 dimensions + StockTrim-specific blockers) | sonnet |
+| `verifier` | Final-gate check: validation, branch, no shortcuts | haiku |
+| `test-writer` | Pytest tests with httpx transport mocks | sonnet |
+| `domain-advisor` | Read-only Q&A on StockTrim API quirks, retry policy, auth | sonnet |
+| `project-manager` | GitHub issues, PRs, releases, dependabot triage | sonnet |
+
+### Automation Philosophy
+
+`.claude/settings.json` configures PostToolUse hooks in three tiers:
+
+1. **Formatters** (silent, zero-token) — `ruff check --fix` and `ruff format` run
+   automatically on every Python edit so style issues never reach Claude.
+2. **Validators** (bounded, gated) — `ty check` and per-file `pytest` run on the
+   touched file only; output is capped at ≤25 lines so noise never drowns signal.
+3. **Guidance** (≤20 lines) — generated/ edits, regenerate_client.py changes,
+   and OpenAPI spec touches print a one-line nudge pointing to the right skill.
+
+A Stop hook nudges toward `/harness-kit:harness retro` after sessions touching
+more than three files. Never silence these by removing them — fix the cause they
+surface.
