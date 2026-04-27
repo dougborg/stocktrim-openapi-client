@@ -20,6 +20,12 @@ in OpenTelemetry, structured logs, and HTTP-level tracing.
   client library) logs API parse errors to capture real-API-vs-spec
   divergences. This is library-author concern, not operator concern, and is
   separate from the observability story below.
+- **Response caching** via FastMCP's `ResponseCachingMiddleware` is wired in
+  `server.py` with an in-memory store. Read tools cache for 5 minutes; resources
+  cache for 60 seconds; mutating tools (every `create_*`/`delete_*`/`set_*`/
+  `configure_*`/etc. surface) are excluded so cached entries are never returned
+  for state changes. Operators can swap the in-memory backend for Redis/disk
+  by overriding the middleware (see Caching below).
 
 ## What the server does NOT ship
 
@@ -117,6 +123,49 @@ HTTPXClientInstrumentor().instrument()
 ```
 
 You'll get spans for every API call, attached to the parent tool span.
+
+## Caching
+
+The server ships with FastMCP's `ResponseCachingMiddleware` enabled by default,
+backed by an in-memory store:
+
+| Surface           | TTL     | Notes                                              |
+| ----------------- | ------- | -------------------------------------------------- |
+| `call_tool`       | 5 min   | Mutating tools (`create_*`, `delete_*`, etc.) excluded |
+| `read_resource`   | 60 sec  | Resources are for discovery — favor freshness      |
+| `list_tools/etc.` | 5 min   | FastMCP defaults                                   |
+
+**Staleness window**: a successful mutation invalidates downstream reads only
+when the next read miss exceeds the TTL. For most workflows the 5-minute window
+is acceptable — pair-programmer agents typically don't mutate and re-read the
+same entity within seconds. If your workload does, see "Tightening cache
+freshness" below.
+
+### Swapping the cache backend
+
+To use Redis (multi-process or persistent across restarts):
+
+```python
+from key_value.aio.stores.redis import RedisStore
+from fastmcp.server.middleware.caching import ResponseCachingMiddleware
+from stocktrim_mcp_server.server import mcp
+
+# Replace the default in-memory middleware before mcp.run()
+mcp.middleware = [m for m in mcp.middleware if not isinstance(m, ResponseCachingMiddleware)]
+mcp.add_middleware(ResponseCachingMiddleware(
+    cache_storage=RedisStore(host="redis.internal", port=6379),
+    # …existing call_tool_settings / read_resource_settings…
+))
+```
+
+### Tightening cache freshness
+
+Three options, ordered cheapest to most invasive:
+
+1. **Lower TTLs** — pass smaller `ttl` values via `CallToolSettings(ttl=60)` etc.
+2. **Add tools to `excluded_tools`** — any tool you list there is never cached.
+3. **Disable response caching entirely** — remove the middleware after
+   constructing `mcp` (see snippet above; just don't re-add it).
 
 ## Why this design
 
