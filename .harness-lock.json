@@ -1,0 +1,120 @@
+{
+  "$schema": "https://harness-kit.dev/lock-schema.json",
+  "version": 1,
+  "sources": {
+    "harness-kit": {
+      "version": "0.4.0",
+      "installed": "2026-04-27"
+    }
+  },
+  "files": {
+    ".claude/skills/commit/SKILL.md": {
+      "source": "harness-kit",
+      "modified": true,
+      "modification_note": "Rewrote ${CLAUDE_PLUGIN_ROOT} → .claude for project-local use"
+    },
+    ".claude/skills/feature-spec/SKILL.md": {
+      "source": "harness-kit",
+      "modified": false
+    },
+    ".claude/skills/code-reviewer/SKILL.md": {
+      "source": "harness-kit",
+      "modified": false
+    },
+    ".claude/skills/open-pr/SKILL.md": {
+      "source": "harness-kit",
+      "modified": true,
+      "modification_note": "Rewrote ${CLAUDE_PLUGIN_ROOT} → .claude for project-local use"
+    },
+    ".claude/skills/open-pr/ensure-feature-branch.sh": {
+      "source": "harness-kit",
+      "modified": false
+    },
+    ".claude/skills/open-pr/poll-ci.sh": {
+      "source": "harness-kit",
+      "modified": false
+    },
+    ".claude/skills/open-pr/poll-review.sh": {
+      "source": "harness-kit",
+      "modified": false
+    },
+    ".claude/skills/standup/SKILL.md": {
+      "source": "harness-kit",
+      "modified": false
+    },
+    ".claude/skills/skill-writer/SKILL.md": {
+      "source": "harness-kit",
+      "modified": false
+    },
+    ".claude/skills/shared/discover-verification-cmd.sh": {
+      "source": "harness-kit",
+      "modified": true,
+      "modification_note": "Detect uv + poe → emit `uv run poe check` (not `poe test`)"
+    },
+    ".claude/skills/shared/fetch-pr-context.sh": {
+      "source": "harness-kit",
+      "modified": false
+    },
+    ".claude/skills/shared/is-branch-shared.sh": {
+      "source": "harness-kit",
+      "modified": false
+    },
+    ".claude/skills/shared/markdownlint-fix.sh": {
+      "source": "harness-kit",
+      "modified": false
+    },
+    ".claude/skills/shared/resolve-all-threads.sh": {
+      "source": "harness-kit",
+      "modified": false
+    },
+    ".claude/skills/shared/resolve-github-context.sh": {
+      "source": "harness-kit",
+      "modified": false
+    },
+    ".claude/skills/shared/resolve-thread.sh": {
+      "source": "harness-kit",
+      "modified": false
+    },
+    ".claude/skills/shared/validate-hooks-schema.sh": {
+      "source": "harness-kit",
+      "modified": false
+    },
+    ".claude/agents/code-reviewer.md": {
+      "source": "harness-kit",
+      "modified": true,
+      "modification_note": "Added Project-Specific Checks section for StockTrim quirks"
+    },
+    ".claude/agents/verifier.md": {
+      "source": "harness-kit",
+      "modified": true,
+      "modification_note": "Tailored to uv run poe check + project forbidden patterns"
+    },
+    ".claude/agents/test-writer.md": {
+      "source": "local"
+    },
+    ".claude/agents/domain-advisor.md": {
+      "source": "local"
+    },
+    ".claude/agents/project-manager.md": {
+      "source": "local"
+    },
+    ".claude/skills/regenerate-client/SKILL.md": {
+      "source": "local"
+    },
+    ".claude/skills/add-nullable-field/SKILL.md": {
+      "source": "local"
+    },
+    ".claude/skills/add-helper-method/SKILL.md": {
+      "source": "local"
+    },
+    ".claude/skills/add-mcp-tool/SKILL.md": {
+      "source": "local"
+    },
+    ".claude/skills/quality-gate/SKILL.md": {
+      "source": "local"
+    },
+    ".claude/settings.json": {
+      "source": "local"
+    }
+  }
+}
