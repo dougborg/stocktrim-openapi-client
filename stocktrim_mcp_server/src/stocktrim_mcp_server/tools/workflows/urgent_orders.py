@@ -303,37 +303,14 @@ async def review_urgent_order_requirements(
         context: Server context with StockTrimClient
 
     Returns:
-        ReviewUrgentOrdersResponse with items grouped by supplier, including:
-        - List of suppliers with urgent items
-        - Items per supplier with stock levels and recommendations
-        - Total estimated costs per supplier and overall
+        A :class:`fastmcp.tools.ToolResult` with two payloads:
 
-    Example:
-        Request: {
-            "days_threshold": 30,
-            "location_codes": ["WAREHOUSE-A"],
-            "supplier_codes": ["SUP-001"]
-        }
-        Returns: {
-            "suppliers": [
-                {
-                    "supplier_code": "SUP-001",
-                    "items": [
-                        {
-                            "product_code": "WIDGET-001",
-                            "current_stock": 45.0,
-                            "days_until_stock_out": 12,
-                            "recommended_order_qty": 200.0,
-                            "estimated_unit_cost": 15.50
-                        }
-                    ],
-                    "total_items": 1,
-                    "total_estimated_cost": 3100.00
-                }
-            ],
-            "total_items": 1,
-            "total_estimated_cost": 3100.00
-        }
+        - ``content`` — rendered markdown summary (supplier-grouped tables,
+          totals, suggested next steps). LLM clients render this directly.
+        - ``structured_content`` — a ``ReviewUrgentOrdersResponse``-shaped
+          dict with ``suppliers`` (list of supplier groups, each carrying
+          items, totals, and estimated cost), ``total_items``, and
+          ``total_estimated_cost``. Programmatic consumers read this.
 
     See Also:
         - Complete workflow: docs/mcp-server/examples.md#workflow-1-automated-inventory-reordering
@@ -343,7 +320,7 @@ async def review_urgent_order_requirements(
     response = await _review_urgent_order_requirements_impl(request, ctx)
     return make_tool_result(
         response,
-        template_name="urgent_orders_review",
+        template_path="workflows/urgent_orders/review",
         days_threshold=request.days_threshold,
     )
 

@@ -1,19 +1,8 @@
-"""Template loader for markdown response templates.
+"""Markdown template loaders for tool responses.
 
-This module provides utilities for loading and formatting markdown templates
-for workflow tool responses.
-
-Two engines are supported during the v3 migration:
-
-- ``format_template`` / ``load_template`` use Python's :func:`str.format` and
-  read ``.md`` files. They are the legacy path used by the early forecast
-  templates and remain in place so older callers keep working.
-- ``render_template`` uses Jinja2 and reads ``.md.j2`` files. New templates
-  authored as part of the ``ToolResult`` migration (#149) use this path —
-  iteration, conditionals, and filters belong here.
-
-A future PR will migrate the legacy ``.md`` templates onto Jinja2 once every
-caller is happy with the new pattern. Until then, both engines coexist.
+- :func:`render_template` (Jinja2, ``.md.j2``) — use for new templates.
+- :func:`format_template` / :func:`load_template` (``str.format``, ``.md``) —
+  legacy path; kept so existing forecast templates render unchanged.
 """
 
 from __future__ import annotations
@@ -23,19 +12,25 @@ from typing import Any
 
 from jinja2 import Environment, FileSystemLoader, StrictUndefined, select_autoescape
 
-# Template directory
 TEMPLATE_DIR = Path(__file__).parent
 
-# Jinja2 environment for ``.md.j2`` templates. ``StrictUndefined`` makes typos
-# fail loudly during render rather than silently emitting empty strings.
+# StrictUndefined: typos fail loudly instead of rendering as empty strings.
 _jinja_env = Environment(
     loader=FileSystemLoader(TEMPLATE_DIR),
     undefined=StrictUndefined,
-    autoescape=select_autoescape(default=False),
+    autoescape=select_autoescape(),
     keep_trailing_newline=True,
     trim_blocks=True,
     lstrip_blocks=True,
 )
+
+
+def _pluralize(n: int, singular: str = "", plural: str = "s") -> str:
+    """Jinja filter: ``{{ 3 | pluralize }}`` → ``"s"``, ``{{ 1 | pluralize }}`` → ``""``."""
+    return singular if n == 1 else plural
+
+
+_jinja_env.filters["pluralize"] = _pluralize
 
 
 def load_template(template_name: str) -> str:
@@ -73,13 +68,19 @@ def format_template(template_name: str, **kwargs: Any) -> str:
     return template.format(**kwargs)
 
 
-def render_template(template_name: str, **context: Any) -> str:
+def render_template(template_path: str, **context: Any) -> str:
     """Render a Jinja2 markdown template (use for new ``ToolResult`` outputs).
 
+    Templates live in a domain-grouped layout under ``templates/``::
+
+        templates / workflows / urgent_orders / review.md.j2
+        templates / foundation / products / get.md.j2
+
     Args:
-        template_name: Name of the template file. ``".md.j2"`` is appended
-            automatically — pass ``"urgent_orders_review"`` to render
-            ``urgent_orders_review.md.j2``.
+        template_path: Path to the template, relative to ``templates/``,
+            without the ``.md.j2`` suffix. For example, pass
+            ``"workflows/urgent_orders/review"`` to render
+            ``templates/workflows/urgent_orders/review.md.j2``.
         **context: Variables made available inside the template.
 
     Returns:
@@ -90,5 +91,5 @@ def render_template(template_name: str, **context: Any) -> str:
         jinja2.UndefinedError: If the template references a variable that
             wasn't supplied (StrictUndefined).
     """
-    template = _jinja_env.get_template(f"{template_name}.md.j2")
+    template = _jinja_env.get_template(f"{template_path}.md.j2")
     return template.render(**context)
