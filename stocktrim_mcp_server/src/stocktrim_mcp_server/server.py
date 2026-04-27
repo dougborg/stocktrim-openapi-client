@@ -17,6 +17,11 @@ from typing import Any
 
 from dotenv import load_dotenv
 from fastmcp import FastMCP
+from fastmcp.server.middleware.caching import (
+    CallToolSettings,
+    ReadResourceSettings,
+    ResponseCachingMiddleware,
+)
 
 from stocktrim_mcp_server import __version__
 from stocktrim_mcp_server.context import ServerContext
@@ -371,6 +376,50 @@ register_all_tools(mcp)
 register_all_resources(mcp)
 register_all_prompts(mcp)
 logger.info("prompts_registered")
+
+
+# Tools that mutate StockTrim state. They never serve cached responses, and
+# their successful execution implicitly stales any cached read for the same
+# entity (TTL keeps the staleness window bounded — defaults to 5 minutes).
+_MUTATING_TOOLS = [
+    # Foundation create/delete/set
+    "create_product",
+    "delete_product",
+    "create_supplier",
+    "delete_supplier",
+    "create_purchase_order",
+    "delete_purchase_order",
+    "create_sales_order",
+    "delete_sales_orders",
+    "create_location",
+    "set_product_inventory",
+    # Workflow mutations
+    "configure_product",
+    "products_configure_lifecycle",
+    "manage_forecast_group",
+    "update_forecast_settings",
+    "forecasts_update_and_monitor",
+    "create_supplier_with_products",
+    "generate_purchase_orders_from_urgent_items",
+]
+
+
+# Response caching: in-memory by default. Operators can swap in Redis/disk via
+# their own middleware wiring; see docs/mcp-server/observability.md.
+mcp.add_middleware(
+    ResponseCachingMiddleware(
+        call_tool_settings=CallToolSettings(
+            ttl=300,  # 5 min — read-heavy tools (products, suppliers, locations)
+            enabled=True,
+            excluded_tools=_MUTATING_TOOLS,
+        ),
+        read_resource_settings=ReadResourceSettings(
+            ttl=60,  # 60s — resources are for discovery; favor freshness
+            enabled=True,
+        ),
+    )
+)
+logger.info("response_caching_enabled", excluded_tools=len(_MUTATING_TOOLS))
 
 
 def main(**kwargs: Any) -> None:
