@@ -19,7 +19,7 @@ Confirm the work is actually done by CLAUDE.md's standard: all tests pass, all l
 
 - **Pre-existing issues are NOT excuses** — if `uv run poe check` fails because of a test that was already broken, fix it before declaring the task done. CLAUDE.md is explicit: "ALL tests must pass, regardless of when the issues were introduced."
 - **No `# noqa`, no `# type: ignore`, no skipped tests** — these are forbidden shortcuts. Refactor instead.
-- **MCP server tests are NOT covered by `uv run poe check`** — they live in `stocktrim_mcp_server/tests/`. Run them separately if MCP code changed.
+- **MCP server tests are now covered by `uv run poe check`** via the `test-mcp` step (added under #145). One command runs both suites; one CI matrix run gates both.
 - **Must be on a feature branch** with all changes committed before this skill returns success.
 
 ## STANDARD PATH
@@ -40,17 +40,9 @@ git branch --show-current
 uv run poe check
 ```
 
-This runs `format-check`, `lint` (ruff + ty + yaml), and `test` for the root package. ALL must pass. Any failure — even one labeled "pre-existing" — is a blocker.
+This runs `format-check`, `lint` (ruff + ty + yaml), `test` (client library, 73 tests), and `test-mcp` (MCP server, 318 tests). ALL must pass. Any failure — even one labeled "pre-existing" — is a blocker.
 
-### 3. Run MCP server tests if relevant
-
-If any file under `stocktrim_mcp_server/` changed (check `git log main..HEAD --name-only`):
-
-```bash
-cd stocktrim_mcp_server && uv run pytest -x
-```
-
-ALL must pass.
+The MCP server suite is now part of `check` (since `feat(mcp): include MCP server tests in root quality gate`). You no longer need a separate `cd stocktrim_mcp_server && pytest` step — but you can still run `uv run poe test-mcp` standalone if you want a fast MCP-only loop.
 
 ### 4. Forbidden-pattern scan
 

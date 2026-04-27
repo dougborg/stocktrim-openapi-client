@@ -163,7 +163,8 @@ addopts = [
   "--timeout=30",     # 30 second timeout for tests
 ]
 testpaths = ["tests"]
-# Note: MCP server tests are excluded - they should be run separately in the MCP server's own test suite
+# Note: MCP server tests live in stocktrim_mcp_server/tests/ and are run via
+# `uv run poe test-mcp` (also included in `uv run poe check`).
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
 markers = [
@@ -338,6 +339,7 @@ test-integration = "pytest -m integration"
 test-docs = { shell = "CI_DOCS_BUILD=true pytest -m docs -v --timeout=600" }  # 10 minute timeout for docs
 test-no-docs = "pytest -m 'not docs'"
 test-all = "pytest"  # Run everything including docs (if CI_DOCS_BUILD is set)
+test-mcp = { shell = "cd stocktrim_mcp_server && pytest --timeout=30" }  # MCP server suite (separate workspace)
 
 # -----------------------------------------------------------------------------
 # OpenAPI and Code Generation Tasks
@@ -365,9 +367,9 @@ pre-commit-update = "pre-commit autoupdate"
 # -----------------------------------------------------------------------------
 # Combined Workflow Tasks
 # -----------------------------------------------------------------------------
-check = ["format-check", "lint", "test"]
+check = ["format-check", "lint", "test", "test-mcp"]
 fix = ["format", "lint-ruff-fix"]
-ci = ["format-check", "lint", "test-coverage", "docs-build"]
+ci = ["format-check", "lint", "test-coverage", "test-mcp", "docs-build"]
 prepare = ["format", "lint", "test", "validate-openapi", "validate-openapi-redocly"]
 validate-all = ["validate-openapi", "validate-openapi-redocly"]
 

@@ -19,7 +19,7 @@ Surface an existing client helper as an MCP tool with proper Pydantic typing, se
 
 - **Tools call services; services call helpers; helpers call `generated/`** — never bypass a layer.
 - **Pydantic models for inputs/outputs** — FastMCP requires typed schemas; raw dicts are not acceptable.
-- **MCP tests live in `stocktrim_mcp_server/tests/`** and are NOT covered by `uv run poe check` (which only runs root `tests/`). You must run them separately.
+- **MCP tests live in `stocktrim_mcp_server/tests/`** and run via `uv run poe test-mcp`. They're also part of `uv run poe check` (since #145), so a successful `check` covers both suites in one go.
 - **Mock the StockTrim client at the service boundary** — don't hit real HTTP from MCP tests.
 
 ## ASSUMES
@@ -81,17 +81,20 @@ Use the existing test fixtures from `stocktrim_mcp_server/tests/conftest.py`. If
 
 ### 4. Run the tests
 
-```bash
-cd stocktrim_mcp_server && uv run pytest tests/test_tools/test_<domain>.py -x
-```
-
-Then run the root suite to make sure nothing client-side regressed:
+For a fast MCP-only loop while iterating:
 
 ```bash
-cd .. && uv run poe check
+uv run poe test-mcp                                   # all MCP tests
+cd stocktrim_mcp_server && uv run pytest tests/test_tools/test_<domain>.py -x  # one file
 ```
 
-ALL must pass on both. CLAUDE.md zero-tolerance applies — fix any pre-existing failures, don't ignore them.
+When you're ready to commit, the full gate covers both client and MCP suites in one shot:
+
+```bash
+uv run poe check
+```
+
+ALL must pass. CLAUDE.md zero-tolerance applies — fix any pre-existing failures, don't ignore them.
 
 ### 5. Commit
 

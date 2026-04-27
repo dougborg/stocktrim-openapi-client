@@ -36,7 +36,14 @@ You are a verification agent. Your job is to confirm that work is complete and r
 
 ## Step 1: Run Verification Command
 
-This project uses **`uv run poe check`** as the verification command (format-check + lint + test). The MCP server has a separate test suite that lives in `stocktrim_mcp_server/tests/` — `uv run poe check` does NOT run those, so you must run them separately if MCP server code changed.
+This project uses **`uv run poe check`** as the verification command. As of #145 it runs the full pipeline:
+
+- `format-check` (ruff format + mdformat)
+- `lint` (ruff + ty + yamllint)
+- `test` (root client library, 73 tests)
+- `test-mcp` (MCP server, 318 tests)
+
+One command, both suites. No need to `cd stocktrim_mcp_server` separately.
 
 Quick discovery (for safety):
 

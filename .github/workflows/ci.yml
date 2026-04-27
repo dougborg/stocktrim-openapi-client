@@ -34,7 +34,7 @@ jobs:
         run: uv python install ${{ matrix.python-version }}
 
       - name: Install dependencies
-        run: uv sync --all-extras
+        run: uv sync --all-extras --all-packages
 
       - name: Check code formatting
         run: uv run poe format-check
@@ -44,6 +44,9 @@ jobs:
 
       - name: Run tests with coverage
         run: uv run poe test-coverage
+
+      - name: Run MCP server tests
+        run: uv run poe test-mcp
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
@@ -66,7 +69,7 @@ jobs:
         run: uv python install 3.13
 
       - name: Install dependencies
-        run: uv sync --all-extras
+        run: uv sync --all-extras --all-packages
 
       - name: Validate OpenAPI specification
         run: uv run poe validate-openapi
