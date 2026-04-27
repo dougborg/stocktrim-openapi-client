@@ -2127,6 +2127,7 @@ version = "0.15.1"
 source = { editable = "stocktrim_mcp_server" }
 dependencies = [
     { name = "fastmcp" },
+    { name = "jinja2" },
     { name = "python-dotenv" },
     { name = "stocktrim-openapi-client" },
     { name = "structlog" },
@@ -2135,6 +2136,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "fastmcp", specifier = ">=3.0.0,<4.0.0" },
+    { name = "jinja2", specifier = ">=3.1.0,<4.0.0" },
     { name = "python-dotenv", specifier = ">=1.0.0" },
     { name = "stocktrim-openapi-client", editable = "." },
     { name = "structlog", specifier = ">=24.1.0" },

@@ -3,10 +3,16 @@
 from unittest.mock import AsyncMock
 
 import pytest
+from fastmcp.tools import ToolResult
 
+from stocktrim_mcp_server.tools.tool_result_utils import (
+    tool_result_text,
+    unwrap_tool_result,
+)
 from stocktrim_mcp_server.tools.workflows.urgent_orders import (
     GeneratePurchaseOrdersRequest,
     ReviewUrgentOrdersRequest,
+    ReviewUrgentOrdersResponse,
     generate_purchase_orders_from_urgent_items,
     review_urgent_order_requirements,
 )
@@ -22,6 +28,14 @@ from stocktrim_public_api_client.generated.models.purchase_order_supplier import
 from stocktrim_public_api_client.generated.models.sku_optimized_results_dto import (
     SkuOptimizedResultsDto,
 )
+
+
+async def _review(
+    request: ReviewUrgentOrdersRequest, ctx
+) -> ReviewUrgentOrdersResponse:
+    """Call the public wrapper and unwrap to the typed Pydantic response."""
+    result = await review_urgent_order_requirements(request, ctx)
+    return unwrap_tool_result(result, ReviewUrgentOrdersResponse)
 
 
 @pytest.fixture
@@ -82,7 +96,7 @@ async def test_review_urgent_orders_success(mock_urgent_context, urgent_order_it
         location_codes=["WH-01"],
         supplier_codes=["SUP-001"],
     )
-    response = await review_urgent_order_requirements(request, mock_urgent_context)
+    response = await _review(request, mock_urgent_context)
 
     # Verify
     assert response.total_items == 1
@@ -110,7 +124,7 @@ async def test_review_urgent_orders_no_urgent_items(mock_urgent_context):
 
     # Execute
     request = ReviewUrgentOrdersRequest(days_threshold=30)
-    response = await review_urgent_order_requirements(request, mock_urgent_context)
+    response = await _review(request, mock_urgent_context)
 
     # Verify
     assert response.total_items == 0
@@ -159,7 +173,7 @@ async def test_review_urgent_orders_multiple_suppliers(mock_urgent_context):
 
     # Execute
     request = ReviewUrgentOrdersRequest(days_threshold=30)
-    response = await review_urgent_order_requirements(request, mock_urgent_context)
+    response = await _review(request, mock_urgent_context)
 
     # Verify
     assert response.total_items == 2
@@ -181,7 +195,7 @@ async def test_review_urgent_orders_with_cost_calculation(
 
     # Execute
     request = ReviewUrgentOrdersRequest(days_threshold=30)
-    response = await review_urgent_order_requirements(request, mock_urgent_context)
+    response = await _review(request, mock_urgent_context)
 
     # Verify cost calculation (15.50 * 100.0 = 1550.0)
     assert response.total_estimated_cost == 1550.0
@@ -207,11 +221,60 @@ async def test_review_urgent_orders_filters_by_threshold(mock_urgent_context):
 
     # Execute with threshold of 15 days
     request = ReviewUrgentOrdersRequest(days_threshold=15)
-    response = await review_urgent_order_requirements(request, mock_urgent_context)
+    response = await _review(request, mock_urgent_context)
 
     # Verify - only items with days_until_stock_out < 15 should be included
     assert response.total_items == 1
     assert response.suppliers[0].items[0].product_code == "URGENT-001"
+
+
+# ============================================================================
+# Test review_urgent_order_requirements (public wrapper — ToolResult shape)
+# ============================================================================
+
+
+@pytest.mark.asyncio
+async def test_review_urgent_orders_renders_supplier_grouped_markdown(
+    mock_urgent_context, urgent_order_item
+):
+    """Public wrapper renders supplier-grouped markdown alongside the structured payload."""
+    mock_client = mock_urgent_context.request_context.lifespan_context.client
+    mock_client.order_plan.query.return_value = [urgent_order_item]
+
+    request = ReviewUrgentOrdersRequest(days_threshold=30)
+    result = await review_urgent_order_requirements(request, mock_urgent_context)
+
+    assert isinstance(result, ToolResult)
+
+    # The structured payload round-trips back to the typed Pydantic model.
+    response = unwrap_tool_result(result, ReviewUrgentOrdersResponse)
+    assert response.total_items == 1
+    assert response.suppliers[0].supplier_code == "SUP-001"
+
+    # Markdown carries the human-readable rendering.
+    text = tool_result_text(result)
+    assert "# Urgent Order Requirements" in text
+    assert "SUP-001" in text
+    assert "WIDGET-001" in text
+
+
+@pytest.mark.asyncio
+async def test_review_urgent_orders_renders_empty_state_in_markdown(
+    mock_urgent_context,
+):
+    """Empty result still produces a sensible markdown summary."""
+    mock_client = mock_urgent_context.request_context.lifespan_context.client
+    mock_client.order_plan.query.return_value = []
+
+    request = ReviewUrgentOrdersRequest(days_threshold=30)
+    result = await review_urgent_order_requirements(request, mock_urgent_context)
+
+    response = unwrap_tool_result(result, ReviewUrgentOrdersResponse)
+    assert response.total_items == 0
+
+    text = tool_result_text(result)
+    assert "No urgent items" in text
+    assert "30-day" in text
 
 
 # ============================================================================
