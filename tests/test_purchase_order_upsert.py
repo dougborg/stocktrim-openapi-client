@@ -6,6 +6,7 @@ fields like orderDate work as expected.
 """
 
 from datetime import UTC, datetime
+from typing import cast
 from unittest.mock import patch
 
 import pytest
@@ -15,6 +16,9 @@ from stocktrim_public_api_client import StockTrimClient
 from stocktrim_public_api_client.client_types import UNSET
 from stocktrim_public_api_client.generated.models.purchase_order_request_dto import (
     PurchaseOrderRequestDto,
+)
+from stocktrim_public_api_client.generated.models.purchase_order_response_dto import (
+    PurchaseOrderResponseDto,
 )
 from stocktrim_public_api_client.generated.models.purchase_order_supplier import (
     PurchaseOrderSupplier,
@@ -224,4 +228,7 @@ class TestPurchaseOrderStatusEnum:
 
                 # Verify status was parsed correctly
                 if isinstance(result, list) and len(result) > 0:
-                    assert result[0].status is not None
+                    first: PurchaseOrderResponseDto = cast(
+                        PurchaseOrderResponseDto, result[0]
+                    )
+                    assert first.status is not None

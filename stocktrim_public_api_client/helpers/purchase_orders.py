@@ -125,7 +125,7 @@ class PurchaseOrders(Base):
         result = await self.get_all(reference_number=reference_number)
         # Handle API returning either single object or list
         if isinstance(result, list):
-            return result[0] if result else None
+            return cast(PurchaseOrderResponseDto, result[0]) if result else None
         return result
 
     async def exists(self, reference_number: str) -> bool:

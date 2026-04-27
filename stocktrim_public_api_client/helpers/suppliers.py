@@ -138,7 +138,7 @@ class Suppliers(Base):
         result = await self.get_all(code=code)
         # Handle API returning either single object or list
         if isinstance(result, list):
-            return result[0] if result else None
+            return cast(SupplierResponseDto, result[0]) if result else None
         return result
 
     async def create_one(
