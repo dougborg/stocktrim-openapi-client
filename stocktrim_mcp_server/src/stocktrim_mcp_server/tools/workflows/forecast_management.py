@@ -559,22 +559,26 @@ async def forecasts_get_for_products(
         # Sort based on request
         if request.sort_by == "days_until_stockout":
             all_items.sort(
-                key=lambda x: float(x.days_until_stock_out)
-                if x.days_until_stock_out not in (None, UNSET)
-                else float("inf")
+                key=lambda x: (
+                    float(x.days_until_stock_out)
+                    if x.days_until_stock_out not in (None, UNSET)
+                    else float("inf")
+                )
             )
         elif request.sort_by == "recommended_quantity":
             all_items.sort(
-                key=lambda x: float(x.recommended_order_quantity)
-                if x.recommended_order_quantity not in (None, UNSET)
-                else 0,
+                key=lambda x: (
+                    float(x.recommended_order_quantity)
+                    if x.recommended_order_quantity not in (None, UNSET)
+                    else 0
+                ),
                 reverse=True,
             )
         else:  # product_code
             all_items.sort(
-                key=lambda x: str(x.product_code)
-                if x.product_code not in (None, UNSET)
-                else ""
+                key=lambda x: (
+                    str(x.product_code) if x.product_code not in (None, UNSET) else ""
+                )
             )
 
         # Limit results

@@ -308,7 +308,8 @@ Direct CRUD operations across all domains:
 
 High-level business operations combining multiple API calls:
 
-- **Forecast Management**: update_and_monitor, get_for_products, update_settings, manage_group
+- **Forecast Management**: update_and_monitor, get_for_products, update_settings,
+  manage_group
 - **Urgent Orders**: review_requirements, generate_purchase_orders
 - **Product Management**: configure_lifecycle, configure_product
 - **Supplier Management**: create_supplier_with_products

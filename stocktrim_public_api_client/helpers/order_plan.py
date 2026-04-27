@@ -117,9 +117,11 @@ class OrderPlan(Base):
 
         # Sort by urgency (lowest days first)
         urgent_items.sort(
-            key=lambda x: cast(int, x.days_until_stock_out)
-            if x.days_until_stock_out not in (None, UNSET)
-            else float("inf")
+            key=lambda x: (
+                cast(int, x.days_until_stock_out)
+                if x.days_until_stock_out not in (None, UNSET)
+                else float("inf")
+            )
         )
 
         return urgent_items
