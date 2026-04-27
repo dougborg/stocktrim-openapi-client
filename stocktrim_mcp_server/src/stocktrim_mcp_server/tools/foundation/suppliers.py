@@ -14,7 +14,6 @@ from pydantic import BaseModel, Field
 
 from stocktrim_mcp_server.dependencies import get_services
 from stocktrim_mcp_server.logging_config import get_logger
-from stocktrim_mcp_server.observability import observe_tool
 from stocktrim_mcp_server.unpack import Unpack, unpack_pydantic_params
 
 logger = get_logger(__name__)
@@ -39,7 +38,6 @@ class SupplierInfo(BaseModel):
     primary_contact: str | None
 
 
-@observe_tool
 @unpack_pydantic_params
 async def get_supplier(
     request: Annotated[GetSupplierRequest, Unpack()], context: Context
@@ -95,7 +93,6 @@ class ListSuppliersResponse(BaseModel):
     total_count: int
 
 
-@observe_tool
 @unpack_pydantic_params
 async def list_suppliers(
     request: Annotated[ListSuppliersRequest, Unpack()], context: Context
@@ -152,7 +149,6 @@ class CreateSupplierRequest(BaseModel):
     )
 
 
-@observe_tool
 @unpack_pydantic_params
 async def create_supplier(
     request: Annotated[CreateSupplierRequest, Unpack()], context: Context
@@ -207,7 +203,6 @@ class DeleteSupplierResponse(BaseModel):
     message: str
 
 
-@observe_tool
 @unpack_pydantic_params
 async def delete_supplier(
     request: Annotated[DeleteSupplierRequest, Unpack()], context: Context

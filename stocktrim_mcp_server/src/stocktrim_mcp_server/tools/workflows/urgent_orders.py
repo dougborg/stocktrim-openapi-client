@@ -13,7 +13,6 @@ from pydantic import BaseModel, Field
 
 from stocktrim_mcp_server.dependencies import get_services
 from stocktrim_mcp_server.logging_config import get_logger
-from stocktrim_mcp_server.observability import observe_tool
 from stocktrim_public_api_client.client_types import UNSET
 from stocktrim_public_api_client.generated.models.order_plan_filter_criteria_dto import (
     OrderPlanFilterCriteriaDto,
@@ -265,7 +264,6 @@ async def _review_urgent_order_requirements_impl(
         raise
 
 
-@observe_tool
 async def review_urgent_order_requirements(
     request: ReviewUrgentOrdersRequest, ctx: Context
 ) -> ReviewUrgentOrdersResponse:
@@ -466,7 +464,6 @@ async def _generate_purchase_orders_from_urgent_items_impl(
         raise
 
 
-@observe_tool
 async def generate_purchase_orders_from_urgent_items(
     request: GeneratePurchaseOrdersRequest, ctx: Context
 ) -> GeneratePurchaseOrdersResponse:
