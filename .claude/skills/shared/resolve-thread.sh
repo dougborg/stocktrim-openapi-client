@@ -25,7 +25,14 @@ mutation($threadId: ID!) {
 }
 GRAPHQL
 
-gh api graphql \
+resolved=$(gh api graphql \
   -f query="$mutation" \
   -f threadId="$thread_id" \
-  --jq '.data.resolveReviewThread.thread.isResolved'
+  --jq '.data.resolveReviewThread.thread.isResolved')
+
+echo "$resolved"
+
+if [ "$resolved" != "true" ]; then
+  echo "ERROR: thread $thread_id not resolved (got: $resolved)" >&2
+  exit 1
+fi

@@ -15,6 +15,11 @@ if [ $# -lt 2 ]; then
   exit 1
 fi
 
+if ! command -v jq >/dev/null 2>&1; then
+  echo "ERROR: jq is required (used by gh --jq calls and the merge step)." >&2
+  exit 1
+fi
+
 REPO="$1"
 PR_NUMBER="$2"
 OWNER="${REPO%%/*}"
@@ -55,28 +60,23 @@ resolved_json=$(gh api graphql -f query="$query" \
   }]')
 
 # Merge resolved status into comments
-if command -v jq >/dev/null; then
-  echo "$pr_json" | jq --argjson comments "$comments_json" \
-    --argjson resolved "$resolved_json" '
-    . + {
-      comments: [
-        $comments[] | . as $c |
-        . + {
-          is_resolved: (
-            ($resolved[] | select(.comment_id == $c.id) | .is_resolved) // false
-          )
-        }
-      ],
-      unresolved_count: ([
-        $comments[] | . as $c |
-        select(
+echo "$pr_json" | jq --argjson comments "$comments_json" \
+  --argjson resolved "$resolved_json" '
+  . + {
+    comments: [
+      $comments[] | . as $c |
+      . + {
+        is_resolved: (
           ($resolved[] | select(.comment_id == $c.id) | .is_resolved) // false
-          | not
         )
-      ] | length)
-    }
-  '
-else
-  # Fallback: return without merged resolution (jq not available)
-  echo "${pr_json%\}}, \"comments\": $comments_json, \"resolved_threads\": $resolved_json}"
-fi
+      }
+    ],
+    unresolved_count: ([
+      $comments[] | . as $c |
+      select(
+        ($resolved[] | select(.comment_id == $c.id) | .is_resolved) // false
+        | not
+      )
+    ] | length)
+  }
+'

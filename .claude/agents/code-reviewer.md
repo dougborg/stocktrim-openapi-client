@@ -41,7 +41,7 @@ Start by getting the full picture:
 ```bash
 git diff main...HEAD
 git log main..HEAD --oneline
-```text
+```
 
 Read every changed file. Understand what the change does and why.
 
@@ -84,7 +84,7 @@ Evaluate each change across six dimensions, then classify findings by severity:
 
 ### 3. Output Format
 
-```text
+```
 ## Review Summary
 [1-2 sentence overall assessment]
 
@@ -102,7 +102,7 @@ Evaluate each change across six dimensions, then classify findings by severity:
 
 ### What Looks Good
 - [brief notes on well-done aspects — builds confidence in the review]
-```text
+```
 
 ## Project-Specific Checks (StockTrim API client)
 

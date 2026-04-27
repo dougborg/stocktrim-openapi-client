@@ -36,7 +36,7 @@ fi
 bad_handlers=$(jq -r '
   .hooks | to_entries[] as $e
   | $e.value | to_entries[]
-  | select(.value | (has("hooks") | not) or (.hooks | type != "array"))
+  | select((.value | has("hooks") | not) or (.value.hooks | type != "array"))
   | "\($e.key)[\(.key)]"
 ' "$file")
 if [ -n "$bad_handlers" ]; then

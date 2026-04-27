@@ -36,7 +36,7 @@ git diff HEAD~1 HEAD
 
 # Or: review specific file
 git diff -- path/to/file.js
-```text
+```
 
 ### 2. Apply 6 Dimensions
 
@@ -99,14 +99,14 @@ Check semantic correctness, logic, and type safety.
 
 **Example feedback:**
 
-```text
+```
 BLOCKING: In line 45, `user.email` is accessed without null check.
 If user creation fails mid-transaction, email will be undefined.
 
 SUGGESTION: Add early return on line 32:
 if (!validateInput(data)) return null;
 instead of wrapping entire function in if-block.
-```text
+```
 
 ---
 
@@ -136,14 +136,14 @@ Check architecture, interfaces, and design patterns.
 
 **Example feedback:**
 
-```text
+```
 BLOCKING: Adding `user.role` check in the API route breaks the
 permission-at-boundary pattern. Auth should be enforced in middleware,
 not scattered across handlers.
 
 SUGGESTION: Extract email parsing into a standalone utility function
 rather than inline regex. Makes it reusable and testable.
-```text
+```
 
 ---
 
@@ -172,7 +172,7 @@ Check naming, clarity, and documentation.
 
 **Example feedback:**
 
-```text
+```
 SUGGESTION: Rename `processData` to `validateAndTransformUserInput`.
 Current name doesn't explain what kind of data or what kind of processing.
 
@@ -181,7 +181,7 @@ if (user.status === 'active' && user.verified && !user.suspended) {
   // ... 20 lines ...
 }
 → helper: isUserEligible(user)
-```text
+```
 
 ---
 
@@ -210,13 +210,13 @@ Check efficiency, algorithms, and resource usage.
 
 **Example feedback:**
 
-```text
+```
 SUGGESTION: Move `JSON.parse(config)` outside the loop (line 12).
 Currently parsing the same config every iteration.
 
 SUGGESTION: Use Set instead of Array for user lookup (line 8).
 Current O(n) lookup inside loop → O(n²) overall. Set gives O(1).
-```text
+```
 
 ---
 
@@ -245,13 +245,13 @@ Check coverage, edge cases, and test quality.
 
 **Example feedback:**
 
-```text
+```
 BLOCKING: No tests added for the new `parseEmail` function.
 Add tests for: valid email, invalid format, empty string, null.
 
 SUGGESTION: Test error case on line 5. What happens if API fails?
 Currently only testing happy path.
-```text
+```
 
 ---
 
@@ -282,14 +282,14 @@ Check vulnerabilities, auth, secrets, and injection risks.
 
 **Example feedback:**
 
-```text
+```
 BLOCKING: User ID on line 18 is used directly in SQL query without
 parameterization. Vulnerable to SQL injection.
 → Use parameterized query: db.query('SELECT * FROM users WHERE id = ?', [userId])
 
 BLOCKING: API key hardcoded on line 5. This will leak if pushed to repo.
 → Move to environment variable: process.env.OPENAI_API_KEY
-```text
+```
 
 ---
 
@@ -304,7 +304,7 @@ For PRs with many files or thousands of lines:
 
 **Example:**
 
-```text
+```
 This PR is quite large. I've reviewed:
 - Core auth changes (6/8 files) — LGTM
 - Utility refactor (sampled 5 files) — Consistent pattern, approved
@@ -312,7 +312,7 @@ This PR is quite large. I've reviewed:
 
 Recommendation: For next round, consider splitting refactors by domain
 (auth, API, database) so reviews can be focused.
-```text
+```
 
 ---
 
@@ -328,7 +328,7 @@ For architectural decisions, designs that touch multiple systems, or complex pat
 
 **Example:**
 
-```text
+```
 Design question: Why direct user-to-database model vs. service layer?
 
 This works for current scale, but will make caching and multi-tenant
@@ -336,7 +336,7 @@ support hard later. Worth discussing if those are on the roadmap.
 
 If you expect to cache: add a service layer now.
 If you expect to stay monolithic: fine as-is.
-```text
+```
 
 ---
 
@@ -352,14 +352,14 @@ When reviewing refactors or migrations:
 
 **Example:**
 
-```text
+```
 BLOCKING: In the refactor from Map to Object, iteration order is lost.
 If code depends on insertion order, this breaks behavior.
 → Verify all callers don't assume order, or use Map.
 
 SUGGESTION: The new version is ~20% faster (good!), but readability
 dropped. Consider adding a comment explaining the performance trade-off.
-```text
+```
 
 ---
 
@@ -375,13 +375,13 @@ When reviewing changes to external code or dependencies:
 
 **Example:**
 
-```text
+```
 BLOCKING: Package `left-pad` has a known supply chain attack history.
 Use built-in padStart() instead.
 
 SUGGESTION: Consider lighter dependency (2kb vs 50kb).
 Similar functionality in `tiny-validator` or as 10-line utility function.
-```text
+```
 
 ---
 

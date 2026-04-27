@@ -35,7 +35,7 @@ Review and stage files intentionally:
 git status                          # See what changed
 git add <file1> <file2> ...         # Stage specific files
 git diff --cached                   # Review staged changes
-```text
+```
 
 **Never:** `git add -A` or `git add .` — stage intentionally.
 
@@ -56,9 +56,9 @@ Format: `type(scope): description`
 
 Example:
 
-```text
+```
 feat(auth): add OAuth2 login flow
-```text
+```
 
 See DETAIL: Message Format for all types and examples.
 
@@ -69,7 +69,7 @@ git commit -m "type(scope): description
 
 Optional detailed explanation here.
 Mention related issues: #123, closes #456."
-```text
+```
 
 For complex messages, use HEREDOC:
 
@@ -83,7 +83,7 @@ feat(scope): brief description
 Closes #NNN
 EOF
 )"
-```text
+```
 
 ## EDGE CASES
 
@@ -133,7 +133,7 @@ Optional, indicates area of change:
 
 ### Example: Good Commit
 
-```text
+```
 feat(keyboard): add macro recording and playback
 
 Users can now record key sequences and replay them with a hotkey.
@@ -148,16 +148,16 @@ Testing: Added 12 test cases covering:
 - Storage persistence
 
 Closes #234
-```text
+```
 
 ### Example: Bad Commit
 
-```text
+```
 fix stuff                           ← Too vague
 feat: add oauth                     ← Missing scope, too brief
 docs: update                        ← What did you update?
 refactor(everything): big cleanup   ← Scope "everything" is suspicious
-```text
+```
 
 ---
 
@@ -176,7 +176,7 @@ git add programs/zsh.nix programs/vim.nix   # Shell config
 git add docs/*.md                           # Documentation
 git diff --cached                           # Review staged
 git commit -m "..."
-```text
+```
 
 ### Don't Mix Unrelated Changes
 
@@ -199,7 +199,7 @@ git add --patch <file>              # Interactive hunk selection
 
 git diff --cached                   # Review staged hunks
 git commit -m "feat: related change"
-```text
+```
 
 Use when:
 
@@ -217,7 +217,7 @@ Use when:
 git reset --soft HEAD~1             # Undo commit, keep staged
 git reset HEAD                       # Unstage all
 # Now fix and re-commit
-```text
+```
 
 ### Amend Last Commit (Not Yet Pushed)
 
@@ -225,7 +225,7 @@ git reset HEAD                       # Unstage all
 git add <fixed-files>
 git commit --amend                  # Amend with new changes
 # Or: git commit --amend --no-edit   (keep message)
-```text
+```
 
 **Never amend commits already pushed.** Use a new commit instead.
 
@@ -233,7 +233,7 @@ git commit --amend                  # Amend with new changes
 
 ```bash
 git reset --hard HEAD~1             # Discard all changes in last commit
-```text
+```
 
 **Use with caution** — this is destructive.
 

@@ -11,20 +11,22 @@
     ".claude/skills/commit/SKILL.md": {
       "source": "harness-kit",
       "modified": true,
-      "modification_note": "Rewrote ${CLAUDE_PLUGIN_ROOT} → .claude for project-local use"
+      "modification_note": "Rewrote ${CLAUDE_PLUGIN_ROOT} → .claude; closed ```bash fences with bare ``` (was ```text). Hoist candidate."
     },
     ".claude/skills/feature-spec/SKILL.md": {
       "source": "harness-kit",
-      "modified": false
+      "modified": true,
+      "modification_note": "Closed code fences with bare ``` (was ```text, broke GFM rendering). Hoist candidate."
     },
     ".claude/skills/code-reviewer/SKILL.md": {
       "source": "harness-kit",
-      "modified": false
+      "modified": true,
+      "modification_note": "Closed code fences with bare ``` (was ```text). Hoist candidate."
     },
     ".claude/skills/open-pr/SKILL.md": {
       "source": "harness-kit",
       "modified": true,
-      "modification_note": "Rewrote ${CLAUDE_PLUGIN_ROOT} → .claude for project-local use"
+      "modification_note": "Rewrote ${CLAUDE_PLUGIN_ROOT} → .claude; closed fences with bare ```; resolved Simplify-optional-vs-mandatory contradiction. Hoist candidate."
     },
     ".claude/skills/open-pr/ensure-feature-branch.sh": {
       "source": "harness-kit",
@@ -40,11 +42,13 @@
     },
     ".claude/skills/standup/SKILL.md": {
       "source": "harness-kit",
-      "modified": false
+      "modified": true,
+      "modification_note": "Closed code fences with bare ``` (was ```text). Hoist candidate."
     },
     ".claude/skills/skill-writer/SKILL.md": {
       "source": "harness-kit",
-      "modified": false
+      "modified": true,
+      "modification_note": "Closed code fences with bare ``` (was ```text). Hoist candidate."
     },
     ".claude/skills/shared/discover-verification-cmd.sh": {
       "source": "harness-kit",
@@ -53,7 +57,11 @@
     },
     ".claude/skills/shared/fetch-pr-context.sh": {
       "source": "harness-kit",
-      "modified": false
+      "modified": true,
+      "modification_note": "Removed dead no-jq fallback that produced invalid JSON via string splicing; now requires jq up-front. Hoist candidate."
+    },
+    ".claude/skills/shared/hook-file-path.sh": {
+      "source": "local"
     },
     ".claude/skills/shared/is-branch-shared.sh": {
       "source": "harness-kit",
@@ -73,21 +81,23 @@
     },
     ".claude/skills/shared/resolve-thread.sh": {
       "source": "harness-kit",
-      "modified": false
+      "modified": true,
+      "modification_note": "Capture isResolved and exit 1 when thread isn't actually resolved (was reporting success on false). Hoist candidate."
     },
     ".claude/skills/shared/validate-hooks-schema.sh": {
       "source": "harness-kit",
-      "modified": false
+      "modified": true,
+      "modification_note": "Fixed jq filter — was `.hooks` on entry context, should be `.value.hooks` (was always-null, never flagged bad handlers). Hoist candidate."
     },
     ".claude/agents/code-reviewer.md": {
       "source": "harness-kit",
       "modified": true,
-      "modification_note": "Added Project-Specific Checks section for StockTrim quirks"
+      "modification_note": "Added Project-Specific Checks section for StockTrim quirks; closed fences with bare ```. Hoist candidate (fence fix only)."
     },
     ".claude/agents/verifier.md": {
       "source": "harness-kit",
       "modified": true,
-      "modification_note": "Tailored to uv run poe check + project forbidden patterns"
+      "modification_note": "Tailored to uv run poe check + project forbidden patterns; closed fences with bare ```. Hoist candidate (fence fix only)."
     },
     ".claude/agents/test-writer.md": {
       "source": "local"

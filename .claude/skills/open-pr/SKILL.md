@@ -79,7 +79,7 @@ Review **every change** in the diff:
 git diff <base>...HEAD
 git diff
 git diff --cached
-```text
+```
 
 Check for:
 
@@ -190,7 +190,7 @@ Invoke `/review-pr` to handle all review comments:
 
 ```bash
 /review-pr <number>
-```text
+```
 
 **Do not duplicate the review-comment workflow** — always delegate to `/review-pr`.
 
@@ -210,7 +210,7 @@ Print:
 - **Never merge with unaddressed comments** — All review comments must be resolved before merging. No exceptions.
 - **Validate before opening** — verification must pass before creating the PR
 - **Self-review is mandatory** — always review the full diff
-- **Simplify is mandatory** — always run `/simplify` before opening
+- **Simplify is optional** — run `/simplify` before opening when meaningful reuse, dead code, or duplication is likely; skip for tiny or clearly-minimal diffs
 - **Logical commits** — organize into meaningful commits, not one giant squash
 - **No shortcuts** — never use `--no-verify`, `noqa`, or `type: ignore`
 - **Fix CI in-place** — don't close and re-open

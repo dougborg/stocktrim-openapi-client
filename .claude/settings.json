@@ -7,27 +7,27 @@
         "hooks": [
           {
             "type": "command",
-            "command": "f=$(jq -r '.tool_input.file_path // empty'); case \"$f\" in *stocktrim_public_api_client/generated/*|*stocktrim_public_api_client/client_types.py) echo '⚠️  WARNING: You edited a GENERATED file. This change will be LOST on next `uv run poe regenerate-client`. Add the fix to scripts/regenerate_client.py (e.g., NULLABLE_FIELDS) instead. See /add-nullable-field skill.' ;; esac"
+            "command": "f=$(.claude/skills/shared/hook-file-path.sh); case \"$f\" in *stocktrim_public_api_client/generated/*|*stocktrim_public_api_client/client_types.py) echo '⚠️  WARNING: You edited a GENERATED file. This change will be LOST on next `uv run poe regenerate-client`. Add the fix to scripts/regenerate_client.py (e.g., NULLABLE_FIELDS) instead. See /add-nullable-field skill.' ;; esac"
           },
           {
             "type": "command",
-            "command": "f=$(jq -r '.tool_input.file_path // empty'); case \"$f\" in *.py) case \"$f\" in *stocktrim_public_api_client/generated/*) ;; *) cd \"$CLAUDE_PROJECT_DIR\" && uv run ruff check --fix --quiet \"$f\" 2>&1 | tail -10; uv run ruff format --quiet \"$f\" 2>&1 | tail -5 ;; esac ;; esac"
+            "command": "f=$(.claude/skills/shared/hook-file-path.sh); case \"$f\" in *.py) case \"$f\" in *stocktrim_public_api_client/generated/*) ;; *) cd \"$CLAUDE_PROJECT_DIR\" && uv run ruff check --fix --quiet \"$f\" 2>&1 | tail -10; uv run ruff format --quiet \"$f\" 2>&1 | tail -5 ;; esac ;; esac"
           },
           {
             "type": "command",
-            "command": "f=$(jq -r '.tool_input.file_path // empty'); case \"$f\" in *.py) case \"$f\" in *stocktrim_public_api_client/generated/*) ;; *) cd \"$CLAUDE_PROJECT_DIR\" && uv run ty check 2>&1 | tail -15 ;; esac ;; esac"
+            "command": "f=$(.claude/skills/shared/hook-file-path.sh); case \"$f\" in *.py) case \"$f\" in *stocktrim_public_api_client/generated/*) ;; *) cd \"$CLAUDE_PROJECT_DIR\" && uv run ty check 2>&1 | tail -15 ;; esac ;; esac"
           },
           {
             "type": "command",
-            "command": "f=$(jq -r '.tool_input.file_path // empty'); case \"$f\" in */tests/test_*.py|*/tests/*/test_*.py) cd \"$CLAUDE_PROJECT_DIR\" && uv run pytest \"$f\" -x --timeout=30 -q 2>&1 | tail -25 ;; esac"
+            "command": "f=$(.claude/skills/shared/hook-file-path.sh); case \"$f\" in */tests/test_*.py|*/tests/*/test_*.py) cd \"$CLAUDE_PROJECT_DIR\" && uv run pytest \"$f\" -x --timeout=30 -q 2>&1 | tail -25 ;; esac"
           },
           {
             "type": "command",
-            "command": "f=$(jq -r '.tool_input.file_path // empty'); case \"$f\" in */stocktrim-openapi.yaml) cd \"$CLAUDE_PROJECT_DIR\" && uv run poe validate-openapi 2>&1 | tail -15 ;; esac"
+            "command": "f=$(.claude/skills/shared/hook-file-path.sh); case \"$f\" in */stocktrim-openapi.yaml) cd \"$CLAUDE_PROJECT_DIR\" && uv run poe validate-openapi 2>&1 | tail -15 ;; esac"
           },
           {
             "type": "command",
-            "command": "f=$(jq -r '.tool_input.file_path // empty'); case \"$f\" in */scripts/regenerate_client.py) echo '💡 scripts/regenerate_client.py changed — run `uv run poe regenerate-client` to apply changes to generated/. Do NOT manually edit files in generated/.' ;; esac"
+            "command": "f=$(.claude/skills/shared/hook-file-path.sh); case \"$f\" in */scripts/regenerate_client.py) echo '💡 scripts/regenerate_client.py changed — run `uv run poe regenerate-client` to apply changes to generated/. Do NOT manually edit files in generated/.' ;; esac"
           }
         ]
       }
