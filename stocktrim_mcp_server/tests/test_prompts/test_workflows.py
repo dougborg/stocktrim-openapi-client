@@ -29,17 +29,15 @@ class TestWorkflowPrompts:
 
         assert callable(register_workflow_prompts)
 
-    def test_product_lifecycle_review_prompt_registered(self):
+    async def test_product_lifecycle_review_prompt_registered(self):
         """Test that product_lifecycle_review prompt is registered."""
         from stocktrim_mcp_server.prompts.workflows import register_workflow_prompts
 
         mcp = FastMCP()
         register_workflow_prompts(mcp)
 
-        # Check that the prompt is registered using internal prompt manager
-        prompts = mcp._prompt_manager._prompts
-        assert "product_lifecycle_review" in prompts
-        assert prompts["product_lifecycle_review"] is not None
+        prompt_names = {p.name for p in await mcp.list_prompts()}
+        assert "product_lifecycle_review" in prompt_names
 
     def test_product_lifecycle_review_default_params(self):
         """Test product_lifecycle_review prompt with default parameters."""
