@@ -107,9 +107,12 @@ git branch                 # Verify you're on a feature branch
 ### Testing
 
 ```bash
-uv run poe test                  # Run tests with pytest
+uv run poe test                  # Run client library tests with pytest
+uv run poe test-mcp              # Run MCP server tests (stocktrim_mcp_server/tests/)
 uv run poe test-coverage         # Run tests with coverage reports (HTML, terminal, XML)
 ```
+
+`uv run poe check` runs both `test` and `test-mcp`, so the MCP server suite cannot regress silently when only the client lib is touched.
 
 ### Documentation
 

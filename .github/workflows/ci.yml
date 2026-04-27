@@ -45,6 +45,9 @@ jobs:
       - name: Run tests with coverage
         run: uv run poe test-coverage
 
+      - name: Run MCP server tests
+        run: uv run poe test-mcp
+
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
         with:
