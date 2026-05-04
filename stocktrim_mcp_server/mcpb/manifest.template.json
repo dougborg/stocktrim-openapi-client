@@ -1,0 +1,62 @@
+{
+  "manifest_version": "0.4",
+  "name": "stocktrim-mcp-server",
+  "display_name": "StockTrim",
+  "version": "__VERSION__",
+  "description": "MCP server for the StockTrim Inventory Management API — products, customers, suppliers, inventory, and purchase orders from Claude Desktop.",
+  "long_description": "Exposes the StockTrim public API as MCP tools. Includes product search and lookup, customer and supplier management, inventory level updates, and purchase / sales order workflows. Two-credential header auth (Tenant ID + Tenant Name). Transport layer adds automatic retries on idempotent 5xx errors and detailed error logging.",
+  "author": {
+    "name": "Doug Borg",
+    "email": "dougborg@dougborg.org",
+    "url": "https://github.com/dougborg"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/dougborg/stocktrim-openapi-client.git"
+  },
+  "homepage": "https://github.com/dougborg/stocktrim-openapi-client",
+  "documentation": "https://dougborg.github.io/stocktrim-openapi-client/",
+  "support": "https://github.com/dougborg/stocktrim-openapi-client/issues",
+  "license": "MIT",
+  "keywords": ["stocktrim", "inventory", "mcp", "claude", "products", "orders"],
+  "server": {
+    "type": "uv",
+    "entry_point": "src/stocktrim_mcp_server/server.py",
+    "mcp_config": {
+      "command": "uv",
+      "args": [
+        "run",
+        "--directory",
+        "${__dirname}",
+        "stocktrim-mcp-server"
+      ],
+      "env": {
+        "STOCKTRIM_API_AUTH_ID": "${user_config.auth_id}",
+        "STOCKTRIM_API_AUTH_SIGNATURE": "${user_config.auth_signature}"
+      }
+    }
+  },
+  "compatibility": {
+    "claude_desktop": ">=0.10.0",
+    "platforms": ["darwin", "linux", "win32"],
+    "runtimes": {
+      "python": ">=3.11,<3.14"
+    }
+  },
+  "user_config": {
+    "auth_id": {
+      "type": "string",
+      "title": "StockTrim Auth ID",
+      "description": "Your StockTrim Tenant ID. Find it under Settings → API Settings in the StockTrim web app.",
+      "required": true,
+      "sensitive": true
+    },
+    "auth_signature": {
+      "type": "string",
+      "title": "StockTrim Auth Signature",
+      "description": "Your StockTrim Tenant Name (used as the API auth signature). Find it under Settings → API Settings in the StockTrim web app.",
+      "required": true,
+      "sensitive": true
+    }
+  }
+}
