@@ -1199,14 +1199,14 @@ wheels = [
 
 [[package]]
 name = "mkdocs-swagger-ui-tag"
-version = "0.7.2"
+version = "0.8.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "beautifulsoup4" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/ac/98/37df3ff6895cc25ad5e95922e4c862248533b0af630c1c3fd31ce8ece6b2/mkdocs_swagger_ui_tag-0.7.2.tar.gz", hash = "sha256:d3030e70a3937b1b2c2a399cf5a77c54a13c2eb6dd88e7c45864a175bf3a283e", size = 1277948, upload-time = "2025-08-23T16:24:47.495Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/78/86/cca19224ee2c400204f083f973020104c45194856df55fc4047ec4d60af4/mkdocs_swagger_ui_tag-0.8.0.tar.gz", hash = "sha256:e6db4ae95aa224e153837cc1fd347bdb6b66be776ae7f36ca0db505e5aa87c43", size = 1279492, upload-time = "2026-02-22T08:44:34.319Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/cc/9f/8b9664d53021a6fe4272f7ec4c3d73dcef44546ba7f2959398a15396b7e4/mkdocs_swagger_ui_tag-0.7.2-py3-none-any.whl", hash = "sha256:6e96e983f6990c5b7e96604c28a33f35984c862df18879ef31d96f3df2dbe5c7", size = 1292596, upload-time = "2025-08-23T16:24:45.515Z" },
+    { url = "https://files.pythonhosted.org/packages/c0/82/4752d86d2539779fe20e2afbde73dd757f5e6bb28b9de2352abca64cdb40/mkdocs_swagger_ui_tag-0.8.0-py3-none-any.whl", hash = "sha256:30fe515bcd6daa911d7b42948f99b1cd21fb749cdc20e1474e1fc6ee1ff78afb", size = 1293775, upload-time = "2026-02-22T08:44:32.313Z" },
 ]
 
 [[package]]
