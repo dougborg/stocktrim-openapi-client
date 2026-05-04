@@ -73,11 +73,24 @@ STOCKTRIM_BASE_URL=https://api.stocktrim.com  # Default
 
 ## Claude Desktop Integration
 
-To use this MCP server with Claude Desktop, add it to your Claude configuration:
+**Recommended: install the `.mcpb` bundle** — Claude Desktop has built-in support for
+[MCP Bundles](https://github.com/anthropics/mcpb), which install local MCP servers in
+one click and prompt for the API credentials via UI (no JSON editing).
 
-### On macOS
+1. Download `stocktrim-mcp-server-<version>.mcpb` from the
+   [latest GitHub release](https://github.com/dougborg/stocktrim-openapi-client/releases?q=mcp-v).
+1. Drag the `.mcpb` file into Claude Desktop, or open it from the Finder.
+1. Confirm install in the dialog. Claude Desktop prompts for both your StockTrim **Auth
+   ID** (Tenant ID) and **Auth Signature** (Tenant Name); both are stored securely and
+   never written to a config file by hand.
 
-Edit `~/Library/Application Support/Claude/claude_desktop_config.json`:
+The bundle ships the server source plus a manifest that declares the runtime
+requirements; UV handles dep resolution on first launch.
+
+### Manual `uvx` install (fallback)
+
+If you'd rather edit `~/Library/Application Support/Claude/claude_desktop_config.json`
+(or `%APPDATA%\Claude\claude_desktop_config.json` on Windows) directly:
 
 ```json
 {
@@ -93,10 +106,6 @@ Edit `~/Library/Application Support/Claude/claude_desktop_config.json`:
   }
 }
 ```
-
-### On Windows
-
-Edit `%APPDATA%\Claude\claude_desktop_config.json` with the same configuration.
 
 ### Using Python Environment
 
@@ -117,7 +126,8 @@ If you have the server installed in a specific Python environment:
 }
 ```
 
-After configuring, restart Claude Desktop for changes to take effect.
+Either path: restart Claude Desktop after configuring and the StockTrim tools will
+appear.
 
 ## Available Tools
 
