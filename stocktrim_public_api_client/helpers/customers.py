@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import cast
+from typing import Any, cast
 
 from stocktrim_public_api_client.generated.api.customers import (
     get_api_customers,
@@ -96,7 +96,7 @@ class Customers(Base):
         except Exception:
             return False
 
-    async def find_or_create(self, code: str, **defaults) -> CustomerDto:
+    async def find_or_create(self, code: str, **defaults: Any) -> CustomerDto:
         """Get customer by code, or create if doesn't exist.
 
         Args:
