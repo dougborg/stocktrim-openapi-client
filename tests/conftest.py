@@ -214,13 +214,3 @@ def mock_not_found_response():
     response.headers = {"Content-Type": "application/problem+json"}
     response.text = '{"type": "...", "title": "Not Found", "status": 404}'
     return response
-
-
-@pytest.fixture
-def stocktrim_client_with_mock_transport(mock_api_credentials, mock_transport):
-    """Create a StockTrimClient with mock transport for testing without network calls."""
-    client = StockTrimClient(**mock_api_credentials)
-    # Replace the transport with mock
-    assert client._client is not None
-    client._client._transport = mock_transport
-    return client
