@@ -116,7 +116,7 @@ If you have the server installed in a specific Python environment:
   "mcpServers": {
     "stocktrim": {
       "command": "python",
-      "args": ["-m", "stocktrim_mcp_server"],
+      "args": ["-m", "stocktrim_mcp_server.server"],
       "env": {
         "STOCKTRIM_API_AUTH_ID": "your_tenant_id_here",
         "STOCKTRIM_API_AUTH_SIGNATURE": "your_tenant_name_here"
