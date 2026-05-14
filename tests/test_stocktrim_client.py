@@ -23,6 +23,15 @@ class TestStockTrimClient:
         assert isinstance(client, StockTrimClient)
         assert client.base_url == "https://api.test.stocktrim.example.com"
         assert client.max_retries == 5
+        assert client.total_retry_timeout == 60.0
+
+    def test_client_total_retry_timeout_overridable(self, mock_api_credentials):
+        """Custom total_retry_timeout (incl. None to disable) is honored."""
+        bounded = StockTrimClient(**mock_api_credentials, total_retry_timeout=15.0)
+        assert bounded.total_retry_timeout == 15.0
+
+        unbounded = StockTrimClient(**mock_api_credentials, total_retry_timeout=None)
+        assert unbounded.total_retry_timeout is None
 
     def test_client_initialization_from_env(self, mock_env_credentials):
         """Test client can be initialized from environment variables."""
@@ -53,6 +62,7 @@ class TestStockTrimClient:
         assert "StockTrimClient" in repr_str
         assert "base_url" in repr_str
         assert "max_retries" in repr_str
+        assert "total_retry_timeout" in repr_str
 
     @pytest.mark.asyncio
     async def test_client_context_manager(self, stocktrim_client):
