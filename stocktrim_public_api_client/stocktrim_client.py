@@ -21,13 +21,7 @@ from httpx_retries import Retry, RetryTransport
 
 from .client_types import Unset
 from .generated.client import AuthenticatedClient
-
-# StockTrim doesn't have standardized error response models in the OpenAPI spec
-# We'll add support for ProblemDetails if present, but also handle generic errors
-try:
-    from .generated.models.problem_details import ProblemDetails
-except ImportError:
-    ProblemDetails = None  # type: ignore[assignment]
+from .generated.models.problem_details import ProblemDetails
 
 if TYPE_CHECKING:
     from .helpers.bill_of_materials import BillOfMaterials
@@ -282,18 +276,14 @@ class ErrorLoggingTransport(AsyncHTTPTransport):
             )
             return
 
-        # Try to parse as ProblemDetails if the model is available
-        if ProblemDetails is not None:
-            try:
-                problem = ProblemDetails.from_dict(error_data)
-                self._log_problem_details(
-                    problem, method, url, status_code, duration_ms
-                )
-                return
-            except (TypeError, ValueError, AttributeError) as e:
-                self.logger.debug(
-                    f"Failed to parse as ProblemDetails: {type(e).__name__}: {e}"
-                )
+        try:
+            problem = ProblemDetails.from_dict(error_data)
+            self._log_problem_details(problem, method, url, status_code, duration_ms)
+            return
+        except (TypeError, ValueError, AttributeError) as e:
+            self.logger.debug(
+                f"Failed to parse as ProblemDetails: {type(e).__name__}: {e}"
+            )
 
         # Fallback: log raw error data
         self.logger.error(

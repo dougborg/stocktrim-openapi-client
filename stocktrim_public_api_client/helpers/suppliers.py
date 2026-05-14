@@ -99,8 +99,9 @@ class Suppliers(Base):
             body=suppliers,
         )
         result = unwrap(response)
-        # unwrap() returns the actual type or raises an exception on error
-        return result if isinstance(result, list) else []  # type: ignore[return-value]
+        return (
+            cast(list[SupplierResponseDto], result) if isinstance(result, list) else []
+        )
 
     async def delete(self, supplier_code_or_name: str | Unset = UNSET) -> None:
         """Delete supplier(s).

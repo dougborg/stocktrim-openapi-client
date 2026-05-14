@@ -57,7 +57,11 @@ class BillOfMaterials(Base):
             component_id=component_id,
         )
         result = unwrap(response)
-        return result if isinstance(result, list) else []  # type: ignore[return-value]
+        return (
+            cast(list[BillOfMaterialsResponseDto], result)
+            if isinstance(result, list)
+            else []
+        )
 
     async def create(
         self,
