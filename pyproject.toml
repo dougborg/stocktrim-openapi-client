@@ -122,6 +122,7 @@ dev = [
     "pytest-cov>=7.0.0",
     "pytest-mock>=3.15.1",
     "pytest-timeout>=2.4.0",
+    "stocktrim-mcp-server",
     "ty>=0.0.1a24",
 ]
 
@@ -132,6 +133,9 @@ dev = [
 
 [tool.uv.workspace]
 members = [".", "stocktrim_mcp_server"]
+
+[tool.uv.sources]
+stocktrim-mcp-server = { workspace = true }
 
 [tool.hatch.build.targets.wheel]
 packages = ["stocktrim_public_api_client"]
