@@ -14,7 +14,7 @@ from pydantic import BaseModel, Field
 
 from stocktrim_mcp_server.dependencies import get_services
 from stocktrim_mcp_server.logging_config import get_logger
-from stocktrim_mcp_server.tools.tool_result_utils import make_tool_result
+from stocktrim_mcp_server.tools.tool_result_utils import make_json_result
 from stocktrim_public_api_client.client_types import UNSET
 from stocktrim_public_api_client.generated.models.order_plan_filter_criteria_dto import (
     OrderPlanFilterCriteriaDto,
@@ -303,14 +303,10 @@ async def review_urgent_order_requirements(
         context: Server context with StockTrimClient
 
     Returns:
-        A :class:`fastmcp.tools.ToolResult` with two payloads:
-
-        - ``content`` — rendered markdown summary (supplier-grouped tables,
-          totals, suggested next steps). LLM clients render this directly.
-        - ``structured_content`` — a ``ReviewUrgentOrdersResponse``-shaped
-          dict with ``suppliers`` (list of supplier groups, each carrying
-          items, totals, and estimated cost), ``total_items``, and
-          ``total_estimated_cost``. Programmatic consumers read this.
+        A :class:`fastmcp.tools.ToolResult` per SEP-1865; use
+        ``unwrap_tool_result(result, ReviewUrgentOrdersResponse)`` to recover
+        the typed payload. Field-level descriptions live on
+        :class:`ReviewUrgentOrdersResponse` rather than being duplicated here.
 
     See Also:
         - Complete workflow: docs/mcp-server/examples.md#workflow-1-automated-inventory-reordering
@@ -318,11 +314,7 @@ async def review_urgent_order_requirements(
         - `forecasts_update_and_monitor`: Ensure forecasts are current before using this tool
     """
     response = await _review_urgent_order_requirements_impl(request, ctx)
-    return make_tool_result(
-        response,
-        template_path="workflows/urgent_orders/review",
-        days_threshold=request.days_threshold,
-    )
+    return make_json_result(response)
 
 
 # ============================================================================

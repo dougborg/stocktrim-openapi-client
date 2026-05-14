@@ -1020,6 +1020,20 @@ wheels = [
 ]
 
 [[package]]
+name = "mdformat-frontmatter"
+version = "2.0.10"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "mdformat" },
+    { name = "mdit-py-plugins" },
+    { name = "ruamel-yaml" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/c0/94/ccb15e0535f35c21b2b533cafb232f11ac0e7046dd122029b7ec0513c82e/mdformat_frontmatter-2.0.10.tar.gz", hash = "sha256:decefcb4beb66cf111f17e8c0d82e60b208104c7922ec09564d05365db551bd8", size = 3958, upload-time = "2026-01-19T23:42:23.672Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ea/40/e61f8ed549bed3159a9677eadb89849ccca6de30eb90bf61e1b6026df96d/mdformat_frontmatter-2.0.10-py3-none-any.whl", hash = "sha256:c99f7c52de0403e39f48b6a1c2bb79a4c8ce69304a799ff0e403e3957aa3669b", size = 4636, upload-time = "2026-01-19T23:42:22.341Z" },
+]
+
+[[package]]
 name = "mdformat-gfm"
 version = "1.0.0"
 source = { registry = "https://pypi.org/simple" }
@@ -2131,7 +2145,6 @@ version = "0.15.1"
 source = { editable = "stocktrim_mcp_server" }
 dependencies = [
     { name = "fastmcp" },
-    { name = "jinja2" },
     { name = "python-dotenv" },
     { name = "stocktrim-openapi-client" },
     { name = "structlog" },
@@ -2140,7 +2153,6 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "fastmcp", specifier = ">=3.0.0,<4.0.0" },
-    { name = "jinja2", specifier = ">=3.1.0,<4.0.0" },
     { name = "python-dotenv", specifier = ">=1.0.0" },
     { name = "stocktrim-openapi-client", editable = "." },
     { name = "structlog", specifier = ">=24.1.0" },
@@ -2166,6 +2178,7 @@ dependencies = [
 dev = [
     { name = "build" },
     { name = "mdformat" },
+    { name = "mdformat-frontmatter" },
     { name = "mdformat-gfm" },
     { name = "mdformat-tables" },
     { name = "mdformat-toc" },
@@ -2215,6 +2228,7 @@ requires-dist = [
     { name = "httpx", specifier = ">=0.28.0" },
     { name = "httpx-retries", specifier = ">=0.5.0,<0.6.0" },
     { name = "mdformat", marker = "extra == 'dev'", specifier = ">=0.7.17" },
+    { name = "mdformat-frontmatter", marker = "extra == 'dev'", specifier = ">=2.0.8" },
     { name = "mdformat-gfm", marker = "extra == 'dev'", specifier = ">=0.3.0" },
     { name = "mdformat-tables", marker = "extra == 'dev'", specifier = ">=0.4.0" },
     { name = "mdformat-toc", marker = "extra == 'dev'", specifier = ">=0.3.0" },

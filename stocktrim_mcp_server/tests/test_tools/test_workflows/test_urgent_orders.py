@@ -234,10 +234,10 @@ async def test_review_urgent_orders_filters_by_threshold(mock_urgent_context):
 
 
 @pytest.mark.asyncio
-async def test_review_urgent_orders_renders_supplier_grouped_markdown(
+async def test_review_urgent_orders_returns_tool_result_with_json_content(
     mock_urgent_context, urgent_order_item
 ):
-    """Public wrapper renders supplier-grouped markdown alongside the structured payload."""
+    """Public wrapper returns a ToolResult with JSON content + structured payload."""
     mock_client = mock_urgent_context.request_context.lifespan_context.client
     mock_client.order_plan.query.return_value = [urgent_order_item]
 
@@ -246,23 +246,20 @@ async def test_review_urgent_orders_renders_supplier_grouped_markdown(
 
     assert isinstance(result, ToolResult)
 
-    # The structured payload round-trips back to the typed Pydantic model.
     response = unwrap_tool_result(result, ReviewUrgentOrdersResponse)
     assert response.total_items == 1
     assert response.suppliers[0].supplier_code == "SUP-001"
 
-    # Markdown carries the human-readable rendering.
+    # content is the JSON-serialized response (LLM model context per SEP-1865).
     text = tool_result_text(result)
-    assert "# Urgent Order Requirements" in text
-    assert "SUP-001" in text
-    assert "WIDGET-001" in text
+    assert text == response.model_dump_json(indent=2)
 
 
 @pytest.mark.asyncio
-async def test_review_urgent_orders_renders_empty_state_in_markdown(
+async def test_review_urgent_orders_empty_state_round_trips(
     mock_urgent_context,
 ):
-    """Empty result still produces a sensible markdown summary."""
+    """Empty result still produces a typed payload that round-trips."""
     mock_client = mock_urgent_context.request_context.lifespan_context.client
     mock_client.order_plan.query.return_value = []
 
@@ -271,10 +268,8 @@ async def test_review_urgent_orders_renders_empty_state_in_markdown(
 
     response = unwrap_tool_result(result, ReviewUrgentOrdersResponse)
     assert response.total_items == 0
-
-    text = tool_result_text(result)
-    assert "No urgent items" in text
-    assert "30-day" in text
+    assert response.suppliers == []
+    assert response.total_estimated_cost is None
 
 
 # ============================================================================
