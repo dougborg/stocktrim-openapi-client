@@ -259,7 +259,13 @@ jobs:
           node-version: "20"
 
       - name: Install mcpb CLI
-        run: npm install -g @anthropic-ai/mcpb
+        # Pin major version to avoid breaking changes from a future 3.x and to
+        # narrow the supply-chain surface — the .mcpb artifact this CLI builds
+        # is attached to a public GitHub release, so a compromised dependency
+        # would ship to end users. Bump deliberately when a new feature is
+        # needed; the published manifest_version (0.4) is independent of the
+        # CLI version.
+        run: npm install -g @anthropic-ai/mcpb@^2.1.2
 
       - name: Build .mcpb bundle
         id: build
