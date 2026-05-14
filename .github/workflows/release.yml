@@ -264,7 +264,7 @@ jobs:
       - name: Build .mcpb bundle
         id: build
         run: |
-          artifact=$(python scripts/build_mcpb.py | tail -n 1)
+          artifact=$(python scripts/build_mcpb.py)
           echo "artifact=${artifact}" >> "$GITHUB_OUTPUT"
           ls -la "${artifact}"
 

@@ -25,7 +25,7 @@ management, customer data, and inventory control.
 - **Type-Safe**: Full type hints with Pydantic validation for all operations
   ([ADR 002](../docs/architecture/decisions/002-tool-interface-pattern.md))
 - **Production-Ready**: Built-in error handling, logging, and resilience
-- **FastMCP**: Leverages FastMCP 2.11.0 for high-performance MCP implementation
+- **FastMCP**: Built on FastMCP v3 for high-performance MCP implementation
 
 ## Installation
 
