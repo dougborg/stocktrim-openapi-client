@@ -2204,6 +2204,7 @@ dev = [
     { name = "pytest-cov" },
     { name = "pytest-mock" },
     { name = "pytest-timeout" },
+    { name = "stocktrim-mcp-server" },
     { name = "ty" },
 ]
 
@@ -2257,6 +2258,7 @@ dev = [
     { name = "pytest-cov", specifier = ">=7.0.0" },
     { name = "pytest-mock", specifier = ">=3.15.1" },
     { name = "pytest-timeout", specifier = ">=2.4.0" },
+    { name = "stocktrim-mcp-server", editable = "stocktrim_mcp_server" },
     { name = "ty", specifier = ">=0.0.1a24" },
 ]
 
