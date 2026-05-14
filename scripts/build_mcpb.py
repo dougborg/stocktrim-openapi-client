@@ -105,25 +105,25 @@ def substitute(template: str, version: str) -> str:
     return template.replace(VERSION_PLACEHOLDER, version)
 
 
+def _write_substituted(src: Path, dest: Path, version: str) -> None:
+    # Force UTF-8 + LF on read and write — templates contain non-ASCII chars
+    # (em-dash, arrow). Default encoding is locale-dependent; on a non-UTF-8
+    # locale (Windows ``cp1252``) the round-trip silently corrupts manifest
+    # text and the bundle ships with garbled metadata.
+    dest.write_text(
+        substitute(src.read_text(encoding="utf-8"), version),
+        encoding="utf-8",
+        newline="\n",
+    )
+
+
 def stage_bundle(version: str) -> None:
     if BUILD_DIR.exists():
         shutil.rmtree(BUILD_DIR)
     BUILD_DIR.mkdir(parents=True)
 
-    # Force UTF-8 + LF on read and write — templates contain non-ASCII chars
-    # (em-dash, arrow). Default encoding is locale-dependent; on a non-UTF-8
-    # locale (Windows ``cp1252``) the round-trip silently corrupts manifest
-    # text and the bundle ships with garbled metadata.
-    (BUILD_DIR / "manifest.json").write_text(
-        substitute(MANIFEST_TEMPLATE.read_text(encoding="utf-8"), version),
-        encoding="utf-8",
-        newline="\n",
-    )
-    (BUILD_DIR / "pyproject.toml").write_text(
-        substitute(PYPROJECT_TEMPLATE.read_text(encoding="utf-8"), version),
-        encoding="utf-8",
-        newline="\n",
-    )
+    _write_substituted(MANIFEST_TEMPLATE, BUILD_DIR / "manifest.json", version)
+    _write_substituted(PYPROJECT_TEMPLATE, BUILD_DIR / "pyproject.toml", version)
     shutil.copy2(MCPBIGNORE, BUILD_DIR / ".mcpbignore")
 
     src_dest = BUILD_DIR / "src" / "stocktrim_mcp_server"
@@ -132,9 +132,7 @@ def stage_bundle(version: str) -> None:
         src_dest,
         ignore=shutil.ignore_patterns("__pycache__", "*.pyc", "*.pyo"),
     )
-
-    if PKG_README.exists():
-        shutil.copy2(PKG_README, BUILD_DIR / "README.md")
+    shutil.copy2(PKG_README, BUILD_DIR / "README.md")
 
 
 def run_mcpb_validate() -> None:
@@ -147,8 +145,7 @@ def run_mcpb_validate() -> None:
 def run_mcpb_pack(version: str) -> Path:
     DIST_DIR.mkdir(exist_ok=True)
     artifact = DIST_DIR / f"stocktrim-mcp-server-{version}.mcpb"
-    if artifact.exists():
-        artifact.unlink()
+    artifact.unlink(missing_ok=True)
     subprocess.run(
         ["mcpb", "pack", str(BUILD_DIR), str(artifact)],
         check=True,
