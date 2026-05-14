@@ -509,8 +509,8 @@ class AuthHeaderTransport(AsyncHTTPTransport):
 def create_resilient_transport(
     api_auth_signature: str,
     max_retries: int = 5,
-    total_retry_timeout: float | None = 60.0,
     logger: logging.Logger | None = None,
+    total_retry_timeout: float | None = 60.0,
     **kwargs: Any,
 ) -> tuple[RetryTransport, ErrorLoggingTransport]:
     """
@@ -529,12 +529,12 @@ def create_resilient_transport(
     Args:
         api_auth_signature: StockTrim API authentication signature
         max_retries: Maximum number of retry attempts for failed requests. Defaults to 5.
+        logger: Logger instance for capturing operations. If None, creates a default logger.
         total_retry_timeout: Cumulative cap (seconds) on sleep time across retry
             attempts for a single request. Stops further retries once exceeded,
             even if ``max_retries`` would allow more. Defaults to 60s, which
             comfortably covers full exponential backoff (1+2+4+8+16=31s) plus
             slack for ``Retry-After`` headers; set ``None`` to disable.
-        logger: Logger instance for capturing operations. If None, creates a default logger.
         **kwargs: Additional arguments passed to the base AsyncHTTPTransport.
             Common parameters include:
             - http2 (bool): Enable HTTP/2 support
@@ -656,8 +656,8 @@ class StockTrimClient(AuthenticatedClient):
         base_url: str | None = None,
         timeout: float = 30.0,
         max_retries: int = 5,
-        total_retry_timeout: float | None = 60.0,
         logger: logging.Logger | None = None,
+        total_retry_timeout: float | None = 60.0,
         **httpx_kwargs: Any,
     ):
         """
@@ -671,9 +671,9 @@ class StockTrimClient(AuthenticatedClient):
             base_url: Base URL for the StockTrim API. Defaults to https://api.stocktrim.com
             timeout: Request timeout in seconds. Defaults to 30.0.
             max_retries: Maximum number of retry attempts for failed requests. Defaults to 5.
+            logger: Logger instance for capturing client operations. If None, creates a default logger.
             total_retry_timeout: Cumulative cap (seconds) on sleep time across retry
                 attempts for a single request. Defaults to 60s; pass ``None`` to disable.
-            logger: Logger instance for capturing client operations. If None, creates a default logger.
             **httpx_kwargs: Additional arguments passed to the base AsyncHTTPTransport.
                 Common parameters include:
                 - http2 (bool): Enable HTTP/2 support
