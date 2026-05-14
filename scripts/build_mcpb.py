@@ -182,9 +182,14 @@ def stage_bundle(version: str, client_dep: str) -> None:
 
 
 def run_mcpb_validate() -> None:
+    # Redirect the CLI's stdout to stderr so this script's stdout stays
+    # machine-readable — CI captures the artifact path via
+    # ``artifact=$(python scripts/build_mcpb.py)`` and any progress line the
+    # ``mcpb`` CLI emits would otherwise contaminate that capture.
     subprocess.run(
         ["mcpb", "validate", str(BUILD_DIR / "manifest.json")],
         check=True,
+        stdout=sys.stderr,
     )
 
 
@@ -195,6 +200,7 @@ def run_mcpb_pack(version: str) -> Path:
     subprocess.run(
         ["mcpb", "pack", str(BUILD_DIR), str(artifact)],
         check=True,
+        stdout=sys.stderr,
     )
     return artifact
 
