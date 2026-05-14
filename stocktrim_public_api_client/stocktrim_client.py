@@ -509,6 +509,7 @@ class AuthHeaderTransport(AsyncHTTPTransport):
 def create_resilient_transport(
     api_auth_signature: str,
     max_retries: int = 5,
+    total_retry_timeout: float | None = 60.0,
     logger: logging.Logger | None = None,
     **kwargs: Any,
 ) -> tuple[RetryTransport, ErrorLoggingTransport]:
@@ -528,6 +529,11 @@ def create_resilient_transport(
     Args:
         api_auth_signature: StockTrim API authentication signature
         max_retries: Maximum number of retry attempts for failed requests. Defaults to 5.
+        total_retry_timeout: Cumulative cap (seconds) on sleep time across retry
+            attempts for a single request. Stops further retries once exceeded,
+            even if ``max_retries`` would allow more. Defaults to 60s, which
+            comfortably covers full exponential backoff (1+2+4+8+16=31s) plus
+            slack for ``Retry-After`` headers; set ``None`` to disable.
         logger: Logger instance for capturing operations. If None, creates a default logger.
         **kwargs: Additional arguments passed to the base AsyncHTTPTransport.
             Common parameters include:
@@ -585,6 +591,7 @@ def create_resilient_transport(
     retry = IdempotentOnlyRetry(
         total=max_retries,
         backoff_factor=1.0,  # Exponential backoff: 1, 2, 4, 8, 16 seconds
+        total_timeout=total_retry_timeout,  # Cumulative cap on retry sleep time
         respect_retry_after_header=True,  # Honor server's Retry-After header if present
         status_forcelist=[502, 503, 504],  # Only 5xx server errors (no 429)
         allowed_methods=[
@@ -649,6 +656,7 @@ class StockTrimClient(AuthenticatedClient):
         base_url: str | None = None,
         timeout: float = 30.0,
         max_retries: int = 5,
+        total_retry_timeout: float | None = 60.0,
         logger: logging.Logger | None = None,
         **httpx_kwargs: Any,
     ):
@@ -663,6 +671,8 @@ class StockTrimClient(AuthenticatedClient):
             base_url: Base URL for the StockTrim API. Defaults to https://api.stocktrim.com
             timeout: Request timeout in seconds. Defaults to 30.0.
             max_retries: Maximum number of retry attempts for failed requests. Defaults to 5.
+            total_retry_timeout: Cumulative cap (seconds) on sleep time across retry
+                attempts for a single request. Defaults to 60s; pass ``None`` to disable.
             logger: Logger instance for capturing client operations. If None, creates a default logger.
             **httpx_kwargs: Additional arguments passed to the base AsyncHTTPTransport.
                 Common parameters include:
@@ -706,6 +716,7 @@ class StockTrimClient(AuthenticatedClient):
 
         self.logger = logger or logging.getLogger(__name__)
         self.max_retries = max_retries
+        self.total_retry_timeout = total_retry_timeout
 
         # Extract client-level parameters that shouldn't go to the transport
         # Event hooks for observability - start with our defaults
@@ -734,6 +745,7 @@ class StockTrimClient(AuthenticatedClient):
         transport, error_logging_transport = create_resilient_transport(
             api_auth_signature=api_auth_signature,
             max_retries=max_retries,
+            total_retry_timeout=total_retry_timeout,
             logger=self.logger,
             **httpx_kwargs,  # Pass through http2, limits, verify, etc.
         )
@@ -892,7 +904,8 @@ class StockTrimClient(AuthenticatedClient):
         """String representation of the client."""
         return (
             f"StockTrimClient(base_url='{self._base_url}', "
-            f"max_retries={self.max_retries})"
+            f"max_retries={self.max_retries}, "
+            f"total_retry_timeout={self.total_retry_timeout})"
         )
 
 
