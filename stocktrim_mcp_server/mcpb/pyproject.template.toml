@@ -1,8 +1,18 @@
 # Bundle pyproject.toml for the .mcpb artifact — do NOT edit this directly to
-# add deps. The build script (scripts/build_mcpb.py) substitutes ``__VERSION__``
-# from the package's own pyproject.toml at pack time. Production runtime deps
-# are mirrored from ``stocktrim_mcp_server/pyproject.toml`` and must stay in
-# sync; the build script verifies this and fails loudly on drift.
+# add deps. The build script (scripts/build_mcpb.py) substitutes two
+# placeholders at pack time:
+#
+#   __VERSION__                — the bundle's own version, from the package
+#                                pyproject's ``[project.version]``.
+#   __STOCKTRIM_CLIENT_DEP__   — the full ``stocktrim-openapi-client`` PEP 508
+#                                requirement string from the package pyproject.
+#                                During an MCP release the workflow rewrites
+#                                this to ``stocktrim-openapi-client==<X.Y.Z>``,
+#                                so the bundle must carry the exact same pin
+#                                or ``verify_dep_mirror`` will reject the build.
+#
+# Production runtime deps are mirrored from ``stocktrim_mcp_server/pyproject.toml``
+# and must stay in sync; the build script verifies this and fails loudly on drift.
 #
 # This file deliberately omits the ``[tool.uv.sources]`` workspace ref — the
 # bundle resolves ``stocktrim-openapi-client`` from PyPI, since the workspace
@@ -13,7 +23,7 @@ version = "__VERSION__"
 description = "MCP server for the StockTrim Inventory Management API"
 requires-python = ">=3.11,<3.14"
 dependencies = [
-  "stocktrim-openapi-client",
+  "__STOCKTRIM_CLIENT_DEP__",
   "fastmcp>=3.0.0,<4.0.0",
   "python-dotenv>=1.0.0",
   "structlog>=24.1.0",

@@ -58,6 +58,8 @@ BUILD_DIR = REPO_ROOT / "build" / "mcpb"
 DIST_DIR = REPO_ROOT / "dist"
 
 VERSION_PLACEHOLDER = "__VERSION__"
+CLIENT_DEP_PLACEHOLDER = "__STOCKTRIM_CLIENT_DEP__"
+CLIENT_PKG_NAME = "stocktrim-openapi-client"
 
 
 def read_pkg_pyproject() -> dict[str, Any]:
@@ -72,6 +74,37 @@ def get_pkg_version(pyproject: dict[str, Any]) -> str:
     return version
 
 
+def get_client_dep(pyproject: dict[str, Any]) -> str:
+    """Return the package's ``stocktrim-openapi-client`` requirement string.
+
+    On a real MCP release the workflow rewrites this to
+    ``stocktrim-openapi-client==<version>`` before tagging, so the bundle must
+    carry the same pin to keep ``verify_dep_mirror`` honest. Returning the
+    raw requirement string (rather than just a version) keeps the substitution
+    transparent — whatever the package depends on, the bundle depends on.
+    """
+    for dep in pyproject.get("project", {}).get("dependencies", []):
+        if (
+            dep.split("[", 1)[0]
+            .split("=", 1)[0]
+            .split("<", 1)[0]
+            .split(">", 1)[0]
+            .strip()
+            == CLIENT_PKG_NAME
+        ):
+            return dep
+    raise RuntimeError(
+        f"Could not find a `{CLIENT_PKG_NAME}` requirement in {PKG_PYPROJECT}"
+    )
+
+
+def substitute(template: str, replacements: dict[str, str]) -> str:
+    result = template
+    for placeholder, value in replacements.items():
+        result = result.replace(placeholder, value)
+    return result
+
+
 def verify_dep_mirror(pkg_pyproject: dict[str, Any]) -> None:
     """Fail loudly if the bundle pyproject's deps drift from the package's.
 
@@ -80,9 +113,18 @@ def verify_dep_mirror(pkg_pyproject: dict[str, Any]) -> None:
     monorepo). When new deps are added to the package, the template must be
     updated to match — otherwise the bundle would silently miss them at
     runtime.
+
+    The ``stocktrim-openapi-client`` line is special-cased: the template carries
+    a placeholder that the build script substitutes at pack time, so the mirror
+    check parses the template *after* substitution. This keeps the check valid
+    when the release workflow pins the client dep to an exact version.
     """
-    with PYPROJECT_TEMPLATE.open("rb") as f:
-        bundle_pyproject = tomllib.load(f)
+    client_dep = get_client_dep(pkg_pyproject)
+    substituted = substitute(
+        PYPROJECT_TEMPLATE.read_text(encoding="utf-8"),
+        {CLIENT_DEP_PLACEHOLDER: client_dep},
+    )
+    bundle_pyproject = tomllib.loads(substituted)
 
     pkg_deps = set(pkg_pyproject.get("project", {}).get("dependencies", []))
     bundle_deps = set(bundle_pyproject.get("project", {}).get("dependencies", []))
@@ -101,29 +143,33 @@ def verify_dep_mirror(pkg_pyproject: dict[str, Any]) -> None:
         raise RuntimeError("\n".join(msg))
 
 
-def substitute(template: str, version: str) -> str:
-    return template.replace(VERSION_PLACEHOLDER, version)
-
-
-def _write_substituted(src: Path, dest: Path, version: str) -> None:
+def _write_substituted(src: Path, dest: Path, replacements: dict[str, str]) -> None:
     # Force UTF-8 + LF on read and write — templates contain non-ASCII chars
     # (em-dash, arrow). Default encoding is locale-dependent; on a non-UTF-8
     # locale (Windows ``cp1252``) the round-trip silently corrupts manifest
     # text and the bundle ships with garbled metadata.
     dest.write_text(
-        substitute(src.read_text(encoding="utf-8"), version),
+        substitute(src.read_text(encoding="utf-8"), replacements),
         encoding="utf-8",
         newline="\n",
     )
 
 
-def stage_bundle(version: str) -> None:
+def stage_bundle(version: str, client_dep: str) -> None:
     if BUILD_DIR.exists():
         shutil.rmtree(BUILD_DIR)
     BUILD_DIR.mkdir(parents=True)
 
-    _write_substituted(MANIFEST_TEMPLATE, BUILD_DIR / "manifest.json", version)
-    _write_substituted(PYPROJECT_TEMPLATE, BUILD_DIR / "pyproject.toml", version)
+    _write_substituted(
+        MANIFEST_TEMPLATE,
+        BUILD_DIR / "manifest.json",
+        {VERSION_PLACEHOLDER: version},
+    )
+    _write_substituted(
+        PYPROJECT_TEMPLATE,
+        BUILD_DIR / "pyproject.toml",
+        {VERSION_PLACEHOLDER: version, CLIENT_DEP_PLACEHOLDER: client_dep},
+    )
     shutil.copy2(MCPBIGNORE, BUILD_DIR / ".mcpbignore")
 
     src_dest = BUILD_DIR / "src" / "stocktrim_mcp_server"
@@ -156,8 +202,9 @@ def run_mcpb_pack(version: str) -> Path:
 def main() -> int:
     pyproject = read_pkg_pyproject()
     version = get_pkg_version(pyproject)
+    client_dep = get_client_dep(pyproject)
     verify_dep_mirror(pyproject)
-    stage_bundle(version)
+    stage_bundle(version, client_dep)
 
     if os.environ.get("MCPB_SKIP_PACK") == "1":
         print(BUILD_DIR, file=sys.stdout)
