@@ -321,10 +321,10 @@ slow-moving or obsolete items, and making lifecycle decisions.
 
 #### Parameters
 
-| Parameter         | Type    | Required | Default   | Description                                 |
-|-------------------|---------|----------|-----------|---------------------------------------------|
-| category          | str     | No       | "all"     | Product category to review                  |
-| include_inactive  | bool    | No       | False     | Include discontinued/inactive products      |
+| Parameter        | Type | Required | Default | Description                            |
+| ---------------- | ---- | -------- | ------- | -------------------------------------- |
+| category         | str  | No       | "all"   | Product category to review             |
+| include_inactive | bool | No       | False   | Include discontinued/inactive products |
 
 #### Workflow Steps
 
@@ -501,7 +501,8 @@ To add a new prompt:
 ## Related Documentation
 
 - [Available Tools](./tools.md) - MCP tools used by prompts
-- [Resources](./overview.md#resources) - Read-only data resources
+- [MCP Resources Specification](https://modelcontextprotocol.io/docs/concepts/resources)
+  \- Read-only data resources
 - [Workflow Examples](./examples.md) - Complete workflow walkthroughs
 - [MCP Prompts Specification](https://modelcontextprotocol.io/docs/concepts/prompts) -
   Official MCP documentation

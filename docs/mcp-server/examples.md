@@ -10,7 +10,7 @@ to use each approach.
 - [Workflow 2: Forecast Management and Analysis](#workflow-2-forecast-management-and-analysis)
 - [Workflow 3: New Supplier Onboarding](#workflow-3-new-supplier-onboarding)
 - [Workflow 4: Product Lifecycle Management](#workflow-4-product-lifecycle-management)
-- [Workflow 5: Custom Order Fulfillment](#workflow-5-custom-order-fulfillment)
+- [Workflow 5: Customer Order Fulfillment](#workflow-5-customer-order-fulfillment)
 - [Advanced Patterns](#advanced-patterns)
 
 ______________________________________________________________________
@@ -911,5 +911,6 @@ ______________________________________________________________________
 
 - Review [MCP Server Tools Reference](./tools.md) for complete API documentation
 - See [Observability Guide](./observability.md) for OTel + middleware setup
-- Check [FastMCP Documentation](https://github.com/PrefectHQ/fastmcp) for server internals
+- Check [FastMCP Documentation](https://github.com/PrefectHQ/fastmcp) for server
+  internals
 - Report issues at https://github.com/dougborg/stocktrim-openapi-client/issues

@@ -274,13 +274,13 @@ Required test cases for each elicitation tool:
 All HIGH-RISK deletion operations now require user confirmation:
 
 - ✅ `delete_product` -
-  [products.py:214-296](../stocktrim_mcp_server/src/stocktrim_mcp_server/tools/foundation/products.py)
+  [products.py:214-296](https://github.com/dougborg/stocktrim-openapi-client/blob/main/stocktrim_mcp_server/src/stocktrim_mcp_server/tools/foundation/products.py)
 - ✅ `delete_supplier` -
-  [suppliers.py:204-289](../stocktrim_mcp_server/src/stocktrim_mcp_server/tools/foundation/suppliers.py)
+  [suppliers.py:204-289](https://github.com/dougborg/stocktrim-openapi-client/blob/main/stocktrim_mcp_server/src/stocktrim_mcp_server/tools/foundation/suppliers.py)
 - ✅ `delete_purchase_order` -
-  [purchase_orders.py:370-464](../stocktrim_mcp_server/src/stocktrim_mcp_server/tools/foundation/purchase_orders.py)
+  [purchase_orders.py:370-464](https://github.com/dougborg/stocktrim-openapi-client/blob/main/stocktrim_mcp_server/src/stocktrim_mcp_server/tools/foundation/purchase_orders.py)
 - ✅ `delete_sales_orders` -
-  [sales_orders.py:290-404](../stocktrim_mcp_server/src/stocktrim_mcp_server/tools/foundation/sales_orders.py)
+  [sales_orders.py:290-404](https://github.com/dougborg/stocktrim-openapi-client/blob/main/stocktrim_mcp_server/src/stocktrim_mcp_server/tools/foundation/sales_orders.py)
 
 Test coverage: 20 tests added (5 per tool)
 

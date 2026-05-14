@@ -377,7 +377,8 @@ MIT License - see LICENSE file for details
 
 ## Related Projects
 
-- [stocktrim-openapi-client](../README.md): Python client library for StockTrim API
+- [stocktrim-openapi-client](https://github.com/dougborg/stocktrim-openapi-client/blob/main/README.md):
+  Python client library for StockTrim API
 - [FastMCP](https://github.com/jlowin/fastmcp): High-performance MCP server framework
 
 ## Changelog
