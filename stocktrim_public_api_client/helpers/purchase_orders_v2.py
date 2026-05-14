@@ -80,7 +80,11 @@ class PurchaseOrdersV2(Base):
             body=filter_criteria,
         )
         result = unwrap(response)
-        return result if isinstance(result, list) else []  # type: ignore[return-value]
+        return (
+            cast(list[PurchaseOrderResponseDto], result)
+            if isinstance(result, list)
+            else []
+        )
 
     async def get_all_paginated(
         self,
@@ -120,7 +124,11 @@ class PurchaseOrdersV2(Base):
             status=status,
         )
         result = unwrap(response)
-        return result if isinstance(result, list) else []  # type: ignore[return-value]
+        return (
+            cast(list[PurchaseOrderResponseDto], result)
+            if isinstance(result, list)
+            else []
+        )
 
     async def get_by_reference(
         self,

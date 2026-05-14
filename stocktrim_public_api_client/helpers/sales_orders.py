@@ -52,8 +52,11 @@ class SalesOrders(Base):
             product_id=product_id,
         )
         result = unwrap(response)
-        # unwrap() returns the actual type or raises an exception on error
-        return result if isinstance(result, list) else []  # type: ignore[return-value]
+        return (
+            cast(list[SalesOrderResponseDto], result)
+            if isinstance(result, list)
+            else []
+        )
 
     async def create(self, order: SalesOrderRequestDto) -> SalesOrderResponseDto:
         """Create a new sales order using the idempotent bulk endpoint.

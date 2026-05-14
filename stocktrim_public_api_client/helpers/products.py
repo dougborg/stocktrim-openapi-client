@@ -60,8 +60,9 @@ class Products(Base):
         if response.status_code == 404:
             return []
         result = unwrap(response)
-        # unwrap() returns the actual type or raises an exception on error
-        return result if isinstance(result, list) else []  # type: ignore[return-value]
+        return (
+            cast(list[ProductsResponseDto], result) if isinstance(result, list) else []
+        )
 
     async def create(self, product: ProductsRequestDto) -> ProductsResponseDto:
         """Create a new product.
