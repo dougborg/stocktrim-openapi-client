@@ -13,6 +13,7 @@ from pydantic import BaseModel, Field
 from stocktrim_mcp_server.dependencies import get_services
 from stocktrim_mcp_server.logging_config import get_logger
 from stocktrim_mcp_server.tools.tool_result_utils import make_json_result
+from stocktrim_mcp_server.utils import to_unset, unwrap_unset
 from stocktrim_public_api_client.client_types import UNSET
 from stocktrim_public_api_client.generated.models.product_supplier import (
     ProductSupplier,
@@ -150,25 +151,13 @@ async def _create_supplier_with_products_impl(
 
                 # Build the product supplier mapping
                 # Get supplier ID from the created supplier
-                supplier_id = (
-                    created_supplier.id
-                    if created_supplier.id not in (None, UNSET)
-                    else None
-                )
+                supplier_id = unwrap_unset(created_supplier.id)
 
                 if not supplier_id:
                     raise ValueError("Created supplier has no ID")
 
                 # Get existing suppliers list or create new one
-                existing_suppliers = (
-                    existing_product.suppliers
-                    if existing_product.suppliers not in (None, UNSET)
-                    else []
-                )
-
-                # Ensure it's a list
-                if existing_suppliers is None:
-                    existing_suppliers = []
+                existing_suppliers = unwrap_unset(existing_product.suppliers, [])
 
                 # Create new supplier mapping
                 new_supplier_mapping = ProductSupplier(
@@ -183,9 +172,9 @@ async def _create_supplier_with_products_impl(
                 # Update product with new supplier mapping
                 update_data = ProductsRequestDto(
                     product_id=existing_product.product_id,
-                    product_code_readable=existing_product.product_code_readable
-                    if existing_product.product_code_readable not in (None, UNSET)
-                    else UNSET,
+                    product_code_readable=to_unset(
+                        existing_product.product_code_readable
+                    ),
                     suppliers=updated_suppliers,
                 )
 
@@ -221,10 +210,9 @@ async def _create_supplier_with_products_impl(
                     f"Failed to create mapping for {mapping.product_code}: {e}"
                 )
 
+        created_supplier_id = unwrap_unset(created_supplier.id)
         supplier_id = (
-            str(created_supplier.id)
-            if created_supplier.id not in (None, UNSET)
-            else None
+            str(created_supplier_id) if created_supplier_id is not None else None
         )
 
         attempted = len(request.product_mappings)

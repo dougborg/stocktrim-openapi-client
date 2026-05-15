@@ -18,7 +18,7 @@ from pydantic import BaseModel, Field
 from stocktrim_mcp_server.dependencies import get_services
 from stocktrim_mcp_server.tools.tool_result_utils import make_json_result
 from stocktrim_mcp_server.unpack import Unpack, unpack_pydantic_params
-from stocktrim_mcp_server.utils import unset_to_none
+from stocktrim_mcp_server.utils import unwrap_unset
 
 logger = logging.getLogger(__name__)
 
@@ -98,17 +98,17 @@ async def _create_sales_order_impl(
 
     # Build response model (convert UNSET to None for Pydantic)
     return SalesOrderInfo(
-        id=unset_to_none(result.id),
+        id=unwrap_unset(result.id),
         product_id=result.product_id,
         order_date=result.order_date,
         quantity=result.quantity,
-        external_reference_id=unset_to_none(result.external_reference_id),
-        unit_price=unset_to_none(result.unit_price),
-        location_code=unset_to_none(result.location_code),
-        location_name=unset_to_none(result.location_name),
-        customer_code=unset_to_none(result.customer_code),
-        customer_name=unset_to_none(result.customer_name),
-        location_id=unset_to_none(result.location_id),
+        external_reference_id=unwrap_unset(result.external_reference_id),
+        unit_price=unwrap_unset(result.unit_price),
+        location_code=unwrap_unset(result.location_code),
+        location_name=unwrap_unset(result.location_name),
+        customer_code=unwrap_unset(result.customer_code),
+        customer_name=unwrap_unset(result.customer_name),
+        location_id=unwrap_unset(result.location_id),
     )
 
 
@@ -175,17 +175,17 @@ async def _get_sales_orders_impl(
     # Build response (convert UNSET to None for Pydantic)
     order_infos = [
         SalesOrderInfo(
-            id=unset_to_none(order.id),
+            id=unwrap_unset(order.id),
             product_id=order.product_id,
             order_date=order.order_date,
             quantity=order.quantity,
-            external_reference_id=unset_to_none(order.external_reference_id),
-            unit_price=unset_to_none(order.unit_price),
-            location_code=unset_to_none(order.location_code),
-            location_name=unset_to_none(order.location_name),
-            customer_code=unset_to_none(order.customer_code),
-            customer_name=unset_to_none(order.customer_name),
-            location_id=unset_to_none(order.location_id),
+            external_reference_id=unwrap_unset(order.external_reference_id),
+            unit_price=unwrap_unset(order.unit_price),
+            location_code=unwrap_unset(order.location_code),
+            location_name=unwrap_unset(order.location_name),
+            customer_code=unwrap_unset(order.customer_code),
+            customer_name=unwrap_unset(order.customer_name),
+            location_id=unwrap_unset(order.location_id),
         )
         for order in orders
     ]

@@ -15,6 +15,7 @@ from pydantic import BaseModel, Field
 from stocktrim_mcp_server.dependencies import get_services
 from stocktrim_mcp_server.logging_config import get_logger
 from stocktrim_mcp_server.tools.tool_result_utils import make_json_result
+from stocktrim_mcp_server.utils import unwrap_unset
 from stocktrim_public_api_client.client_types import UNSET
 from stocktrim_public_api_client.generated.models.order_plan_filter_criteria_dto import (
     OrderPlanFilterCriteriaDto,
@@ -117,19 +118,13 @@ async def _review_urgent_order_requirements_impl(
         # Filter items by days threshold
         urgent_items = []
         for item in all_items:
-            if (
-                item.days_until_stock_out not in (None, UNSET)
-                and item.days_until_stock_out < request.days_threshold
-            ):
+            days = unwrap_unset(item.days_until_stock_out)
+            if days is not None and days < request.days_threshold:
                 urgent_items.append(item)
 
         # Sort by urgency (lowest days first)
         urgent_items.sort(
-            key=lambda x: (
-                x.days_until_stock_out
-                if x.days_until_stock_out not in (None, UNSET)
-                else float("inf")
-            )
+            key=lambda x: unwrap_unset(x.days_until_stock_out, float("inf"))
         )
 
         # Group by supplier
@@ -152,7 +147,7 @@ async def _review_urgent_order_requirements_impl(
         product_codes = [
             item.product_code
             for item in urgent_items
-            if item.product_code not in (None, UNSET)
+            if unwrap_unset(item.product_code) is not None
         ]
 
         # Create a mapping of product_code -> supplier_code
@@ -165,12 +160,10 @@ async def _review_urgent_order_requirements_impl(
                 # method, so this is more efficient than N individual API calls.
                 all_products = await services.products.list_all()
                 for product in all_products:
-                    if product.product_code_readable and product.supplier_code not in (
-                        None,
-                        UNSET,
-                    ):
+                    supplier_code_val = unwrap_unset(product.supplier_code)
+                    if product.product_code_readable and supplier_code_val is not None:
                         product_to_supplier[product.product_code_readable] = (
-                            product.supplier_code or "UNKNOWN"
+                            supplier_code_val or "UNKNOWN"
                         )
             except Exception as e:
                 logger.warning(
@@ -180,9 +173,7 @@ async def _review_urgent_order_requirements_impl(
 
         for item in urgent_items:
             # Get supplier from pre-fetched mapping
-            product_code = (
-                item.product_code if item.product_code not in (None, UNSET) else None
-            )
+            product_code = unwrap_unset(item.product_code)
             supplier_code = (
                 product_to_supplier.get(product_code, "UNKNOWN")
                 if product_code
@@ -191,26 +182,14 @@ async def _review_urgent_order_requirements_impl(
 
             # Create UrgentItemInfo
             urgent_item_info = UrgentItemInfo(
-                product_code=item.product_code
-                if item.product_code not in (None, UNSET)
-                else None,
-                description=item.name if item.name not in (None, UNSET) else None,
-                current_stock=item.stock_on_hand
-                if item.stock_on_hand not in (None, UNSET)
-                else None,
-                days_until_stock_out=item.days_until_stock_out
-                if item.days_until_stock_out not in (None, UNSET)
-                else None,
-                recommended_order_qty=item.order_quantity
-                if item.order_quantity not in (None, UNSET)
-                else None,
+                product_code=product_code,
+                description=unwrap_unset(item.name),
+                current_stock=unwrap_unset(item.stock_on_hand),
+                days_until_stock_out=unwrap_unset(item.days_until_stock_out),
+                recommended_order_qty=unwrap_unset(item.order_quantity),
                 supplier_code=supplier_code,
-                estimated_unit_cost=item.sku_cost
-                if item.sku_cost not in (None, UNSET)
-                else None,
-                location_name=item.location_name
-                if item.location_name not in (None, UNSET)
-                else None,
+                estimated_unit_cost=unwrap_unset(item.sku_cost),
+                location_name=unwrap_unset(item.location_name),
             )
 
             supplier_groups[supplier_code].append(urgent_item_info)
@@ -410,20 +389,19 @@ async def _generate_purchase_orders_from_urgent_items_impl(
         # Build response with PO details
         po_infos = []
         for po in generated_pos:
+            status = unwrap_unset(po.status)
             po_info = GeneratedPurchaseOrderInfo(
-                reference_number=po.reference_number
-                if po.reference_number not in (None, UNSET)
+                reference_number=unwrap_unset(po.reference_number),
+                supplier_code=unwrap_unset(po.supplier.supplier_code)
+                if po.supplier
                 else None,
-                supplier_code=po.supplier.supplier_code
-                if po.supplier and po.supplier.supplier_code not in (None, UNSET)
-                else None,
-                supplier_name=po.supplier.supplier_name
-                if po.supplier and po.supplier.supplier_name not in (None, UNSET)
+                supplier_name=unwrap_unset(po.supplier.supplier_name)
+                if po.supplier
                 else None,
                 item_count=len(po.purchase_order_line_items)
                 if po.purchase_order_line_items
                 else 0,
-                status=str(po.status) if po.status not in (None, UNSET) else None,
+                status=str(status) if status is not None else None,
             )
             po_infos.append(po_info)
 

@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import cast
-
 from stocktrim_public_api_client.client_types import UNSET, Unset
 from stocktrim_public_api_client.generated.api.order_plan import post_api_order_plan
 from stocktrim_public_api_client.generated.models.order_plan_filter_criteria import (
@@ -16,7 +14,7 @@ from stocktrim_public_api_client.generated.models.sku_optimized_results_dto impo
     SkuOptimizedResultsDto,
 )
 from stocktrim_public_api_client.helpers.base import Base
-from stocktrim_public_api_client.utils import unwrap
+from stocktrim_public_api_client.utils import unwrap, unwrap_unset
 
 
 class OrderPlan(Base):
@@ -110,18 +108,14 @@ class OrderPlan(Base):
         # Filter by days threshold and sort
         urgent_items = []
         for item in all_items:
-            if item.days_until_stock_out not in (None, UNSET):
-                days = cast(int, item.days_until_stock_out)
-                if days < days_threshold:
-                    urgent_items.append(item)
+            days = unwrap_unset(item.days_until_stock_out)
+            if days is not None and days < days_threshold:
+                urgent_items.append(item)
 
-        # Sort by urgency (lowest days first)
+        # Sort by urgency (lowest days first); float("inf") parks
+        # missing-data items at the end of the sort.
         urgent_items.sort(
-            key=lambda x: (
-                cast(int, x.days_until_stock_out)
-                if x.days_until_stock_out not in (None, UNSET)
-                else float("inf")
-            )
+            key=lambda x: unwrap_unset(x.days_until_stock_out, float("inf"))
         )
 
         return urgent_items

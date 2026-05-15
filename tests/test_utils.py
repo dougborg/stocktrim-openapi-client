@@ -6,7 +6,7 @@ from unittest.mock import Mock
 
 import pytest
 
-from stocktrim_public_api_client.client_types import Response
+from stocktrim_public_api_client.client_types import UNSET, Response
 from stocktrim_public_api_client.utils import (
     APIError,
     AuthenticationError,
@@ -17,7 +17,9 @@ from stocktrim_public_api_client.utils import (
     get_error_message,
     is_error,
     is_success,
+    to_unset,
     unwrap,
+    unwrap_unset,
 )
 
 
@@ -293,3 +295,60 @@ class TestGetErrorMessage:
         message = get_error_message(response)
         assert message is not None
         assert "400" in message
+
+
+class TestUnwrapUnset:
+    """Test the unwrap_unset helper."""
+
+    def test_value_passes_through(self):
+        assert unwrap_unset(42) == 42
+        assert unwrap_unset("hello") == "hello"
+        assert unwrap_unset(0) == 0
+        assert unwrap_unset(False) is False
+
+    def test_unset_without_default_returns_none(self):
+        assert unwrap_unset(UNSET) is None
+
+    def test_none_without_default_returns_none(self):
+        assert unwrap_unset(None) is None
+
+    def test_unset_with_default_returns_default(self):
+        assert unwrap_unset(UNSET, 0) == 0
+        assert unwrap_unset(UNSET, "n/a") == "n/a"
+        assert unwrap_unset(UNSET, []) == []
+
+    def test_none_with_default_returns_default(self):
+        assert unwrap_unset(None, 0) == 0
+        assert unwrap_unset(None, "fallback") == "fallback"
+
+    def test_value_with_default_passes_through(self):
+        assert unwrap_unset(42, 0) == 42
+        assert unwrap_unset("real", "fallback") == "real"
+
+    def test_default_can_have_different_type(self):
+        # Common case: int | Unset value with float("inf") default for use as
+        # a sort key. The second TypeVar widens the return type to T | D so
+        # callers don't need a misleading cast(...) at the call site.
+        result = unwrap_unset(UNSET, float("inf"))
+        assert result == float("inf")
+        # Real-value path still returns the value's own type.
+        result_with_value = unwrap_unset(7, float("inf"))
+        assert result_with_value == 7
+
+
+class TestToUnset:
+    """Test the to_unset helper."""
+
+    def test_value_passes_through(self):
+        assert to_unset(42) == 42
+        assert to_unset("hello") == "hello"
+        assert to_unset(0) == 0
+        assert to_unset(False) is False
+
+    def test_none_becomes_unset(self):
+        assert to_unset(None) is UNSET
+
+    def test_round_trip_with_unwrap_unset(self):
+        # Pydantic None → UNSET (outbound) → None (inbound) preserves intent.
+        assert unwrap_unset(to_unset(None)) is None
+        assert unwrap_unset(to_unset(42)) == 42

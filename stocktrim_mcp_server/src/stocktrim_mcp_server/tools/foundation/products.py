@@ -17,7 +17,8 @@ from pydantic import BaseModel, Field
 from stocktrim_mcp_server.dependencies import get_services
 from stocktrim_mcp_server.tools.tool_result_utils import make_json_result
 from stocktrim_mcp_server.unpack import Unpack, unpack_pydantic_params
-from stocktrim_public_api_client.client_types import UNSET, Unset
+from stocktrim_mcp_server.utils import unwrap_unset
+from stocktrim_public_api_client.client_types import UNSET
 from stocktrim_public_api_client.generated.models.order_plan_filter_criteria import (
     OrderPlanFilterCriteria,
 )
@@ -87,10 +88,8 @@ async def get_product(
             description=product.name,
             unit_of_measurement=None,
             is_active=not (product.discontinued or False),
-            cost_price=product.cost if not isinstance(product.cost, Unset) else None,
-            selling_price=product.price
-            if not isinstance(product.price, Unset)
-            else None,
+            cost_price=unwrap_unset(product.cost),
+            selling_price=unwrap_unset(product.price),
         )
         if product
         else None
@@ -168,15 +167,11 @@ async def search_products(
         product_infos.append(
             ProductInfo(
                 code=item.product_code,
-                description=item.name if item.name not in (None, UNSET) else None,
+                description=unwrap_unset(item.name),
                 unit_of_measurement=None,  # Not available in SkuOptimizedResultsDto
                 is_active=not (item.is_discontinued or False),
-                cost_price=item.sku_cost
-                if item.sku_cost not in (None, UNSET)
-                else None,
-                selling_price=item.sku_price
-                if item.sku_price not in (None, UNSET)
-                else None,
+                cost_price=unwrap_unset(item.sku_cost),
+                selling_price=unwrap_unset(item.sku_price),
             )
         )
 
@@ -236,12 +231,8 @@ async def create_product(
         description=created_product.name,
         unit_of_measurement=None,
         is_active=not (created_product.discontinued or False),
-        cost_price=created_product.cost
-        if not isinstance(created_product.cost, Unset)
-        else None,
-        selling_price=created_product.price
-        if not isinstance(created_product.price, Unset)
-        else None,
+        cost_price=unwrap_unset(created_product.cost),
+        selling_price=unwrap_unset(created_product.price),
     )
     return make_json_result(CreateProductResponse(product=info))
 
