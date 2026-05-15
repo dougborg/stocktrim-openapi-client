@@ -13,7 +13,7 @@ from pydantic import BaseModel, Field
 from stocktrim_mcp_server.dependencies import get_services
 from stocktrim_mcp_server.logging_config import get_logger
 from stocktrim_mcp_server.tools.tool_result_utils import make_json_result
-from stocktrim_public_api_client.client_types import UNSET
+from stocktrim_mcp_server.utils import to_unset, unwrap_unset
 from stocktrim_public_api_client.generated.models.products_request_dto import (
     ProductsRequestDto,
 )
@@ -80,9 +80,7 @@ async def _configure_product_impl(
         # Note: StockTrim API requires product_id for updates via POST
         update_data = ProductsRequestDto(
             product_id=existing_product.product_id,
-            product_code_readable=existing_product.product_code_readable
-            if existing_product.product_code_readable not in (None, UNSET)
-            else UNSET,
+            product_code_readable=to_unset(existing_product.product_code_readable),
         )
 
         # Only set fields that were provided in the request
@@ -99,12 +97,8 @@ async def _configure_product_impl(
 
         response = ConfigureProductResponse(
             product_code=request.product_code,
-            discontinued=updated_product.discontinued
-            if updated_product.discontinued not in (None, UNSET)
-            else None,
-            ignore_seasonality=updated_product.ignore_seasonality
-            if updated_product.ignore_seasonality not in (None, UNSET)
-            else None,
+            discontinued=unwrap_unset(updated_product.discontinued),
+            ignore_seasonality=unwrap_unset(updated_product.ignore_seasonality),
             message=f"Successfully configured product {request.product_code}",
         )
 
@@ -243,32 +237,16 @@ async def _products_configure_lifecycle_impl(
         if not existing_product:
             raise ValueError(f"Product not found: {request.product_code}")
 
-        product_name = (
-            existing_product.name
-            if existing_product.name not in (None, UNSET)
-            else request.product_code
-        )
-        current_inventory = (
-            existing_product.stock_on_hand
-            if existing_product.stock_on_hand not in (None, UNSET)
-            else 0
-        )
-        was_discontinued = (
-            existing_product.discontinued
-            if existing_product.discontinued not in (None, UNSET)
-            else False
-        )
-        previous_forecast_enabled = not (
-            existing_product.ignore_seasonality
-            if existing_product.ignore_seasonality not in (None, UNSET)
-            else True
+        product_name = unwrap_unset(existing_product.name, request.product_code)
+        current_inventory = unwrap_unset(existing_product.stock_on_hand, 0)
+        was_discontinued = unwrap_unset(existing_product.discontinued, False)
+        previous_forecast_enabled = not unwrap_unset(
+            existing_product.ignore_seasonality, True
         )
 
         update_data = ProductsRequestDto(
             product_id=existing_product.product_id,
-            product_code_readable=existing_product.product_code_readable
-            if existing_product.product_code_readable not in (None, UNSET)
-            else UNSET,
+            product_code_readable=to_unset(existing_product.product_code_readable),
         )
 
         action_description = ""
@@ -304,15 +282,9 @@ async def _products_configure_lifecycle_impl(
                 logger.warning(f"Failed to trigger forecast update: {e}")
                 forecast_message = f"Forecast update failed: {e}"
 
-        new_discontinued = (
-            updated_product.discontinued
-            if updated_product.discontinued not in (None, UNSET)
-            else False
-        )
-        new_forecast_enabled = not (
-            updated_product.ignore_seasonality
-            if updated_product.ignore_seasonality not in (None, UNSET)
-            else True
+        new_discontinued = unwrap_unset(updated_product.discontinued, False)
+        new_forecast_enabled = not unwrap_unset(
+            updated_product.ignore_seasonality, True
         )
 
         if request.action == "activate":

@@ -9,7 +9,7 @@ from fastmcp import Context, FastMCP
 
 from stocktrim_mcp_server.dependencies import get_services
 from stocktrim_mcp_server.logging_config import get_logger
-from stocktrim_public_api_client.client_types import UNSET
+from stocktrim_mcp_server.utils import unwrap_unset
 
 logger = get_logger(__name__)
 
@@ -44,38 +44,21 @@ async def _get_inventory_status_report(days_threshold: int, context: Context) ->
         # Filter by days threshold
         forecast_items = []
         for item in all_items:
-            days_until = (
-                item.days_until_stock_out
-                if item.days_until_stock_out not in (None, UNSET)
-                else None
-            )
+            days_until = unwrap_unset(item.days_until_stock_out)
             if days_until is not None and days_until < days_threshold:
                 forecast_items.append(item)
 
         # Build report (limit to 50 for token budget)
         low_stock_items = []
         for item in forecast_items[:50]:
-            product_code = (
-                item.product_code if item.product_code not in (None, UNSET) else None
-            )
+            product_code = unwrap_unset(item.product_code)
             if not product_code:
                 continue
 
-            days_until = (
-                float(item.days_until_stock_out)
-                if item.days_until_stock_out not in (None, UNSET)
-                else None
-            )
-            current_stock = (
-                float(item.stock_on_hand)
-                if item.stock_on_hand not in (None, UNSET)
-                else 0
-            )
-            recommended_order = (
-                float(item.order_quantity)
-                if item.order_quantity not in (None, UNSET)
-                else 0
-            )
+            days_raw = unwrap_unset(item.days_until_stock_out)
+            days_until = float(days_raw) if days_raw is not None else None
+            current_stock = float(unwrap_unset(item.stock_on_hand, 0))
+            recommended_order = float(unwrap_unset(item.order_quantity, 0))
 
             low_stock_items.append(
                 {
@@ -135,38 +118,21 @@ async def _get_urgent_orders_report(context: Context) -> dict:
         # Filter for urgent items (< 7 days)
         forecast_items = []
         for item in all_items:
-            days_until = (
-                item.days_until_stock_out
-                if item.days_until_stock_out not in (None, UNSET)
-                else None
-            )
+            days_until = unwrap_unset(item.days_until_stock_out)
             if days_until is not None and days_until < 7:
                 forecast_items.append(item)
 
         # Build report (limit to 30 most urgent)
         urgent_items = []
         for item in forecast_items[:30]:
-            product_code = (
-                item.product_code if item.product_code not in (None, UNSET) else None
-            )
+            product_code = unwrap_unset(item.product_code)
             if not product_code:
                 continue
 
-            days_until = (
-                float(item.days_until_stock_out)
-                if item.days_until_stock_out not in (None, UNSET)
-                else None
-            )
-            current_stock = (
-                float(item.stock_on_hand)
-                if item.stock_on_hand not in (None, UNSET)
-                else 0
-            )
-            recommended_order = (
-                float(item.order_quantity)
-                if item.order_quantity not in (None, UNSET)
-                else 0
-            )
+            days_raw = unwrap_unset(item.days_until_stock_out)
+            days_until = float(days_raw) if days_raw is not None else None
+            current_stock = float(unwrap_unset(item.stock_on_hand, 0))
+            recommended_order = float(unwrap_unset(item.order_quantity, 0))
 
             urgent_items.append(
                 {
@@ -223,21 +189,11 @@ async def _get_supplier_directory_report(context: Context) -> dict:
         for supplier in suppliers[:50]:  # Limit to 50 for token budget
             supplier_list.append(
                 {
-                    "supplier_code": supplier.supplier_code
-                    if supplier.supplier_code not in (None, UNSET)
-                    else None,
-                    "name": supplier.supplier_name
-                    if supplier.supplier_name not in (None, UNSET)
-                    else None,
-                    "email": supplier.email_address
-                    if supplier.email_address not in (None, UNSET)
-                    else None,
-                    "primary_contact": supplier.primary_contact_name
-                    if supplier.primary_contact_name not in (None, UNSET)
-                    else None,
-                    "default_lead_time": supplier.default_lead_time
-                    if supplier.default_lead_time not in (None, UNSET)
-                    else None,
+                    "supplier_code": unwrap_unset(supplier.supplier_code),
+                    "name": unwrap_unset(supplier.supplier_name),
+                    "email": unwrap_unset(supplier.email_address),
+                    "primary_contact": unwrap_unset(supplier.primary_contact_name),
+                    "default_lead_time": unwrap_unset(supplier.default_lead_time),
                 }
             )
 

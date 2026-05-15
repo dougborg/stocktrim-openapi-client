@@ -19,9 +19,9 @@ from dotenv import load_dotenv
 from httpx import AsyncHTTPTransport
 from httpx_retries import Retry, RetryTransport
 
-from .client_types import Unset
 from .generated.client import AuthenticatedClient
 from .generated.models.problem_details import ProblemDetails
+from .utils import unwrap_unset
 
 if TYPE_CHECKING:
     from .helpers.bill_of_materials import BillOfMaterials
@@ -332,11 +332,10 @@ class ErrorLoggingTransport(AsyncHTTPTransport):
             f"Client error {status_code} for {method} {url} ({duration_ms:.0f}ms)"
         )
 
-        # Check for Unset values before logging
-        title = problem.title if not isinstance(problem.title, Unset) else None
-        detail = problem.detail if not isinstance(problem.detail, Unset) else None
-        type_ = problem.type_ if not isinstance(problem.type_, Unset) else None
-        instance = problem.instance if not isinstance(problem.instance, Unset) else None
+        title = unwrap_unset(problem.title)
+        detail = unwrap_unset(problem.detail)
+        type_ = unwrap_unset(problem.type_)
+        instance = unwrap_unset(problem.instance)
 
         if title:
             log_message += f"\n  Title: {title}"

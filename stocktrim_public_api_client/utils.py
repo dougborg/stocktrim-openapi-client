@@ -7,12 +7,13 @@ handling errors, and status checking.
 from http import HTTPStatus
 from typing import TYPE_CHECKING, TypeVar, overload
 
-from .client_types import Response, Unset
+from .client_types import UNSET, Response, Unset
 
 if TYPE_CHECKING:
     from .generated.models.problem_details import ProblemDetails
 
 T = TypeVar("T")
+D = TypeVar("D")
 
 
 class APIError(Exception):
@@ -145,16 +146,8 @@ def unwrap(
 
         # Extract error message from ProblemDetails if available
         if problem_details:
-            title = (
-                problem_details.title
-                if not isinstance(problem_details.title, Unset)
-                else None
-            )
-            detail = (
-                problem_details.detail
-                if not isinstance(problem_details.detail, Unset)
-                else None
-            )
+            title = unwrap_unset(problem_details.title)
+            detail = unwrap_unset(problem_details.detail)
             message = (
                 f"{title}: {detail}"
                 if title and detail
@@ -221,6 +214,73 @@ def is_error(response: Response[T]) -> bool:
     return response.status_code >= 400
 
 
+@overload
+def unwrap_unset(value: T | Unset | None) -> T | None: ...
+
+
+@overload
+def unwrap_unset(value: T | Unset | None, default: D) -> T | D: ...
+
+
+def unwrap_unset(value: T | Unset | None, default: D | None = None) -> T | D | None:
+    """Unwrap an UNSET (or None) sentinel value.
+
+    The OpenAPI-generated client uses ``UNSET`` to distinguish "field not provided"
+    from "field explicitly set to None". Both sentinels are normalised to ``default``
+    here so call sites can treat absence uniformly.
+
+    With no ``default`` the return type is ``T | None``; with a default the return
+    type widens to ``T | D``, where ``D`` may differ from ``T`` (e.g. an ``int |
+    Unset`` value with a ``float('inf')`` default for use as a sort key).
+
+    Args:
+        value: Value that might be ``UNSET`` or ``None``
+        default: Value to return when ``value`` is ``UNSET`` or ``None``
+
+    Returns:
+        The unwrapped value, or ``default`` if value is ``UNSET`` or ``None``.
+
+    Example:
+        ```python
+        from stocktrim_public_api_client.client_types import UNSET
+        from stocktrim_public_api_client.utils import unwrap_unset
+
+        unwrap_unset(42)  # 42
+        unwrap_unset(UNSET)  # None
+        unwrap_unset(UNSET, 0)  # 0
+        unwrap_unset(None, "n/a")  # "n/a"
+        unwrap_unset(UNSET, float("inf"))  # inf — default may differ from T
+        ```
+    """
+    if value is None or isinstance(value, Unset):
+        return default
+    return value
+
+
+def to_unset(value: T | None) -> T | Unset:
+    """Convert ``None`` to the ``UNSET`` sentinel value.
+
+    Useful when building generated request models from optional Pydantic fields,
+    where ``None`` means "not provided" and should be sent as ``UNSET`` to avoid
+    overwriting existing server-side values.
+
+    Args:
+        value: Value that might be ``None``
+
+    Returns:
+        The value unchanged if not ``None``, or ``UNSET`` if ``None``.
+
+    Example:
+        ```python
+        from stocktrim_public_api_client.utils import to_unset
+
+        to_unset(42)  # 42
+        to_unset(None)  # UNSET
+        ```
+    """
+    return UNSET if value is None else value
+
+
 def get_error_message(response: Response[T]) -> str | None:
     """Extract error message from a response.
 
@@ -247,8 +307,8 @@ def get_error_message(response: Response[T]) -> str | None:
 
         if isinstance(response.parsed, ProblemDetails):
             problem = response.parsed
-            title = problem.title if not isinstance(problem.title, Unset) else None
-            detail = problem.detail if not isinstance(problem.detail, Unset) else None
+            title = unwrap_unset(problem.title)
+            detail = unwrap_unset(problem.detail)
             return f"{title}: {detail}" if title and detail else (title or detail)
     except ImportError:
         pass
@@ -267,5 +327,7 @@ __all__ = [
     "get_error_message",
     "is_error",
     "is_success",
+    "to_unset",
     "unwrap",
+    "unwrap_unset",
 ]

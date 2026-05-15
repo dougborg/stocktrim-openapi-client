@@ -10,7 +10,7 @@ from fastmcp.exceptions import ResourceError
 
 from stocktrim_mcp_server.dependencies import get_services
 from stocktrim_mcp_server.logging_config import get_logger
-from stocktrim_public_api_client.client_types import UNSET
+from stocktrim_mcp_server.utils import unwrap_unset
 
 logger = get_logger(__name__)
 
@@ -39,29 +39,20 @@ async def _get_product_resource(product_code: str, context: Context) -> dict:
     if not product:
         raise ResourceError(f"Product not found: {product_code}")
 
+    cost = unwrap_unset(product.cost)
+    price = unwrap_unset(product.price)
+    stock = unwrap_unset(product.stock_on_hand)
     return {
-        "product_code": product.product_code_readable
-        if product.product_code_readable not in (None, UNSET)
-        else product_code,
-        "product_id": product.product_id
-        if product.product_id not in (None, UNSET)
-        else None,
-        "name": product.name if product.name not in (None, UNSET) else None,
-        "category": product.category if product.category not in (None, UNSET) else None,
-        "cost": float(product.cost) if product.cost not in (None, UNSET) else None,
-        "price": float(product.price) if product.price not in (None, UNSET) else None,
-        "stock_on_hand": float(product.stock_on_hand)
-        if product.stock_on_hand not in (None, UNSET)
-        else None,
-        "discontinued": product.discontinued
-        if product.discontinued not in (None, UNSET)
-        else False,
-        "ignore_seasonality": product.ignore_seasonality
-        if product.ignore_seasonality not in (None, UNSET)
-        else False,
-        "supplier_code": product.supplier_code
-        if product.supplier_code not in (None, UNSET)
-        else None,
+        "product_code": unwrap_unset(product.product_code_readable, product_code),
+        "product_id": unwrap_unset(product.product_id),
+        "name": unwrap_unset(product.name),
+        "category": unwrap_unset(product.category),
+        "cost": float(cost) if cost is not None else None,
+        "price": float(price) if price is not None else None,
+        "stock_on_hand": float(stock) if stock is not None else None,
+        "discontinued": unwrap_unset(product.discontinued, False),
+        "ignore_seasonality": unwrap_unset(product.ignore_seasonality, False),
+        "supplier_code": unwrap_unset(product.supplier_code),
     }
 
 
@@ -80,21 +71,14 @@ async def _get_products_catalog_resource(context: Context) -> dict:
     product_list = []
     # Limit to 50 products for token budget
     for product in products[:50]:
+        price = unwrap_unset(product.price)
         product_list.append(
             {
-                "product_code": product.product_code_readable
-                if product.product_code_readable not in (None, UNSET)
-                else None,
-                "name": product.name if product.name not in (None, UNSET) else None,
-                "category": product.category
-                if product.category not in (None, UNSET)
-                else None,
-                "price": float(product.price)
-                if product.price not in (None, UNSET)
-                else None,
-                "discontinued": product.discontinued
-                if product.discontinued not in (None, UNSET)
-                else False,
+                "product_code": unwrap_unset(product.product_code_readable),
+                "name": unwrap_unset(product.name),
+                "category": unwrap_unset(product.category),
+                "price": float(price) if price is not None else None,
+                "discontinued": unwrap_unset(product.discontinued, False),
             }
         )
 
@@ -130,26 +114,16 @@ async def _get_customer_resource(customer_code: str, context: Context) -> dict:
         raise ResourceError(f"Customer not found: {customer_code}")
 
     return {
-        "customer_code": customer.code
-        if customer.code not in (None, UNSET)
-        else customer_code,
-        "name": customer.name if customer.name not in (None, UNSET) else None,
-        "email": customer.email_address
-        if customer.email_address not in (None, UNSET)
-        else None,
-        "phone": customer.phone if customer.phone not in (None, UNSET) else None,
+        "customer_code": unwrap_unset(customer.code, customer_code),
+        "name": unwrap_unset(customer.name),
+        "email": unwrap_unset(customer.email_address),
+        "phone": unwrap_unset(customer.phone),
         "address": {
-            "street": customer.street_address
-            if customer.street_address not in (None, UNSET)
-            else None,
-            "city": customer.city if customer.city not in (None, UNSET) else None,
-            "state": customer.state if customer.state not in (None, UNSET) else None,
-            "post_code": customer.post_code
-            if customer.post_code not in (None, UNSET)
-            else None,
-            "country": customer.country
-            if customer.country not in (None, UNSET)
-            else None,
+            "street": unwrap_unset(customer.street_address),
+            "city": unwrap_unset(customer.city),
+            "state": unwrap_unset(customer.state),
+            "post_code": unwrap_unset(customer.post_code),
+            "country": unwrap_unset(customer.country),
         },
     }
 
@@ -179,30 +153,16 @@ async def _get_supplier_resource(supplier_code: str, context: Context) -> dict:
         raise ResourceError(f"Supplier not found: {supplier_code}")
 
     return {
-        "supplier_code": supplier.supplier_code
-        if supplier.supplier_code not in (None, UNSET)
-        else supplier_code,
-        "supplier_id": supplier.id if supplier.id not in (None, UNSET) else None,
-        "name": supplier.supplier_name
-        if supplier.supplier_name not in (None, UNSET)
-        else None,
-        "email": supplier.email_address
-        if supplier.email_address not in (None, UNSET)
-        else None,
-        "primary_contact": supplier.primary_contact_name
-        if supplier.primary_contact_name not in (None, UNSET)
-        else None,
-        "default_lead_time": supplier.default_lead_time
-        if supplier.default_lead_time not in (None, UNSET)
-        else None,
-        "street_address": supplier.street_address
-        if supplier.street_address not in (None, UNSET)
-        else None,
-        "state": supplier.state if supplier.state not in (None, UNSET) else None,
-        "country": supplier.country if supplier.country not in (None, UNSET) else None,
-        "post_code": supplier.post_code
-        if supplier.post_code not in (None, UNSET)
-        else None,
+        "supplier_code": unwrap_unset(supplier.supplier_code, supplier_code),
+        "supplier_id": unwrap_unset(supplier.id),
+        "name": unwrap_unset(supplier.supplier_name),
+        "email": unwrap_unset(supplier.email_address),
+        "primary_contact": unwrap_unset(supplier.primary_contact_name),
+        "default_lead_time": unwrap_unset(supplier.default_lead_time),
+        "street_address": unwrap_unset(supplier.street_address),
+        "state": unwrap_unset(supplier.state),
+        "country": unwrap_unset(supplier.country),
+        "post_code": unwrap_unset(supplier.post_code),
     }
 
 
@@ -238,16 +198,10 @@ async def _get_location_resource(location_code: str, context: Context) -> dict:
         raise ResourceError(f"Location not found: {location_code}")
 
     return {
-        "location_code": location.location_code
-        if location.location_code not in (None, UNSET)
-        else location_code,
-        "location_id": location.id if location.id not in (None, UNSET) else None,
-        "name": location.location_name
-        if location.location_name not in (None, UNSET)
-        else None,
-        "external_id": location.external_id
-        if location.external_id not in (None, UNSET)
-        else None,
+        "location_code": unwrap_unset(location.location_code, location_code),
+        "location_id": unwrap_unset(location.id),
+        "name": unwrap_unset(location.location_name),
+        "external_id": unwrap_unset(location.external_id),
     }
 
 
@@ -290,9 +244,7 @@ async def _get_inventory_resource(
         return {
             "location_code": location_code,
             "product_code": product_code,
-            "quantity": float(product.stock_on_hand)
-            if product.stock_on_hand not in (None, UNSET)
-            else 0.0,
+            "quantity": float(unwrap_unset(product.stock_on_hand, 0.0)),
             "note": "Showing product-level stock. Use inventory tools for location-specific data.",
         }
     except Exception as e:

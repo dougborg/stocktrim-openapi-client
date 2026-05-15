@@ -17,6 +17,7 @@ from pydantic import BaseModel, Field
 from stocktrim_mcp_server.dependencies import get_services
 from stocktrim_mcp_server.logging_config import get_logger
 from stocktrim_mcp_server.tools.tool_result_utils import make_json_result
+from stocktrim_mcp_server.utils import to_unset, unwrap_unset
 from stocktrim_public_api_client.client_types import UNSET
 from stocktrim_public_api_client.generated.models.order_plan_filter_criteria import (
     OrderPlanFilterCriteria,
@@ -229,9 +230,7 @@ async def _update_forecast_settings_impl(
         # Build update request with only specified forecast fields
         update_data = ProductsRequestDto(
             product_id=existing_product.product_id,
-            product_code_readable=existing_product.product_code_readable
-            if existing_product.product_code_readable not in (None, UNSET)
-            else UNSET,
+            product_code_readable=to_unset(existing_product.product_code_readable),
         )
 
         # Update only the fields that were provided
@@ -251,20 +250,13 @@ async def _update_forecast_settings_impl(
         # Update the product using the API (uses client directly for complex update)
         updated_product = await services.client.products.create(update_data)
 
+        service_level = unwrap_unset(updated_product.service_level)
         response = UpdateForecastSettingsResponse(
             product_code=request.product_code,
-            lead_time=updated_product.lead_time
-            if updated_product.lead_time not in (None, UNSET)
-            else None,
-            forecast_period=updated_product.forecast_period
-            if updated_product.forecast_period not in (None, UNSET)
-            else None,
-            service_level=(updated_product.service_level * 100.0)
-            if updated_product.service_level not in (None, UNSET)
-            else None,
-            minimum_order_quantity=updated_product.minimum_order_quantity
-            if updated_product.minimum_order_quantity not in (None, UNSET)
-            else None,
+            lead_time=unwrap_unset(updated_product.lead_time),
+            forecast_period=unwrap_unset(updated_product.forecast_period),
+            service_level=service_level * 100.0 if service_level is not None else None,
+            minimum_order_quantity=unwrap_unset(updated_product.minimum_order_quantity),
             message=f"Successfully updated forecast settings for {request.product_code}",
         )
 
@@ -381,11 +373,7 @@ async def _forecasts_update_and_monitor_impl(
             status = await client.forecasting.get_processing_status()
             elapsed = time.time() - start_time
 
-            current_percentage = (
-                status.percentage_complete
-                if status.percentage_complete not in (None, UNSET)
-                else 0
-            )
+            current_percentage = unwrap_unset(status.percentage_complete, 0)
             if current_percentage != last_percentage:
                 logger.info(
                     "forecast_progress",
@@ -574,28 +562,20 @@ def _to_forecast_item(item: SkuOptimizedResultsDto) -> ForecastItem:
     so ``_priority_for`` can map it to ``"UNKNOWN"`` — substituting ``0.0``
     would silently bucket missing-data items as ``HIGH``.
     """
+    days_until_stockout_raw = unwrap_unset(item.days_until_stock_out)
     days_until_stockout = (
-        float(item.days_until_stock_out)
-        if item.days_until_stock_out not in (None, UNSET)
-        else None
+        float(days_until_stockout_raw) if days_until_stockout_raw is not None else None
     )
+    lead_time_days_raw = unwrap_unset(item.lead_time_days)
     return ForecastItem(
-        product_code=str(item.product_code)
-        if item.product_code not in (None, UNSET)
-        else "Unknown",
+        product_code=str(unwrap_unset(item.product_code, "Unknown")),
         priority=_priority_for(days_until_stockout),
-        current_stock=float(item.stock_on_hand)
-        if item.stock_on_hand not in (None, UNSET)
-        else 0.0,
+        current_stock=float(unwrap_unset(item.stock_on_hand, 0.0)),
         days_until_stockout=days_until_stockout,
-        recommended_order_quantity=float(item.order_quantity)
-        if item.order_quantity not in (None, UNSET)
-        else 0.0,
-        safety_stock_level=float(item.safety_stock_level)
-        if item.safety_stock_level not in (None, UNSET)
-        else 0.0,
-        lead_time_days=int(item.lead_time_days)
-        if item.lead_time_days not in (None, UNSET)
+        recommended_order_quantity=float(unwrap_unset(item.order_quantity, 0.0)),
+        safety_stock_level=float(unwrap_unset(item.safety_stock_level, 0.0)),
+        lead_time_days=int(lead_time_days_raw)
+        if lead_time_days_raw is not None
         else None,
     )
 
@@ -640,27 +620,15 @@ async def _forecasts_get_for_products_impl(
 
         if request.sort_by == "days_until_stockout":
             all_items.sort(
-                key=lambda x: (
-                    float(x.days_until_stock_out)
-                    if x.days_until_stock_out not in (None, UNSET)
-                    else float("inf")
-                )
+                key=lambda x: float(unwrap_unset(x.days_until_stock_out, float("inf")))
             )
         elif request.sort_by == "recommended_quantity":
             all_items.sort(
-                key=lambda x: (
-                    float(x.recommended_order_quantity)
-                    if x.recommended_order_quantity not in (None, UNSET)
-                    else 0
-                ),
+                key=lambda x: float(unwrap_unset(x.recommended_order_quantity, 0)),
                 reverse=True,
             )
         else:
-            all_items.sort(
-                key=lambda x: (
-                    str(x.product_code) if x.product_code not in (None, UNSET) else ""
-                )
-            )
+            all_items.sort(key=lambda x: str(unwrap_unset(x.product_code, "")))
 
         limited_items = all_items[: request.max_results]
 
