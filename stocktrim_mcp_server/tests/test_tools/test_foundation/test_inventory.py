@@ -1,12 +1,21 @@
 """Tests for inventory foundation tools."""
 
+from typing import Any
 from unittest.mock import AsyncMock
 
 import pytest
 
 from stocktrim_mcp_server.tools.foundation.inventory import (
+    InventoryResult,
     set_product_inventory,
 )
+from stocktrim_mcp_server.tools.tool_result_utils import unwrap_tool_result
+
+
+async def _call_set(**kwargs: Any) -> InventoryResult:
+    """Call the tool and unwrap its ToolResult to the typed payload."""
+    result = await set_product_inventory(**kwargs)
+    return unwrap_tool_result(result, InventoryResult)
 
 
 @pytest.fixture
@@ -30,7 +39,7 @@ async def test_set_product_inventory_success(mock_inventory_context):
     services.inventory.set_for_product.return_value = None
 
     # Execute
-    response = await set_product_inventory(
+    response = await _call_set(
         product_id="WIDGET-001",
         stock_on_hand=50.0,
         stock_on_order=100.0,
@@ -63,7 +72,7 @@ async def test_set_product_inventory_minimal_fields(mock_inventory_context):
     services.inventory.set_for_product.return_value = None
 
     # Execute
-    response = await set_product_inventory(
+    response = await _call_set(
         product_id="WIDGET-002", stock_on_hand=25.0, context=mock_inventory_context
     )
 
@@ -91,7 +100,7 @@ async def test_set_product_inventory_zero_stock(mock_inventory_context):
     services.inventory.set_for_product.return_value = None
 
     # Execute
-    response = await set_product_inventory(
+    response = await _call_set(
         product_id="WIDGET-003",
         stock_on_hand=0.0,
         stock_on_order=0.0,
@@ -112,7 +121,7 @@ async def test_set_product_inventory_negative_stock(mock_inventory_context):
     services.inventory.set_for_product.return_value = None
 
     # Execute - negative inventory can indicate issues but should be allowed
-    response = await set_product_inventory(
+    response = await _call_set(
         product_id="WIDGET-004", stock_on_hand=-10.0, context=mock_inventory_context
     )
 
@@ -129,7 +138,7 @@ async def test_set_product_inventory_with_location_only(mock_inventory_context):
     services.inventory.set_for_product.return_value = None
 
     # Execute
-    response = await set_product_inventory(
+    response = await _call_set(
         product_id="WIDGET-005",
         stock_on_hand=75.0,
         location_code="WH-02",
@@ -153,7 +162,7 @@ async def test_set_product_inventory_service_error(mock_inventory_context):
 
     # Execute & Verify
     with pytest.raises(Exception, match="API error"):
-        await set_product_inventory(
+        await _call_set(
             product_id="WIDGET-ERROR",
             stock_on_hand=50.0,
             context=mock_inventory_context,
@@ -171,7 +180,7 @@ async def test_set_product_inventory_validation_error(mock_inventory_context):
 
     # Execute & Verify
     with pytest.raises(ValueError, match="Product ID is required"):
-        await set_product_inventory(
+        await _call_set(
             product_id="", stock_on_hand=50.0, context=mock_inventory_context
         )
 
@@ -184,7 +193,7 @@ async def test_set_product_inventory_decimal_quantities(mock_inventory_context):
     services.inventory.set_for_product.return_value = None
 
     # Execute
-    response = await set_product_inventory(
+    response = await _call_set(
         product_id="WIDGET-006",
         stock_on_hand=12.5,
         stock_on_order=47.25,

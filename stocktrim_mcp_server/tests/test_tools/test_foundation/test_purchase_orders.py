@@ -1,6 +1,7 @@
 """Tests for purchase order foundation tools."""
 
 from datetime import datetime
+from typing import Any
 from unittest.mock import AsyncMock
 
 import pytest
@@ -12,12 +13,18 @@ from fastmcp.server.elicitation import (
 
 from stocktrim_mcp_server.tools.foundation.purchase_orders import (
     CreatePurchaseOrderRequest,
+    CreatePurchaseOrderResponse,
+    DeletePurchaseOrderResponse,
+    GetPurchaseOrderResponse,
     LineItemRequest,
+    ListPurchaseOrdersResponse,
+    PurchaseOrderInfo,
     create_purchase_order,
     delete_purchase_order,
     get_purchase_order,
     list_purchase_orders,
 )
+from stocktrim_mcp_server.tools.tool_result_utils import unwrap_tool_result
 from stocktrim_public_api_client.generated.models.purchase_order_line_item import (
     PurchaseOrderLineItem,
 )
@@ -33,6 +40,26 @@ from stocktrim_public_api_client.generated.models.purchase_order_status_dto impo
 from stocktrim_public_api_client.generated.models.purchase_order_supplier import (
     PurchaseOrderSupplier,
 )
+
+
+async def _call_get(**kwargs: Any) -> PurchaseOrderInfo | None:
+    result = await get_purchase_order(**kwargs)
+    return unwrap_tool_result(result, GetPurchaseOrderResponse).purchase_order
+
+
+async def _call_list(**kwargs: Any) -> ListPurchaseOrdersResponse:
+    result = await list_purchase_orders(**kwargs)
+    return unwrap_tool_result(result, ListPurchaseOrdersResponse)
+
+
+async def _call_create(**kwargs: Any) -> CreatePurchaseOrderResponse:
+    result = await create_purchase_order(**kwargs)
+    return unwrap_tool_result(result, CreatePurchaseOrderResponse)
+
+
+async def _call_delete(**kwargs: Any) -> DeletePurchaseOrderResponse:
+    result = await delete_purchase_order(**kwargs)
+    return unwrap_tool_result(result, DeletePurchaseOrderResponse)
 
 
 @pytest.fixture
@@ -86,9 +113,7 @@ async def test_get_purchase_order_success(mock_po_context, sample_purchase_order
     services.purchase_orders.get_by_reference.return_value = sample_purchase_order
 
     # Execute
-    response = await get_purchase_order(
-        reference_number="PO-2024-001", context=mock_po_context
-    )
+    response = await _call_get(reference_number="PO-2024-001", context=mock_po_context)
 
     # Verify
     assert response is not None
@@ -110,9 +135,7 @@ async def test_get_purchase_order_not_found(mock_po_context):
     services.purchase_orders.get_by_reference.return_value = None
 
     # Execute
-    response = await get_purchase_order(
-        reference_number="PO-MISSING", context=mock_po_context
-    )
+    response = await _call_get(reference_number="PO-MISSING", context=mock_po_context)
 
     # Verify
     assert response is None
@@ -146,7 +169,7 @@ async def test_list_purchase_orders_success(mock_po_context, sample_purchase_ord
     services.purchase_orders.list_all.return_value = [sample_purchase_order]
 
     # Execute
-    response = await list_purchase_orders(context=mock_po_context)
+    response = await _call_list(context=mock_po_context)
 
     # Verify
     assert response.total_count == 1
@@ -163,7 +186,7 @@ async def test_list_purchase_orders_empty(mock_po_context):
     services.purchase_orders.list_all.return_value = []
 
     # Execute
-    response = await list_purchase_orders(context=mock_po_context)
+    response = await _call_list(context=mock_po_context)
 
     # Verify
     assert response.total_count == 0
@@ -180,7 +203,7 @@ async def test_list_purchase_orders_api_returns_single_object(
     services.purchase_orders.list_all.return_value = sample_purchase_order
 
     # Execute
-    response = await list_purchase_orders(context=mock_po_context)
+    response = await _call_list(context=mock_po_context)
 
     # Verify - should handle single object and convert to list
     assert response.total_count == 1
@@ -201,7 +224,7 @@ async def test_create_purchase_order_success(mock_po_context, sample_purchase_or
     services.purchase_orders.create.return_value = sample_purchase_order
 
     # Execute
-    response = await create_purchase_order(
+    response = await _call_create(
         supplier_code="SUP-001",
         supplier_name="Test Supplier",
         line_items=[
@@ -242,7 +265,7 @@ async def test_create_purchase_order_minimal_fields(
     services.purchase_orders.create.return_value = sample_purchase_order
 
     # Execute
-    response = await create_purchase_order(
+    response = await _call_create(
         supplier_code="SUP-001",
         line_items=[
             LineItemRequest(product_code="WIDGET-001", quantity=10.0),
@@ -300,7 +323,7 @@ async def test_create_purchase_order_with_custom_date(
     services.purchase_orders.create.return_value = sample_purchase_order
 
     # Execute
-    response = await create_purchase_order(
+    response = await _call_create(
         supplier_code="SUP-001",
         line_items=[LineItemRequest(product_code="WIDGET-001", quantity=10.0)],
         order_date="2024-01-15",
@@ -323,7 +346,7 @@ async def test_create_purchase_order_with_different_statuses(
 
     # Test each valid status
     for status in ["Draft", "Approved", "Sent", "Received"]:
-        response = await create_purchase_order(
+        response = await _call_create(
             supplier_code="SUP-001",
             line_items=[LineItemRequest(product_code="WIDGET-001", quantity=10.0)],
             status=status,
@@ -348,7 +371,7 @@ async def test_delete_purchase_order_not_found(mock_po_context):
     services.purchase_orders.get_by_reference.return_value = None
 
     # Execute
-    response = await delete_purchase_order(
+    response = await _call_delete(
         reference_number="PO-MISSING", context=mock_po_context
     )
 
@@ -371,7 +394,7 @@ async def test_delete_purchase_order_accepted(mock_po_context, sample_purchase_o
     mock_po_context.elicit = AsyncMock(return_value=AcceptedElicitation(data=None))
 
     # Execute
-    response = await delete_purchase_order(
+    response = await _call_delete(
         reference_number="PO-2024-001", context=mock_po_context
     )
 
@@ -399,7 +422,7 @@ async def test_delete_purchase_order_declined(mock_po_context, sample_purchase_o
     mock_po_context.elicit = AsyncMock(return_value=DeclinedElicitation(data=None))
 
     # Execute
-    response = await delete_purchase_order(
+    response = await _call_delete(
         reference_number="PO-2024-001", context=mock_po_context
     )
 
@@ -422,7 +445,7 @@ async def test_delete_purchase_order_cancelled(mock_po_context, sample_purchase_
     mock_po_context.elicit = AsyncMock(return_value=CancelledElicitation(data=None))
 
     # Execute
-    response = await delete_purchase_order(
+    response = await _call_delete(
         reference_number="PO-2024-001", context=mock_po_context
     )
 

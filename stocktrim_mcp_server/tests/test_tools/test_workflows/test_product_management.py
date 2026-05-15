@@ -1,18 +1,32 @@
 """Tests for product management workflow tools."""
 
+from typing import Any
 from unittest.mock import AsyncMock
 
 import pytest
 
+from stocktrim_mcp_server.tools.tool_result_utils import unwrap_tool_result
 from stocktrim_mcp_server.tools.workflows.product_management import (
     ConfigureProductRequest,
+    ConfigureProductResponse,
     ProductLifecycleRequest,
+    ProductLifecycleResponse,
     configure_product,
     products_configure_lifecycle,
 )
 from stocktrim_public_api_client.generated.models.products_response_dto import (
     ProductsResponseDto,
 )
+
+
+async def _call_configure(*args: Any, **kwargs: Any) -> ConfigureProductResponse:
+    result = await configure_product(*args, **kwargs)
+    return unwrap_tool_result(result, ConfigureProductResponse)
+
+
+async def _call_lifecycle(*args: Any, **kwargs: Any) -> ProductLifecycleResponse:
+    result = await products_configure_lifecycle(*args, **kwargs)
+    return unwrap_tool_result(result, ProductLifecycleResponse)
 
 
 @pytest.fixture
@@ -46,7 +60,7 @@ async def test_configure_product_discontinue_success(
         product_code="WIDGET-001",
         discontinue=True,
     )
-    response = await configure_product(request, mock_product_mgmt_context)
+    response = await _call_configure(request, mock_product_mgmt_context)
 
     # Verify
     assert response.product_code == "WIDGET-001"
@@ -77,7 +91,7 @@ async def test_configure_product_forecast_settings(
         product_code="WIDGET-001",
         configure_forecast=False,  # Disable forecast
     )
-    response = await configure_product(request, mock_product_mgmt_context)
+    response = await _call_configure(request, mock_product_mgmt_context)
 
     # Verify
     assert response.product_code == "WIDGET-001"
@@ -108,7 +122,7 @@ async def test_configure_product_both_settings(
         discontinue=True,
         configure_forecast=True,  # Enable forecast
     )
-    response = await configure_product(request, mock_product_mgmt_context)
+    response = await _call_configure(request, mock_product_mgmt_context)
 
     # Verify
     assert response.product_code == "WIDGET-001"
@@ -130,7 +144,7 @@ async def test_configure_product_not_found(mock_product_mgmt_context):
     )
 
     with pytest.raises(ValueError, match="Product not found"):
-        await configure_product(request, mock_product_mgmt_context)
+        await _call_configure(request, mock_product_mgmt_context)
 
     services.client.products.create.assert_not_called()
 
@@ -150,7 +164,7 @@ async def test_configure_product_api_error(mock_product_mgmt_context, sample_pro
     )
 
     with pytest.raises(Exception, match="API Error"):
-        await configure_product(request, mock_product_mgmt_context)
+        await _call_configure(request, mock_product_mgmt_context)
 
 
 # ============================================================================
@@ -200,14 +214,15 @@ async def test_lifecycle_activate_product(mock_lifecycle_context):
         action="activate",
         update_forecasts=True,
     )
-    response = await products_configure_lifecycle(request, mock_lifecycle_context)
+    response = await _call_lifecycle(request, mock_lifecycle_context)
 
     # Verify
-    assert isinstance(response, str)
-    assert "WIDGET-001" in response
-    assert "ACTIVATE" in response
-    assert "activated" in response.lower()
-    assert "✅" in response
+    assert response.product_code == "WIDGET-001"
+    assert response.action == "activate"
+    assert "activated" in response.action_description.lower()
+    assert response.new_status.discontinued is False
+    assert response.new_status.forecast_enabled is True
+    assert response.forecast_recalculation_triggered is True
     services.products.get_by_code.assert_called_once_with("WIDGET-001")
     services.client.products.create.assert_called_once()
     services.client.forecasting.run_calculations.assert_called_once()
@@ -243,12 +258,13 @@ async def test_lifecycle_deactivate_product(mock_lifecycle_context):
         action="deactivate",
         update_forecasts=False,
     )
-    response = await products_configure_lifecycle(request, mock_lifecycle_context)
+    response = await _call_lifecycle(request, mock_lifecycle_context)
 
     # Verify
-    assert isinstance(response, str)
-    assert "deactivate" in response.lower()
-    assert "WIDGET-001" in response
+    assert response.action == "deactivate"
+    assert response.product_code == "WIDGET-001"
+    assert response.new_status.forecast_enabled is False
+    assert response.forecast_recalculation_triggered is False
     services.client.forecasting.run_calculations.assert_not_called()
 
 
@@ -281,14 +297,13 @@ async def test_lifecycle_discontinue_product(mock_lifecycle_context):
         action="discontinue",
         update_forecasts=True,
     )
-    response = await products_configure_lifecycle(request, mock_lifecycle_context)
+    response = await _call_lifecycle(request, mock_lifecycle_context)
 
     # Verify
-    assert isinstance(response, str)
-    assert "discontinue" in response.lower()
-    assert "25" in response  # current inventory
-    assert "Previous Status" in response
-    assert "New Status" in response
+    assert response.action == "discontinue"
+    assert response.previous_inventory == 25
+    assert response.previous_status.discontinued is False
+    assert response.new_status.discontinued is True
 
 
 @pytest.mark.asyncio
@@ -319,11 +334,12 @@ async def test_lifecycle_unstock_product(mock_lifecycle_context):
         action="unstock",
         update_forecasts=False,
     )
-    response = await products_configure_lifecycle(request, mock_lifecycle_context)
+    response = await _call_lifecycle(request, mock_lifecycle_context)
 
     # Verify
-    assert isinstance(response, str)
-    assert "unstock" in response.lower()
+    assert response.action == "unstock"
+    assert response.new_status.discontinued is True
+    assert response.new_status.forecast_enabled is False
 
 
 @pytest.mark.asyncio
@@ -336,7 +352,7 @@ async def test_lifecycle_invalid_action(mock_lifecycle_context):
     )
 
     with pytest.raises(ValueError, match="Invalid action"):
-        await products_configure_lifecycle(request, mock_lifecycle_context)
+        await _call_lifecycle(request, mock_lifecycle_context)
 
 
 @pytest.mark.asyncio
@@ -353,7 +369,7 @@ async def test_lifecycle_product_not_found(mock_lifecycle_context):
     )
 
     with pytest.raises(ValueError, match="Product not found"):
-        await products_configure_lifecycle(request, mock_lifecycle_context)
+        await _call_lifecycle(request, mock_lifecycle_context)
 
     services.client.products.create.assert_not_called()
 
@@ -388,12 +404,12 @@ async def test_lifecycle_forecast_update_fails(mock_lifecycle_context):
         action="activate",
         update_forecasts=True,
     )
-    response = await products_configure_lifecycle(request, mock_lifecycle_context)
+    response = await _call_lifecycle(request, mock_lifecycle_context)
 
     # Verify - should still succeed but report forecast failure
-    assert isinstance(response, str)
-    assert "⚠️" in response or "forecast" in response.lower()
-    assert "failed" in response.lower() or "error" in response.lower()
+    assert response.forecast_recalculation_triggered is False
+    assert response.forecast_recalculation_message is not None
+    assert "fail" in response.forecast_recalculation_message.lower()
 
 
 @pytest.mark.asyncio
@@ -424,9 +440,9 @@ async def test_lifecycle_clear_inventory_flag(mock_lifecycle_context):
         clear_inventory=True,
         update_forecasts=False,
     )
-    response = await products_configure_lifecycle(request, mock_lifecycle_context)
+    response = await _call_lifecycle(request, mock_lifecycle_context)
 
     # Verify
-    assert isinstance(response, str)
-    assert "75" in response  # Shows previous inventory
+    assert response.previous_inventory == 75
+    assert response.inventory_cleared is True
     # Note: Actual inventory clearing would require additional implementation

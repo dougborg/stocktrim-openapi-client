@@ -7,10 +7,12 @@ such as discontinuing products and updating forecast configurations.
 from __future__ import annotations
 
 from fastmcp import Context, FastMCP
+from fastmcp.tools import ToolResult
 from pydantic import BaseModel, Field
 
 from stocktrim_mcp_server.dependencies import get_services
 from stocktrim_mcp_server.logging_config import get_logger
+from stocktrim_mcp_server.tools.tool_result_utils import make_json_result
 from stocktrim_public_api_client.client_types import UNSET
 from stocktrim_public_api_client.generated.models.products_request_dto import (
     ProductsRequestDto,
@@ -116,7 +118,7 @@ async def _configure_product_impl(
 
 async def configure_product(
     request: ConfigureProductRequest, ctx: Context
-) -> ConfigureProductResponse:
+) -> ToolResult:
     """Configure product settings such as discontinue status and forecast configuration.
 
     This workflow tool updates product configuration settings. It supports partial
@@ -145,7 +147,8 @@ async def configure_product(
             "message": "Successfully configured product WIDGET-001"
         }
     """
-    return await _configure_product_impl(request, ctx)
+    response = await _configure_product_impl(request, ctx)
+    return make_json_result(response)
 
 
 # ============================================================================
@@ -168,9 +171,49 @@ class ProductLifecycleRequest(BaseModel):
     )
 
 
+class ProductLifecycleStatus(BaseModel):
+    """Lifecycle status snapshot (used for before / after)."""
+
+    discontinued: bool = Field(description="Whether the product is discontinued")
+    forecast_enabled: bool = Field(
+        description="Whether forecasting is enabled (inverse of ignore_seasonality)"
+    )
+
+
+class ProductLifecycleResponse(BaseModel):
+    """Typed response for products_configure_lifecycle.
+
+    Replaces the previous hand-rendered markdown report. Hosts can render
+    their own formatting from this structured data.
+    """
+
+    product_code: str = Field(description="Product code that was updated")
+    product_name: str = Field(description="Resolved product name (or code if unknown)")
+    action: str = Field(description="Lifecycle action that was applied")
+    action_description: str = Field(description="Human-readable summary of the action")
+    previous_status: ProductLifecycleStatus = Field(
+        description="Status before the update"
+    )
+    new_status: ProductLifecycleStatus = Field(description="Status after the update")
+    previous_inventory: float = Field(description="Inventory level before the update")
+    inventory_cleared: bool = Field(
+        description="Whether clear_inventory was requested in this update"
+    )
+    forecast_recalculation_triggered: bool = Field(
+        description="True if forecast recalculation was attempted and succeeded"
+    )
+    forecast_recalculation_message: str | None = Field(
+        default=None,
+        description="Status or error message from the forecast recalculation attempt",
+    )
+    next_steps: list[str] = Field(
+        description="Recommended follow-up actions based on the lifecycle change"
+    )
+
+
 async def _products_configure_lifecycle_impl(
     request: ProductLifecycleRequest, context: Context
-) -> str:
+) -> ProductLifecycleResponse:
     """Implementation of products_configure_lifecycle tool.
 
     Args:
@@ -178,7 +221,7 @@ async def _products_configure_lifecycle_impl(
         context: Server context with StockTrimClient
 
     Returns:
-        Markdown formatted report with lifecycle change results
+        ProductLifecycleResponse with before/after status and next steps.
 
     Raises:
         ValueError: If action is invalid or product not found
@@ -195,35 +238,32 @@ async def _products_configure_lifecycle_impl(
     )
 
     try:
-        # Get services from context
         services = get_services(context)
-
-        # Step 1: Fetch the existing product
         existing_product = await services.products.get_by_code(request.product_code)
-
         if not existing_product:
             raise ValueError(f"Product not found: {request.product_code}")
 
-        # Step 2: Check current inventory and status
         product_name = (
             existing_product.name
             if existing_product.name not in (None, UNSET)
             else request.product_code
         )
-
         current_inventory = (
             existing_product.stock_on_hand
             if existing_product.stock_on_hand not in (None, UNSET)
             else 0
         )
-
         was_discontinued = (
             existing_product.discontinued
             if existing_product.discontinued not in (None, UNSET)
             else False
         )
+        previous_forecast_enabled = not (
+            existing_product.ignore_seasonality
+            if existing_product.ignore_seasonality not in (None, UNSET)
+            else True
+        )
 
-        # Step 3: Build update based on action
         update_data = ProductsRequestDto(
             product_id=existing_product.product_id,
             product_code_readable=existing_product.product_code_readable
@@ -232,132 +272,98 @@ async def _products_configure_lifecycle_impl(
         )
 
         action_description = ""
-
         if request.action == "activate":
             update_data.discontinued = False
-            update_data.ignore_seasonality = False  # Enable forecasting
+            update_data.ignore_seasonality = False
             action_description = "activated (available for orders and forecasting)"
-
         elif request.action == "deactivate":
             update_data.discontinued = False
-            update_data.ignore_seasonality = True  # Disable forecasting
+            update_data.ignore_seasonality = True
             action_description = "deactivated (available but forecasting disabled)"
-
-            # Optionally clear inventory
             if request.clear_inventory:
-                # Note: We'd need to use inventory service here
-                # For now, just note in the report
                 action_description += " - inventory will be cleared"
-
         elif request.action == "discontinue":
             update_data.discontinued = True
-            update_data.ignore_seasonality = True  # Disable forecasting
+            update_data.ignore_seasonality = True
             action_description = "discontinued (no longer available for new orders)"
-
         elif request.action == "unstock":
             update_data.discontinued = True
             update_data.ignore_seasonality = True
-            # Additional unstocking logic would go here
             action_description = "unstocked (removed from inventory management)"
 
-        # Step 4: Update the product
         updated_product = await services.client.products.create(update_data)
 
-        # Step 5: Optionally trigger forecast recalculation
-        forecast_status = ""
+        forecast_triggered = False
+        forecast_message: str | None = None
         if request.update_forecasts:
             try:
                 await services.client.forecasting.run_calculations()
-                forecast_status = "✅ Forecast recalculation triggered"
+                forecast_triggered = True
+                forecast_message = "Forecast recalculation triggered"
             except Exception as e:
                 logger.warning(f"Failed to trigger forecast update: {e}")
-                forecast_status = f"⚠️  Forecast update failed: {e}"
-
-        # Step 6: Build markdown report
-        report_lines = [
-            "# Product Lifecycle Update",
-            "",
-            f"## Product: {product_name} ({request.product_code})",
-            "",
-            f"**Action**: {request.action.upper()}",
-            f"**Status**: ✅ {action_description}",
-            "",
-            "## Previous Status",
-            "",
-            f"- Discontinued: {was_discontinued}",
-            f"- Current Inventory: {current_inventory} units",
-            "",
-            "## New Status",
-            "",
-        ]
+                forecast_message = f"Forecast update failed: {e}"
 
         new_discontinued = (
             updated_product.discontinued
             if updated_product.discontinued not in (None, UNSET)
             else False
         )
-
         new_forecast_enabled = not (
             updated_product.ignore_seasonality
             if updated_product.ignore_seasonality not in (None, UNSET)
             else True
         )
 
-        report_lines.extend(
-            [
-                f"- Discontinued: {new_discontinued}",
-                f"- Forecasting Enabled: {new_forecast_enabled}",
-            ]
-        )
-
-        if request.clear_inventory:
-            report_lines.append(f"- Inventory: Cleared (was {current_inventory} units)")
-
-        # Add forecast status
-        if forecast_status:
-            report_lines.extend(["", "## Forecast Impact", "", forecast_status])
-
-        # Add next steps
-        report_lines.extend(
-            [
-                "",
-                "## Next Steps",
-                "",
-            ]
-        )
-
         if request.action == "activate":
-            report_lines.extend(
-                [
-                    "- Verify product pricing and supplier information",
-                    "- Use `forecasts_get_for_products` to check demand forecast",
-                    "- Use `review_urgent_order_requirements` to check reorder needs",
-                ]
-            )
-        elif request.action in ["deactivate", "discontinue", "unstock"]:
-            report_lines.extend(
-                [
-                    "- Review and fulfill any pending customer orders",
-                    "- Clear remaining inventory if needed",
-                    "- Update product catalog and customer communications",
-                ]
-            )
-
-        report = "\n".join(report_lines)
+            next_steps = [
+                "Verify product pricing and supplier information",
+                "Use `forecasts_get_for_products` to check demand forecast",
+                "Use `review_urgent_order_requirements` to check reorder needs",
+            ]
+        else:
+            next_steps = [
+                "Review and fulfill any pending customer orders",
+                "Clear remaining inventory if needed",
+                "Update product catalog and customer communications",
+            ]
 
         logger.info(
             f"Product lifecycle updated: {request.product_code} -> {request.action}"
         )
-        return report
+        return ProductLifecycleResponse(
+            product_code=request.product_code,
+            product_name=product_name,
+            action=request.action,
+            action_description=action_description,
+            previous_status=ProductLifecycleStatus(
+                discontinued=was_discontinued,
+                forecast_enabled=previous_forecast_enabled,
+            ),
+            new_status=ProductLifecycleStatus(
+                discontinued=new_discontinued,
+                forecast_enabled=new_forecast_enabled,
+            ),
+            previous_inventory=float(current_inventory),
+            inventory_cleared=request.clear_inventory,
+            forecast_recalculation_triggered=forecast_triggered,
+            forecast_recalculation_message=forecast_message,
+            next_steps=next_steps,
+        )
 
     except Exception as e:
+        # Preserve diagnostic context on failures — the pre-migration impl
+        # had this logger.error wrapper and peer impls in this PR
+        # (_create_supplier_with_products_impl, _update_forecast_settings_impl)
+        # kept theirs. Dropping it during the markdown → typed-response refactor
+        # would have silently lost operator visibility (Copilot review, PR #188).
         logger.error(f"Failed to configure lifecycle for {request.product_code}: {e}")
         raise
 
 
 async def products_configure_lifecycle(
     request: ProductLifecycleRequest, ctx: Context
-) -> str:
+) -> ToolResult:
     """Configure product lifecycle settings with impact analysis.
 
     This workflow tool manages product lifecycle transitions with full visibility
@@ -429,15 +435,8 @@ async def products_configure_lifecycle(
         ctx: Server context with StockTrimClient
 
     Returns:
-        Markdown report with lifecycle change results
-
-    Example:
-        Request: {
-            "product_code": "WIDGET-001",
-            "action": "discontinue",
-            "clear_inventory": false,
-            "update_forecasts": true
-        }
+        A :class:`fastmcp.tools.ToolResult` per SEP-1865; use
+        ``unwrap_tool_result(result, ProductLifecycleResponse)``.
 
     See Also:
         - `configure_product`: Basic product configuration
@@ -445,7 +444,8 @@ async def products_configure_lifecycle(
         - `review_urgent_order_requirements`: Check reorder needs
         - `list_products`: View all products
     """
-    return await _products_configure_lifecycle_impl(request, ctx)
+    response = await _products_configure_lifecycle_impl(request, ctx)
+    return make_json_result(response)
 
 
 # ============================================================================

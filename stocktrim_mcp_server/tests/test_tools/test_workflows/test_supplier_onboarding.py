@@ -1,11 +1,14 @@
 """Tests for supplier onboarding workflow tools."""
 
+from typing import Any
 from unittest.mock import AsyncMock
 
 import pytest
 
+from stocktrim_mcp_server.tools.tool_result_utils import unwrap_tool_result
 from stocktrim_mcp_server.tools.workflows.supplier_onboarding import (
     CreateSupplierWithProductsRequest,
+    CreateSupplierWithProductsResponse,
     SupplierProductMapping,
     create_supplier_with_products,
 )
@@ -15,6 +18,11 @@ from stocktrim_public_api_client.generated.models.product_supplier import (
 from stocktrim_public_api_client.generated.models.products_response_dto import (
     ProductsResponseDto,
 )
+
+
+async def _call_create(*args: Any, **kwargs: Any) -> CreateSupplierWithProductsResponse:
+    result = await create_supplier_with_products(*args, **kwargs)
+    return unwrap_tool_result(result, CreateSupplierWithProductsResponse)
 
 
 @pytest.fixture
@@ -65,17 +73,16 @@ async def test_create_supplier_with_products_success(
             )
         ],
     )
-    response = await create_supplier_with_products(
-        request, mock_supplier_onboarding_context
-    )
+    response = await _call_create(request, mock_supplier_onboarding_context)
 
-    # Verify - response is now markdown
-    assert isinstance(response, str)
-    assert "SUP-001" in response
-    assert "Test Supplier" in response
-    assert "456" in response  # sample_supplier has id=456
-    assert "WIDGET-001" in response
-    assert "✅" in response or "created successfully" in response.lower()
+    # Verify
+    assert response.supplier_code == "SUP-001"
+    assert response.supplier_name == "Test Supplier"
+    assert response.supplier_id == "456"  # sample_supplier has id=456
+    assert response.mappings_attempted == 1
+    assert response.mappings_successful == 1
+    assert response.mapping_details[0].product_code == "WIDGET-001"
+    assert response.mapping_details[0].success is True
 
     services.suppliers.create.assert_called_once()
     services.products.get_by_code.assert_called_once_with("WIDGET-001")
@@ -133,15 +140,15 @@ async def test_create_supplier_with_products_multiple_mappings(
             ),
         ],
     )
-    response = await create_supplier_with_products(
-        request, mock_supplier_onboarding_context
-    )
+    response = await _call_create(request, mock_supplier_onboarding_context)
 
-    # Verify - response is now markdown
-    assert isinstance(response, str)
-    assert "2/2 successful" in response.lower() or (
-        "WIDGET-001" in response and "WIDGET-002" in response
-    )
+    # Verify
+    assert response.mappings_attempted == 2
+    assert response.mappings_successful == 2
+    assert {m.product_code for m in response.mapping_details} == {
+        "WIDGET-001",
+        "WIDGET-002",
+    }
 
 
 @pytest.mark.asyncio
@@ -177,16 +184,16 @@ async def test_create_supplier_with_products_partial_failure(
             SupplierProductMapping(product_code="WIDGET-999"),  # Doesn't exist
         ],
     )
-    response = await create_supplier_with_products(
-        request, mock_supplier_onboarding_context
-    )
+    response = await _call_create(request, mock_supplier_onboarding_context)
 
-    # Verify - response is now markdown
-    assert isinstance(response, str)
-    assert "1/2 successful" in response.lower()
-    assert "WIDGET-001" in response
-    assert "❌" in response or "failed" in response.lower()
-    assert "not found" in response.lower() or "WIDGET-999" in response
+    # Verify
+    assert response.mappings_attempted == 2
+    assert response.mappings_successful == 1
+    successful = [m for m in response.mapping_details if m.success]
+    failed = [m for m in response.mapping_details if not m.success]
+    assert len(successful) == 1 and successful[0].product_code == "WIDGET-001"
+    assert len(failed) == 1 and failed[0].product_code == "WIDGET-999"
+    assert "not found" in (failed[0].error or "").lower()
 
 
 @pytest.mark.asyncio
@@ -208,7 +215,7 @@ async def test_create_supplier_with_products_supplier_creation_fails(
     )
 
     with pytest.raises(ValueError, match="Failed to create supplier"):
-        await create_supplier_with_products(request, mock_supplier_onboarding_context)
+        await _call_create(request, mock_supplier_onboarding_context)
 
     # Verify product operations were not attempted
     services.products.get_by_code.assert_not_called()
@@ -230,16 +237,14 @@ async def test_create_supplier_with_products_no_mappings(
         supplier_name="Test Supplier",
         product_mappings=[],
     )
-    response = await create_supplier_with_products(
-        request, mock_supplier_onboarding_context
-    )
+    response = await _call_create(request, mock_supplier_onboarding_context)
 
-    # Verify - response is now markdown
-    assert isinstance(response, str)
-    assert "SUP-001" in response
-    assert "Test Supplier" in response
-    # Should not have product mappings section or show 0/0
-    assert "0/0" in response or "Product Mappings" not in response
+    # Verify
+    assert response.supplier_code == "SUP-001"
+    assert response.supplier_name == "Test Supplier"
+    assert response.mappings_attempted == 0
+    assert response.mappings_successful == 0
+    assert response.mapping_details == []
 
 
 @pytest.mark.asyncio
@@ -285,13 +290,12 @@ async def test_create_supplier_with_products_existing_suppliers(
             SupplierProductMapping(product_code="WIDGET-001"),
         ],
     )
-    response = await create_supplier_with_products(
-        request, mock_supplier_onboarding_context
-    )
+    response = await _call_create(request, mock_supplier_onboarding_context)
 
-    # Verify - response is now markdown
-    assert isinstance(response, str)
-    assert "1/1 successful" in response.lower() or "WIDGET-001" in response
+    # Verify
+    assert response.mappings_attempted == 1
+    assert response.mappings_successful == 1
+    assert response.mapping_details[0].product_code == "WIDGET-001"
 
 
 @pytest.mark.asyncio
@@ -319,12 +323,10 @@ async def test_create_supplier_with_products_mapping_api_error(
             SupplierProductMapping(product_code="WIDGET-001"),
         ],
     )
-    response = await create_supplier_with_products(
-        request, mock_supplier_onboarding_context
-    )
+    response = await _call_create(request, mock_supplier_onboarding_context)
 
-    # Verify - supplier created but mapping failed, response is now markdown
-    assert isinstance(response, str)
-    assert "0/1 successful" in response.lower()
-    assert "❌" in response or "failed" in response.lower()
-    assert "API Error" in response or "error" in response.lower()
+    # Verify - supplier created but mapping failed
+    assert response.mappings_attempted == 1
+    assert response.mappings_successful == 0
+    assert response.mapping_details[0].success is False
+    assert "API Error" in (response.mapping_details[0].error or "")

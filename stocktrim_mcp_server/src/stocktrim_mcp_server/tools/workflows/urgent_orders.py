@@ -442,7 +442,7 @@ async def _generate_purchase_orders_from_urgent_items_impl(
 
 async def generate_purchase_orders_from_urgent_items(
     request: GeneratePurchaseOrdersRequest, ctx: Context
-) -> GeneratePurchaseOrdersResponse:
+) -> ToolResult:
     """Generate draft purchase orders for urgent items based on forecast recommendations.
 
     This workflow tool uses StockTrim's V2 API to automatically generate draft
@@ -483,44 +483,17 @@ async def generate_purchase_orders_from_urgent_items(
         context: Server context with StockTrimClient
 
     Returns:
-        GeneratePurchaseOrdersResponse with created PO details, including:
-        - List of generated POs with reference numbers
-        - Supplier information per PO
-        - Item counts per PO
-        - Total PO count
-
-    Example:
-        Request: {
-            "days_threshold": 14,
-            "supplier_codes": ["SUP-001", "SUP-002"],
-            "location_codes": ["WAREHOUSE-A"]
-        }
-        Returns: {
-            "purchase_orders": [
-                {
-                    "reference_number": "PO-2024-001",
-                    "supplier_code": "SUP-001",
-                    "supplier_name": "Acme Supplies",
-                    "item_count": 5,
-                    "status": "Draft"
-                },
-                {
-                    "reference_number": "PO-2024-002",
-                    "supplier_code": "SUP-002",
-                    "supplier_name": "Global Parts",
-                    "item_count": 3,
-                    "status": "Draft"
-                }
-            ],
-            "total_count": 2
-        }
+        A :class:`fastmcp.tools.ToolResult` per SEP-1865; use
+        ``unwrap_tool_result(result, GeneratePurchaseOrdersResponse)`` to
+        recover the typed payload.
 
     See Also:
         - Complete workflow: docs/mcp-server/examples.md#workflow-1-automated-inventory-reordering
         - `review_urgent_order_requirements`: Review items before generating POs
         - `forecasts_update_and_monitor`: Ensure forecasts are current
     """
-    return await _generate_purchase_orders_from_urgent_items_impl(request, ctx)
+    response = await _generate_purchase_orders_from_urgent_items_impl(request, ctx)
+    return make_json_result(response)
 
 
 # ============================================================================

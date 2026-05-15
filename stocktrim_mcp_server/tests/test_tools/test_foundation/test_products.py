@@ -1,5 +1,6 @@
 """Tests for product foundation tools."""
 
+from typing import Any
 from unittest.mock import AsyncMock
 
 import pytest
@@ -10,11 +11,17 @@ from fastmcp.server.elicitation import (
 )
 
 from stocktrim_mcp_server.tools.foundation.products import (
+    CreateProductResponse,
+    DeleteProductResponse,
+    GetProductResponse,
+    ProductInfo,
+    SearchProductsResponse,
     create_product,
     delete_product,
     get_product,
     search_products,
 )
+from stocktrim_mcp_server.tools.tool_result_utils import unwrap_tool_result
 from stocktrim_public_api_client.client_types import UNSET
 from stocktrim_public_api_client.generated.models.products_response_dto import (
     ProductsResponseDto,
@@ -22,6 +29,26 @@ from stocktrim_public_api_client.generated.models.products_response_dto import (
 from stocktrim_public_api_client.generated.models.sku_optimized_results_dto import (
     SkuOptimizedResultsDto,
 )
+
+
+async def _call_get(**kwargs: Any) -> ProductInfo | None:
+    result = await get_product(**kwargs)
+    return unwrap_tool_result(result, GetProductResponse).product
+
+
+async def _call_search(**kwargs: Any) -> SearchProductsResponse:
+    result = await search_products(**kwargs)
+    return unwrap_tool_result(result, SearchProductsResponse)
+
+
+async def _call_create(**kwargs: Any) -> ProductInfo:
+    result = await create_product(**kwargs)
+    return unwrap_tool_result(result, CreateProductResponse).product
+
+
+async def _call_delete(**kwargs: Any) -> DeleteProductResponse:
+    result = await delete_product(**kwargs)
+    return unwrap_tool_result(result, DeleteProductResponse)
 
 
 @pytest.fixture
@@ -58,7 +85,7 @@ async def test_get_product_success(mock_product_context, sample_product):
     services.products.get_by_code.return_value = sample_product
 
     # Execute
-    response = await get_product(code="WIDGET-001", context=mock_product_context)
+    response = await _call_get(code="WIDGET-001", context=mock_product_context)
 
     # Verify
     assert response is not None
@@ -79,7 +106,7 @@ async def test_get_product_not_found(mock_product_context):
     services.products.get_by_code.return_value = None
 
     # Execute
-    response = await get_product(code="MISSING", context=mock_product_context)
+    response = await _call_get(code="MISSING", context=mock_product_context)
 
     # Verify
     assert response is None
@@ -102,7 +129,7 @@ async def test_get_product_discontinued(mock_product_context):
     services.products.get_by_code.return_value = product
 
     # Execute
-    response = await get_product(code="OLD-001", context=mock_product_context)
+    response = await _call_get(code="OLD-001", context=mock_product_context)
 
     # Verify
     assert response is not None
@@ -139,9 +166,7 @@ async def test_search_products_success(mock_product_context):
     services.client.order_plan.query.return_value = [order_plan_item1, order_plan_item2]
 
     # Execute - using flattened parameters
-    response = await search_products(
-        search_query="widget", context=mock_product_context
-    )
+    response = await _call_search(search_query="widget", context=mock_product_context)
 
     # Verify
     assert response.total_count == 2
@@ -169,7 +194,7 @@ async def test_search_products_empty(mock_product_context):
     services.client.order_plan.query.return_value = []
 
     # Execute - using flattened parameters
-    response = await search_products(
+    response = await _call_search(
         search_query="NONEXISTENT", context=mock_product_context
     )
 
@@ -191,7 +216,7 @@ async def test_create_product_success(mock_product_context, sample_product):
     services.products.create.return_value = sample_product
 
     # Execute
-    response = await create_product(
+    response = await _call_create(
         code="WIDGET-001",
         description="Blue Widget",
         cost_price=15.50,
@@ -229,7 +254,7 @@ async def test_create_product_minimal(mock_product_context):
     services.products.create.return_value = product
 
     # Execute
-    response = await create_product(
+    response = await _call_create(
         code="MIN-001", description="Minimal Product", context=mock_product_context
     )
 
@@ -265,7 +290,7 @@ async def test_delete_product_not_found(mock_product_context):
     services.products.get_by_code.return_value = None
 
     # Execute
-    response = await delete_product(code="MISSING", context=mock_product_context)
+    response = await _call_delete(code="MISSING", context=mock_product_context)
 
     # Verify
     assert response.success is False
@@ -286,7 +311,7 @@ async def test_delete_product_accepted(mock_product_context, sample_product):
     mock_product_context.elicit = AsyncMock(return_value=AcceptedElicitation(data=None))
 
     # Execute
-    response = await delete_product(code="WIDGET-001", context=mock_product_context)
+    response = await _call_delete(code="WIDGET-001", context=mock_product_context)
 
     # Verify
     assert response.success is True
@@ -313,7 +338,7 @@ async def test_delete_product_declined(mock_product_context, sample_product):
     mock_product_context.elicit = AsyncMock(return_value=DeclinedElicitation(data=None))
 
     # Execute
-    response = await delete_product(code="WIDGET-001", context=mock_product_context)
+    response = await _call_delete(code="WIDGET-001", context=mock_product_context)
 
     # Verify
     assert response.success is False
@@ -336,7 +361,7 @@ async def test_delete_product_cancelled(mock_product_context, sample_product):
     )
 
     # Execute
-    response = await delete_product(code="WIDGET-001", context=mock_product_context)
+    response = await _call_delete(code="WIDGET-001", context=mock_product_context)
 
     # Verify
     assert response.success is False

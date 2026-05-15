@@ -11,9 +11,11 @@ from fastmcp.server.elicitation import (
     CancelledElicitation,
     DeclinedElicitation,
 )
+from fastmcp.tools import ToolResult
 from pydantic import BaseModel, Field
 
 from stocktrim_mcp_server.dependencies import get_services
+from stocktrim_mcp_server.tools.tool_result_utils import make_json_result
 from stocktrim_mcp_server.unpack import Unpack, unpack_pydantic_params
 from stocktrim_public_api_client.client_types import UNSET, Unset
 from stocktrim_public_api_client.generated.models.order_plan_filter_criteria import (
@@ -44,10 +46,24 @@ class ProductInfo(BaseModel):
     selling_price: float | None
 
 
+class GetProductResponse(BaseModel):
+    """Response wrapper so the ``None`` case still serializes through
+    ``make_json_result``."""
+
+    product: ProductInfo | None = None
+
+
+class CreateProductResponse(BaseModel):
+    """Response wrapper so a single ``ProductInfo`` serializes through
+    ``make_json_result``."""
+
+    product: ProductInfo
+
+
 @unpack_pydantic_params
 async def get_product(
     request: Annotated[GetProductRequest, Unpack()], context: Context
-) -> ProductInfo | None:
+) -> ToolResult:
     """Get a product by code.
 
     This tool retrieves detailed information about a specific product
@@ -58,27 +74,28 @@ async def get_product(
         context: Server context with StockTrimClient
 
     Returns:
-        ProductInfo if found, None if not found
-
-    Example:
-        Request: {"code": "WIDGET-001"}
-        Returns: {"code": "WIDGET-001", "description": "Widget", ...}
+        A :class:`fastmcp.tools.ToolResult` per SEP-1865; use
+        ``unwrap_tool_result(result, GetProductResponse)`` and read
+        ``response.product`` (``None`` if not found).
     """
     services = get_services(context)
     product = await services.products.get_by_code(request.code)
 
-    if not product:
-        return None
-
-    # Build ProductInfo from response
-    return ProductInfo(
-        code=product.product_code_readable or product.product_id or "",
-        description=product.name,
-        unit_of_measurement=None,  # Not available in ProductsResponseDto
-        is_active=not (product.discontinued or False),
-        cost_price=product.cost if not isinstance(product.cost, Unset) else None,
-        selling_price=product.price if not isinstance(product.price, Unset) else None,
+    info = (
+        ProductInfo(
+            code=product.product_code_readable or product.product_id or "",
+            description=product.name,
+            unit_of_measurement=None,
+            is_active=not (product.discontinued or False),
+            cost_price=product.cost if not isinstance(product.cost, Unset) else None,
+            selling_price=product.price
+            if not isinstance(product.price, Unset)
+            else None,
+        )
+        if product
+        else None
     )
+    return make_json_result(GetProductResponse(product=info))
 
 
 # ============================================================================
@@ -104,7 +121,7 @@ class SearchProductsResponse(BaseModel):
 @unpack_pydantic_params
 async def search_products(
     request: Annotated[SearchProductsRequest, Unpack()], context: Context
-) -> SearchProductsResponse:
+) -> ToolResult:
     """Search for products by name, code, or category keywords.
 
     This tool searches across product fields (name, code, category) using
@@ -163,9 +180,11 @@ async def search_products(
             )
         )
 
-    return SearchProductsResponse(
-        products=product_infos,
-        total_count=len(product_infos),
+    return make_json_result(
+        SearchProductsResponse(
+            products=product_infos,
+            total_count=len(product_infos),
+        )
     )
 
 
@@ -190,7 +209,7 @@ class CreateProductRequest(BaseModel):
 @unpack_pydantic_params
 async def create_product(
     request: Annotated[CreateProductRequest, Unpack()], context: Context
-) -> ProductInfo:
+) -> ToolResult:
     """Create a new product.
 
     This tool creates a new product in StockTrim inventory.
@@ -200,11 +219,9 @@ async def create_product(
         context: Server context with StockTrimClient
 
     Returns:
-        ProductInfo for the created product
-
-    Example:
-        Request: {"code": "WIDGET-001", "description": "Blue Widget", "unit_of_measurement": "EA"}
-        Returns: {"code": "WIDGET-001", "description": "Blue Widget", ...}
+        A :class:`fastmcp.tools.ToolResult` per SEP-1865; use
+        ``unwrap_tool_result(result, CreateProductResponse)`` and read
+        ``response.product``.
     """
     services = get_services(context)
     created_product = await services.products.create(
@@ -214,8 +231,7 @@ async def create_product(
         selling_price=request.selling_price,
     )
 
-    # Build ProductInfo from response
-    return ProductInfo(
+    info = ProductInfo(
         code=created_product.product_code_readable or created_product.product_id or "",
         description=created_product.name,
         unit_of_measurement=None,
@@ -227,6 +243,7 @@ async def create_product(
         if not isinstance(created_product.price, Unset)
         else None,
     )
+    return make_json_result(CreateProductResponse(product=info))
 
 
 # ============================================================================
@@ -247,10 +264,64 @@ class DeleteProductResponse(BaseModel):
     message: str
 
 
+async def _delete_product_impl(
+    request: DeleteProductRequest, context: Context
+) -> DeleteProductResponse:
+    """Pure-impl half of ``delete_product`` so the ToolResult wrapper stays one line."""
+    services = get_services(context)
+    product = await services.products.get_by_code(request.code)
+
+    if not product:
+        return DeleteProductResponse(
+            success=False,
+            message=f"Product not found: {request.code}",
+        )
+
+    product_code = product.product_code_readable or product.product_id or request.code
+    product_name = product.name or "Unnamed Product"
+    status_emoji = "🔴" if product.discontinued else "🟢"
+    status_text = "Discontinued" if product.discontinued else "Active"
+
+    result = await context.elicit(
+        message=f"""⚠️ Delete product {product_code}?
+
+{status_emoji} **{product_name}**
+Status: {status_text}
+
+This action will permanently delete the product and cannot be undone.
+
+Proceed with deletion?""",
+        response_type=None,
+    )
+
+    match result:
+        case AcceptedElicitation():
+            success, message = await services.products.delete(request.code)
+            return DeleteProductResponse(
+                success=success,
+                message=f"✅ {message}" if success else message,
+            )
+        case DeclinedElicitation():
+            return DeleteProductResponse(
+                success=False,
+                message=f"❌ Deletion of product {product_code} declined by user",
+            )
+        case CancelledElicitation():
+            return DeleteProductResponse(
+                success=False,
+                message=f"❌ Deletion of product {product_code} cancelled by user",
+            )
+        case _:
+            return DeleteProductResponse(
+                success=False,
+                message=f"Unexpected elicitation response for product {product_code}",
+            )
+
+
 @unpack_pydantic_params
 async def delete_product(
     request: Annotated[DeleteProductRequest, Unpack()], context: Context
-) -> DeleteProductResponse:
+) -> ToolResult:
     """Delete a product by code.
 
     🔴 HIGH-RISK OPERATION: This action permanently deletes product data
@@ -264,73 +335,11 @@ async def delete_product(
         context: Server context with StockTrimClient
 
     Returns:
-        DeleteProductResponse indicating success or cancellation
-
-    Example:
-        Request: {"code": "WIDGET-001"}
-        Returns: {"success": true, "message": "Product WIDGET-001 deleted successfully"}
-                 or {"success": false, "message": "Deletion cancelled by user"}
+        A :class:`fastmcp.tools.ToolResult` per SEP-1865; use
+        ``unwrap_tool_result(result, DeleteProductResponse)``.
     """
-    services = get_services(context)
-
-    # Get product details for preview
-    product = await services.products.get_by_code(request.code)
-
-    if not product:
-        return DeleteProductResponse(
-            success=False,
-            message=f"Product not found: {request.code}",
-        )
-
-    # Build preview information
-    product_code = product.product_code_readable or product.product_id or request.code
-    product_name = product.name or "Unnamed Product"
-    status_emoji = "🔴" if product.discontinued else "🟢"
-    status_text = "Discontinued" if product.discontinued else "Active"
-
-    # Request user confirmation via elicitation
-    result = await context.elicit(
-        message=f"""⚠️ Delete product {product_code}?
-
-{status_emoji} **{product_name}**
-Status: {status_text}
-
-This action will permanently delete the product and cannot be undone.
-
-Proceed with deletion?""",
-        response_type=None,  # Simple yes/no approval
-    )
-
-    # Handle elicitation response
-    match result:
-        case AcceptedElicitation():
-            # User confirmed - proceed with deletion
-            success, message = await services.products.delete(request.code)
-            return DeleteProductResponse(
-                success=success,
-                message=f"✅ {message}" if success else message,
-            )
-
-        case DeclinedElicitation():
-            # User declined
-            return DeleteProductResponse(
-                success=False,
-                message=f"❌ Deletion of product {product_code} declined by user",
-            )
-
-        case CancelledElicitation():
-            # User cancelled
-            return DeleteProductResponse(
-                success=False,
-                message=f"❌ Deletion of product {product_code} cancelled by user",
-            )
-
-        case _:
-            # Unexpected response type
-            return DeleteProductResponse(
-                success=False,
-                message=f"Unexpected elicitation response for product {product_code}",
-            )
+    response = await _delete_product_impl(request, context)
+    return make_json_result(response)
 
 
 # ============================================================================

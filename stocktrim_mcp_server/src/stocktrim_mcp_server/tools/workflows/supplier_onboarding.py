@@ -7,10 +7,12 @@ with their associated product mappings.
 from __future__ import annotations
 
 from fastmcp import Context, FastMCP
+from fastmcp.tools import ToolResult
 from pydantic import BaseModel, Field
 
 from stocktrim_mcp_server.dependencies import get_services
 from stocktrim_mcp_server.logging_config import get_logger
+from stocktrim_mcp_server.tools.tool_result_utils import make_json_result
 from stocktrim_public_api_client.client_types import UNSET
 from stocktrim_public_api_client.generated.models.product_supplier import (
     ProductSupplier,
@@ -85,7 +87,7 @@ class CreateSupplierWithProductsResponse(BaseModel):
 
 async def _create_supplier_with_products_impl(
     request: CreateSupplierWithProductsRequest, context: Context
-) -> str:
+) -> CreateSupplierWithProductsResponse:
     """Implementation of create_supplier_with_products tool.
 
     Args:
@@ -93,7 +95,7 @@ async def _create_supplier_with_products_impl(
         context: Server context with StockTrimClient
 
     Returns:
-        Markdown formatted report with creation results
+        CreateSupplierWithProductsResponse with creation + mapping results.
 
     Raises:
         Exception: If supplier creation fails
@@ -219,99 +221,39 @@ async def _create_supplier_with_products_impl(
                     f"Failed to create mapping for {mapping.product_code}: {e}"
                 )
 
-        # Build markdown report
-        report_lines = [
-            "# Supplier Onboarding Complete",
-            "",
-            f"## Supplier: {request.supplier_name} ({request.supplier_code})",
-            "",
-            "**Status**: ✅ Created successfully",
-            "",
-        ]
-
-        # Add supplier details
-        if created_supplier.id not in (None, UNSET):
-            report_lines.append(f"**Supplier ID**: {created_supplier.id}")
-
-        if request.email_address:
-            report_lines.append(f"**Email**: {request.email_address}")
-
-        if request.primary_contact_name:
-            report_lines.append(f"**Primary Contact**: {request.primary_contact_name}")
-
-        if request.default_lead_time:
-            report_lines.append(
-                f"**Default Lead Time**: {request.default_lead_time} days"
-            )
-
-        # Add address if provided
-        address_parts = []
-        if request.street_address:
-            address_parts.append(request.street_address)
-        if request.city:
-            address_parts.append(request.city)
-        if request.state:
-            address_parts.append(request.state)
-        if request.post_code:
-            address_parts.append(request.post_code)
-        if request.country:
-            address_parts.append(request.country)
-
-        if address_parts:
-            report_lines.extend(["", "**Address**:", ", ".join(address_parts)])
-
-        # Add product mappings section
-        if request.product_mappings:
-            report_lines.extend(
-                [
-                    "",
-                    f"## Product Mappings: {successful_mappings}/{len(request.product_mappings)} successful",
-                    "",
-                ]
-            )
-
-            # Group by success/failure
-            successful = [m for m in mapping_details if m.success]
-            failed = [m for m in mapping_details if not m.success]
-
-            if successful:
-                report_lines.append("### ✅ Successfully Mapped:")
-                for mapping in successful:
-                    report_lines.append(f"- {mapping.product_code}")
-
-            if failed:
-                report_lines.extend(["", "### ❌ Failed Mappings:"])
-                for mapping in failed:
-                    report_lines.append(f"- {mapping.product_code}: {mapping.error}")
-
-        # Add next steps
-        report_lines.extend(
-            [
-                "",
-                "## Next Steps",
-                "",
-                "- Review and verify supplier contact information",
-            ]
+        supplier_id = (
+            str(created_supplier.id)
+            if created_supplier.id not in (None, UNSET)
+            else None
         )
 
-        if successful_mappings > 0:
-            report_lines.append("- Review product cost prices and lead times")
-            report_lines.append(
-                "- Use `review_urgent_order_requirements` to check reorder needs"
+        attempted = len(request.product_mappings)
+        if attempted == 0:
+            message = f"Supplier {request.supplier_code} created (no product mappings requested)"
+        elif successful_mappings == attempted:
+            message = (
+                f"Supplier {request.supplier_code} created with all "
+                f"{successful_mappings}/{attempted} product mappings"
             )
         else:
-            report_lines.append(
-                "- Use `create_products` to add products for this supplier"
+            message = (
+                f"Supplier {request.supplier_code} created with "
+                f"{successful_mappings}/{attempted} product mappings"
             )
-            report_lines.append("- Link existing products using product update tools")
-
-        report = "\n".join(report_lines)
 
         logger.info(
             f"Supplier onboarding complete: {request.supplier_code} "
-            f"({successful_mappings}/{len(request.product_mappings)} mappings)"
+            f"({successful_mappings}/{attempted} mappings)"
         )
-        return report
+        return CreateSupplierWithProductsResponse(
+            supplier_code=request.supplier_code,
+            supplier_name=request.supplier_name,
+            supplier_id=supplier_id,
+            mappings_attempted=attempted,
+            mappings_successful=successful_mappings,
+            mapping_details=mapping_details,
+            message=message,
+        )
 
     except Exception as e:
         logger.error(f"Failed to create supplier {request.supplier_code}: {e}")
@@ -320,7 +262,7 @@ async def _create_supplier_with_products_impl(
 
 async def create_supplier_with_products(
     request: CreateSupplierWithProductsRequest, ctx: Context
-) -> str:
+) -> ToolResult:
     """Onboard a new supplier with complete configuration and product mappings.
 
     This workflow tool creates a new supplier with full contact and address details,
@@ -376,7 +318,8 @@ async def create_supplier_with_products(
         ctx: Server context with StockTrimClient
 
     Returns:
-        Markdown report with supplier details and mapping results
+        A :class:`fastmcp.tools.ToolResult` per SEP-1865; use
+        ``unwrap_tool_result(result, CreateSupplierWithProductsResponse)``.
 
     Example:
         Request: {
@@ -405,7 +348,8 @@ async def create_supplier_with_products(
         - `list_suppliers`: View all suppliers
         - `get_supplier`: Get supplier details
     """
-    return await _create_supplier_with_products_impl(request, ctx)
+    response = await _create_supplier_with_products_impl(request, ctx)
+    return make_json_result(response)
 
 
 # ============================================================================
