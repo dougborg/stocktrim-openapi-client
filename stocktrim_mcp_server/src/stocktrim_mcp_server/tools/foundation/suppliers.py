@@ -41,15 +41,15 @@ class SupplierInfo(BaseModel):
 
 
 class GetSupplierResponse(BaseModel):
-    """Response wrapper so the ``None`` case still serializes through
-    ``make_json_result``."""
+    """Response wrapper so the typed payload round-trips through
+    ``unwrap_tool_result`` regardless of whether the inner field is None."""
 
     supplier: SupplierInfo | None = None
 
 
 class CreateSupplierResponse(BaseModel):
-    """Response wrapper so a single ``SupplierInfo`` serializes through
-    ``make_json_result``."""
+    """Response wrapper so the typed payload round-trips through
+    ``unwrap_tool_result``."""
 
     supplier: SupplierInfo
 

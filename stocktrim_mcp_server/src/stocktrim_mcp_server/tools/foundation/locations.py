@@ -84,8 +84,8 @@ class CreateLocationRequest(BaseModel):
 
 
 class CreateLocationResponse(BaseModel):
-    """Response wrapper so a single ``LocationInfo`` serializes through
-    ``make_json_result``."""
+    """Response wrapper so the typed payload round-trips through
+    ``unwrap_tool_result``."""
 
     location: LocationInfo
 

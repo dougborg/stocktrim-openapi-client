@@ -37,8 +37,8 @@ class CustomerInfo(BaseModel):
 
 
 class GetCustomerResponse(BaseModel):
-    """Response wrapper for ``get_customer`` so the ``None`` case still
-    serializes through ``make_json_result``."""
+    """Response wrapper so the typed payload round-trips through
+    ``unwrap_tool_result`` regardless of whether the inner field is None."""
 
     customer: CustomerInfo | None = None
 

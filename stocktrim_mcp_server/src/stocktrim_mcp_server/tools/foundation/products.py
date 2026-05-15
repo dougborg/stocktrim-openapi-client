@@ -48,15 +48,15 @@ class ProductInfo(BaseModel):
 
 
 class GetProductResponse(BaseModel):
-    """Response wrapper so the ``None`` case still serializes through
-    ``make_json_result``."""
+    """Response wrapper so the typed payload round-trips through
+    ``unwrap_tool_result`` regardless of whether the inner field is None."""
 
     product: ProductInfo | None = None
 
 
 class CreateProductResponse(BaseModel):
-    """Response wrapper so a single ``ProductInfo`` serializes through
-    ``make_json_result``."""
+    """Response wrapper so the typed payload round-trips through
+    ``unwrap_tool_result``."""
 
     product: ProductInfo
 
