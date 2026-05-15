@@ -7,15 +7,11 @@ from datetime import datetime
 from typing import Annotated
 
 from fastmcp import Context, FastMCP
-from fastmcp.server.elicitation import (
-    AcceptedElicitation,
-    CancelledElicitation,
-    DeclinedElicitation,
-)
 from fastmcp.tools import ToolResult
 from pydantic import BaseModel, Field
 
 from stocktrim_mcp_server.dependencies import get_services
+from stocktrim_mcp_server.tools.elicitation import run_delete_elicitation
 from stocktrim_mcp_server.tools.tool_result_utils import make_json_result
 from stocktrim_mcp_server.unpack import Unpack, unpack_pydantic_params
 from stocktrim_mcp_server.utils import unwrap_unset
@@ -321,7 +317,8 @@ async def _delete_sales_orders_impl(
     )
     revenue_info = f"${total_revenue:,.2f}" if total_revenue > 0 else "Unknown"
 
-    result = await context.elicit(
+    return await run_delete_elicitation(
+        context,
         message=f"""⚠️ Delete {order_count} sales order{"s" if order_count != 1 else ""} for product {request.product_id}?
 
 **Orders to Delete**: {order_count}
@@ -332,33 +329,12 @@ async def _delete_sales_orders_impl(
 This action will permanently delete all sales orders for this product and cannot be undone.
 
 Proceed with deletion?""",
-        response_type=None,
+        entity_label=f"sales orders for product {request.product_id}",
+        on_accept=lambda: services.sales_orders.delete_for_product(request.product_id),
+        response_factory=lambda success, message: DeleteSalesOrdersResponse(
+            success=success, message=message
+        ),
     )
-
-    match result:
-        case AcceptedElicitation():
-            success, message = await services.sales_orders.delete_for_product(
-                request.product_id
-            )
-            return DeleteSalesOrdersResponse(
-                success=success,
-                message=f"✅ {message}" if success else message,
-            )
-        case DeclinedElicitation():
-            return DeleteSalesOrdersResponse(
-                success=False,
-                message=f"❌ Deletion of sales orders for product {request.product_id} declined by user",
-            )
-        case CancelledElicitation():
-            return DeleteSalesOrdersResponse(
-                success=False,
-                message=f"❌ Deletion of sales orders for product {request.product_id} cancelled by user",
-            )
-        case _:
-            return DeleteSalesOrdersResponse(
-                success=False,
-                message="Unexpected elicitation response for sales orders deletion",
-            )
 
 
 @unpack_pydantic_params

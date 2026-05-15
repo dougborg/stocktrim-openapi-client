@@ -5,16 +5,12 @@ from __future__ import annotations
 from typing import Annotated
 
 from fastmcp import Context, FastMCP
-from fastmcp.server.elicitation import (
-    AcceptedElicitation,
-    CancelledElicitation,
-    DeclinedElicitation,
-)
 from fastmcp.tools import ToolResult
 from pydantic import BaseModel, Field
 
 from stocktrim_mcp_server.dependencies import get_services
 from stocktrim_mcp_server.logging_config import get_logger
+from stocktrim_mcp_server.tools.elicitation import run_delete_elicitation
 from stocktrim_mcp_server.tools.tool_result_utils import make_json_result
 from stocktrim_mcp_server.unpack import Unpack, unpack_pydantic_params
 
@@ -232,7 +228,8 @@ async def _delete_supplier_impl(
         supplier.primary_contact_name or supplier.email_address or "No contact"
     )
 
-    result = await context.elicit(
+    return await run_delete_elicitation(
+        context,
         message=f"""⚠️ Delete supplier {supplier_code}?
 
 **{supplier_name}**
@@ -242,31 +239,12 @@ This action will permanently delete the supplier and all associations (product m
 This cannot be undone.
 
 Proceed with deletion?""",
-        response_type=None,
+        entity_label=f"supplier {supplier_code}",
+        on_accept=lambda: services.suppliers.delete(request.code),
+        response_factory=lambda success, message: DeleteSupplierResponse(
+            success=success, message=message
+        ),
     )
-
-    match result:
-        case AcceptedElicitation():
-            success, message = await services.suppliers.delete(request.code)
-            return DeleteSupplierResponse(
-                success=success,
-                message=f"✅ {message}" if success else message,
-            )
-        case DeclinedElicitation():
-            return DeleteSupplierResponse(
-                success=False,
-                message=f"❌ Deletion of supplier {supplier_code} declined by user",
-            )
-        case CancelledElicitation():
-            return DeleteSupplierResponse(
-                success=False,
-                message=f"❌ Deletion of supplier {supplier_code} cancelled by user",
-            )
-        case _:
-            return DeleteSupplierResponse(
-                success=False,
-                message=f"Unexpected elicitation response for supplier {supplier_code}",
-            )
 
 
 @unpack_pydantic_params
