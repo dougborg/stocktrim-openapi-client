@@ -11,6 +11,7 @@ from stocktrim_mcp_server.tools.tool_result_utils import (
 )
 from stocktrim_mcp_server.tools.workflows.urgent_orders import (
     GeneratePurchaseOrdersRequest,
+    GeneratePurchaseOrdersResponse,
     ReviewUrgentOrdersRequest,
     ReviewUrgentOrdersResponse,
     generate_purchase_orders_from_urgent_items,
@@ -299,9 +300,10 @@ async def test_generate_purchase_orders_success(mock_urgent_context):
         location_codes=["WH-01"],
         supplier_codes=["SUP-001"],
     )
-    response = await generate_purchase_orders_from_urgent_items(
+    result = await generate_purchase_orders_from_urgent_items(
         request, mock_urgent_context
     )
+    response = unwrap_tool_result(result, GeneratePurchaseOrdersResponse)
 
     # Verify
     assert response.total_count == 1
@@ -323,9 +325,10 @@ async def test_generate_purchase_orders_no_orders(mock_urgent_context):
 
     # Execute
     request = GeneratePurchaseOrdersRequest(days_threshold=30)
-    response = await generate_purchase_orders_from_urgent_items(
+    result = await generate_purchase_orders_from_urgent_items(
         request, mock_urgent_context
     )
+    response = unwrap_tool_result(result, GeneratePurchaseOrdersResponse)
 
     # Verify
     assert response.total_count == 0
@@ -359,9 +362,10 @@ async def test_generate_purchase_orders_multiple(mock_urgent_context):
 
     # Execute
     request = GeneratePurchaseOrdersRequest(days_threshold=14)
-    response = await generate_purchase_orders_from_urgent_items(
+    result = await generate_purchase_orders_from_urgent_items(
         request, mock_urgent_context
     )
+    response = unwrap_tool_result(result, GeneratePurchaseOrdersResponse)
 
     # Verify
     assert response.total_count == 2
@@ -389,9 +393,10 @@ async def test_generate_purchase_orders_with_filters(mock_urgent_context):
         location_codes=["WH-01", "WH-02"],
         supplier_codes=["SUP-001", "SUP-002"],
     )
-    response = await generate_purchase_orders_from_urgent_items(
+    result = await generate_purchase_orders_from_urgent_items(
         request, mock_urgent_context
     )
+    response = unwrap_tool_result(result, GeneratePurchaseOrdersResponse)
 
     # Verify
     assert response.total_count == 1

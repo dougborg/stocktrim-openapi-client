@@ -1,14 +1,29 @@
 """Tests for customer foundation tools."""
 
+from typing import Any
 from unittest.mock import AsyncMock
 
 import pytest
 
 from stocktrim_mcp_server.tools.foundation.customers import (
+    CustomerInfo,
+    GetCustomerResponse,
+    ListCustomersResponse,
     get_customer,
     list_customers,
 )
+from stocktrim_mcp_server.tools.tool_result_utils import unwrap_tool_result
 from stocktrim_public_api_client.generated.models.customer_dto import CustomerDto
+
+
+async def _call_get(**kwargs: Any) -> CustomerInfo | None:
+    result = await get_customer(**kwargs)
+    return unwrap_tool_result(result, GetCustomerResponse).customer
+
+
+async def _call_list(**kwargs: Any) -> ListCustomersResponse:
+    result = await list_customers(**kwargs)
+    return unwrap_tool_result(result, ListCustomersResponse)
 
 
 @pytest.fixture
@@ -44,7 +59,7 @@ async def test_get_customer_success(mock_customer_context, sample_customer):
     services.customers.get_by_code.return_value = sample_customer
 
     # Execute
-    response = await get_customer(code="CUST-001", context=mock_customer_context)
+    response = await _call_get(code="CUST-001", context=mock_customer_context)
 
     # Verify
     assert response is not None
@@ -65,7 +80,7 @@ async def test_get_customer_not_found(mock_customer_context):
     services.customers.get_by_code.return_value = None
 
     # Execute
-    response = await get_customer(code="CUST-MISSING", context=mock_customer_context)
+    response = await _call_get(code="CUST-MISSING", context=mock_customer_context)
 
     # Verify
     assert response is None
@@ -87,7 +102,7 @@ async def test_get_customer_with_none_fields(mock_customer_context):
     services.customers.get_by_code.return_value = customer
 
     # Execute
-    response = await get_customer(code="CUST-002", context=mock_customer_context)
+    response = await _call_get(code="CUST-002", context=mock_customer_context)
 
     # Verify
     assert response is not None
@@ -118,7 +133,7 @@ async def test_list_customers_success(mock_customer_context, sample_customer):
     services.customers.list_all.return_value = [sample_customer, customer2]
 
     # Execute
-    response = await list_customers(limit=50, context=mock_customer_context)
+    response = await _call_list(limit=50, context=mock_customer_context)
 
     # Verify
     assert response.total_count == 2
@@ -139,7 +154,7 @@ async def test_list_customers_empty(mock_customer_context):
     services.customers.list_all.return_value = []
 
     # Execute
-    response = await list_customers(context=mock_customer_context)
+    response = await _call_list(context=mock_customer_context)
 
     # Verify
     assert response.total_count == 0
@@ -156,7 +171,7 @@ async def test_list_customers_with_custom_limit(mock_customer_context, sample_cu
     services.customers.list_all.return_value = [sample_customer]
 
     # Execute
-    response = await list_customers(limit=10, context=mock_customer_context)
+    response = await _call_list(limit=10, context=mock_customer_context)
 
     # Verify
     assert response.total_count == 1
@@ -180,7 +195,7 @@ async def test_list_customers_with_minimal_data(mock_customer_context):
     services.customers.list_all.return_value = [minimal_customer]
 
     # Execute
-    response = await list_customers(context=mock_customer_context)
+    response = await _call_list(context=mock_customer_context)
 
     # Verify
     assert response.total_count == 1

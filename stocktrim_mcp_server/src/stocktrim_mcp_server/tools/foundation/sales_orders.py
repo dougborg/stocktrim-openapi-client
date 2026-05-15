@@ -12,9 +12,11 @@ from fastmcp.server.elicitation import (
     CancelledElicitation,
     DeclinedElicitation,
 )
+from fastmcp.tools import ToolResult
 from pydantic import BaseModel, Field
 
 from stocktrim_mcp_server.dependencies import get_services
+from stocktrim_mcp_server.tools.tool_result_utils import make_json_result
 from stocktrim_mcp_server.unpack import Unpack, unpack_pydantic_params
 from stocktrim_mcp_server.utils import unset_to_none
 
@@ -55,6 +57,13 @@ class SalesOrderInfo(BaseModel):
     customer_code: str | None
     customer_name: str | None
     location_id: int | None
+
+
+class CreateSalesOrderResponse(BaseModel):
+    """Response wrapper so a single ``SalesOrderInfo`` serializes through
+    ``make_json_result``."""
+
+    sales_order: SalesOrderInfo
 
 
 async def _create_sales_order_impl(
@@ -106,7 +115,7 @@ async def _create_sales_order_impl(
 @unpack_pydantic_params
 async def create_sales_order(
     request: Annotated[CreateSalesOrderRequest, Unpack()], context: Context
-) -> SalesOrderInfo:
+) -> ToolResult:
     """Create a new sales order.
 
     This tool creates a sales order in StockTrim for a specific product.
@@ -117,24 +126,12 @@ async def create_sales_order(
         context: Server context with StockTrimClient
 
     Returns:
-        SalesOrderInfo with created order details
-
-    Example:
-        Request: {
-            "product_id": "WIDGET-001",
-            "order_date": "2024-01-15T10:00:00Z",
-            "quantity": 10.0,
-            "customer_code": "CUST-001",
-            "unit_price": 29.99
-        }
-        Returns: {
-            "id": 123,
-            "product_id": "WIDGET-001",
-            "quantity": 10.0,
-            ...
-        }
+        A :class:`fastmcp.tools.ToolResult` per SEP-1865; use
+        ``unwrap_tool_result(result, CreateSalesOrderResponse)`` and read
+        ``response.sales_order``.
     """
-    return await _create_sales_order_impl(request, context)
+    info = await _create_sales_order_impl(request, context)
+    return make_json_result(CreateSalesOrderResponse(sales_order=info))
 
 
 # ============================================================================
@@ -202,7 +199,7 @@ async def _get_sales_orders_impl(
 @unpack_pydantic_params
 async def get_sales_orders(
     request: Annotated[GetSalesOrdersRequest, Unpack()], context: Context
-) -> GetSalesOrdersResponse:
+) -> ToolResult:
     """Get sales orders, optionally filtered by product.
 
     This tool retrieves sales orders from StockTrim. You can optionally
@@ -213,16 +210,11 @@ async def get_sales_orders(
         context: Server context with StockTrimClient
 
     Returns:
-        GetSalesOrdersResponse with sales orders
-
-    Example:
-        Request: {"product_id": "WIDGET-001"}
-        Returns: {"sales_orders": [...], "total_count": 5}
-
-        Request: {}
-        Returns: {"sales_orders": [...], "total_count": 50}
+        A :class:`fastmcp.tools.ToolResult` per SEP-1865; use
+        ``unwrap_tool_result(result, GetSalesOrdersResponse)``.
     """
-    return await _get_sales_orders_impl(request, context)
+    response = await _get_sales_orders_impl(request, context)
+    return make_json_result(response)
 
 
 # ============================================================================
@@ -246,7 +238,7 @@ class ListSalesOrdersResponse(BaseModel):
 @unpack_pydantic_params
 async def list_sales_orders(
     request: Annotated[ListSalesOrdersRequest, Unpack()], context: Context
-) -> ListSalesOrdersResponse:
+) -> ToolResult:
     """List all sales orders with optional product filter.
 
     This is an alias for get_sales_orders for backward compatibility.
@@ -256,18 +248,16 @@ async def list_sales_orders(
         context: Server context with StockTrimClient
 
     Returns:
-        ListSalesOrdersResponse with sales orders
-
-    Example:
-        Request: {}
-        Returns: {"sales_orders": [...], "total_count": 50}
+        A :class:`fastmcp.tools.ToolResult` per SEP-1865; use
+        ``unwrap_tool_result(result, ListSalesOrdersResponse)``.
     """
     get_request = GetSalesOrdersRequest(product_id=request.product_id)
     get_response = await _get_sales_orders_impl(get_request, context)
-
-    return ListSalesOrdersResponse(
-        sales_orders=get_response.sales_orders,
-        total_count=get_response.total_count,
+    return make_json_result(
+        ListSalesOrdersResponse(
+            sales_orders=get_response.sales_orders,
+            total_count=get_response.total_count,
+        )
     )
 
 
@@ -292,10 +282,89 @@ class DeleteSalesOrdersResponse(BaseModel):
     message: str
 
 
+async def _delete_sales_orders_impl(
+    request: DeleteSalesOrdersRequest, context: Context
+) -> DeleteSalesOrdersResponse:
+    """Pure-impl half of ``delete_sales_orders`` so the wrapper stays one line."""
+    if not request.product_id:
+        return DeleteSalesOrdersResponse(
+            success=False,
+            message="product_id is required for deletion to prevent accidental bulk deletion.",
+        )
+
+    services = get_services(context)
+
+    orders_response = await _get_sales_orders_impl(
+        GetSalesOrdersRequest(product_id=request.product_id), context
+    )
+
+    if not orders_response.sales_orders:
+        return DeleteSalesOrdersResponse(
+            success=False,
+            message=f"No sales orders found for product: {request.product_id}",
+        )
+
+    order_count = orders_response.total_count
+    total_quantity = sum(order.quantity for order in orders_response.sales_orders)
+
+    customers = {
+        order.customer_name
+        for order in orders_response.sales_orders
+        if order.customer_name
+    }
+    customer_info = f"{len(customers)} customers" if customers else "No customer data"
+
+    total_revenue = sum(
+        (order.unit_price or 0.0) * order.quantity
+        for order in orders_response.sales_orders
+        if order.unit_price
+    )
+    revenue_info = f"${total_revenue:,.2f}" if total_revenue > 0 else "Unknown"
+
+    result = await context.elicit(
+        message=f"""⚠️ Delete {order_count} sales order{"s" if order_count != 1 else ""} for product {request.product_id}?
+
+**Orders to Delete**: {order_count}
+**Total Quantity**: {total_quantity:,.1f}
+**Customers Affected**: {customer_info}
+**Total Revenue**: {revenue_info}
+
+This action will permanently delete all sales orders for this product and cannot be undone.
+
+Proceed with deletion?""",
+        response_type=None,
+    )
+
+    match result:
+        case AcceptedElicitation():
+            success, message = await services.sales_orders.delete_for_product(
+                request.product_id
+            )
+            return DeleteSalesOrdersResponse(
+                success=success,
+                message=f"✅ {message}" if success else message,
+            )
+        case DeclinedElicitation():
+            return DeleteSalesOrdersResponse(
+                success=False,
+                message=f"❌ Deletion of sales orders for product {request.product_id} declined by user",
+            )
+        case CancelledElicitation():
+            return DeleteSalesOrdersResponse(
+                success=False,
+                message=f"❌ Deletion of sales orders for product {request.product_id} cancelled by user",
+            )
+        case _:
+            return DeleteSalesOrdersResponse(
+                success=False,
+                message="Unexpected elicitation response for sales orders deletion",
+            )
+
+
 @unpack_pydantic_params
 async def delete_sales_orders(
     request: Annotated[DeleteSalesOrdersRequest, Unpack()], context: Context
-) -> DeleteSalesOrdersResponse:
+) -> ToolResult:
     """Delete sales orders for a specific product.
 
     🔴 HIGH-RISK OPERATION: This action permanently deletes sales order data
@@ -311,103 +380,11 @@ async def delete_sales_orders(
         context: Server context with StockTrimClient
 
     Returns:
-        DeleteSalesOrdersResponse indicating success or cancellation
-
-    Example:
-        Request: {"product_id": "WIDGET-001"}
-        Returns: {
-            "success": true,
-            "message": "Sales orders for product WIDGET-001 deleted successfully"
-        }
-        or {"success": false, "message": "Deletion cancelled by user"}
+        A :class:`fastmcp.tools.ToolResult` per SEP-1865; use
+        ``unwrap_tool_result(result, DeleteSalesOrdersResponse)``.
     """
-    if not request.product_id:
-        # Safety measure: require a filter to avoid deleting all orders
-        return DeleteSalesOrdersResponse(
-            success=False,
-            message="product_id is required for deletion to prevent accidental bulk deletion.",
-        )
-
-    services = get_services(context)
-
-    # Get sales orders for preview
-    orders_response = await _get_sales_orders_impl(
-        GetSalesOrdersRequest(product_id=request.product_id), context
-    )
-
-    if not orders_response.sales_orders:
-        return DeleteSalesOrdersResponse(
-            success=False,
-            message=f"No sales orders found for product: {request.product_id}",
-        )
-
-    # Build preview information
-    order_count = orders_response.total_count
-    total_quantity = sum(order.quantity for order in orders_response.sales_orders)
-
-    # Get unique customer names
-    customers = {
-        order.customer_name
-        for order in orders_response.sales_orders
-        if order.customer_name
-    }
-    customer_info = f"{len(customers)} customers" if customers else "No customer data"
-
-    # Calculate total revenue if prices available
-    total_revenue = sum(
-        (order.unit_price or 0.0) * order.quantity
-        for order in orders_response.sales_orders
-        if order.unit_price
-    )
-    revenue_info = f"${total_revenue:,.2f}" if total_revenue > 0 else "Unknown"
-
-    # Request user confirmation via elicitation
-    result = await context.elicit(
-        message=f"""⚠️ Delete {order_count} sales order{"s" if order_count != 1 else ""} for product {request.product_id}?
-
-**Orders to Delete**: {order_count}
-**Total Quantity**: {total_quantity:,.1f}
-**Customers Affected**: {customer_info}
-**Total Revenue**: {revenue_info}
-
-This action will permanently delete all sales orders for this product and cannot be undone.
-
-Proceed with deletion?""",
-        response_type=None,  # Simple yes/no approval
-    )
-
-    # Handle elicitation response
-    match result:
-        case AcceptedElicitation():
-            # User confirmed - proceed with deletion
-            success, message = await services.sales_orders.delete_for_product(
-                request.product_id
-            )
-            return DeleteSalesOrdersResponse(
-                success=success,
-                message=f"✅ {message}" if success else message,
-            )
-
-        case DeclinedElicitation():
-            # User declined
-            return DeleteSalesOrdersResponse(
-                success=False,
-                message=f"❌ Deletion of sales orders for product {request.product_id} declined by user",
-            )
-
-        case CancelledElicitation():
-            # User cancelled
-            return DeleteSalesOrdersResponse(
-                success=False,
-                message=f"❌ Deletion of sales orders for product {request.product_id} cancelled by user",
-            )
-
-        case _:
-            # Unexpected response type
-            return DeleteSalesOrdersResponse(
-                success=False,
-                message="Unexpected elicitation response for sales orders deletion",
-            )
+    response = await _delete_sales_orders_impl(request, context)
+    return make_json_result(response)
 
 
 # ============================================================================

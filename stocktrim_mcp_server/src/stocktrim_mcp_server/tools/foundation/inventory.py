@@ -6,9 +6,11 @@ import logging
 from typing import Annotated
 
 from fastmcp import Context, FastMCP
+from fastmcp.tools import ToolResult
 from pydantic import BaseModel, Field
 
 from stocktrim_mcp_server.dependencies import get_services
+from stocktrim_mcp_server.tools.tool_result_utils import make_json_result
 from stocktrim_mcp_server.unpack import Unpack, unpack_pydantic_params
 
 logger = logging.getLogger(__name__)
@@ -87,7 +89,7 @@ async def _set_product_inventory_impl(
 @unpack_pydantic_params
 async def set_product_inventory(
     request: Annotated[SetInventoryRequest, Unpack()], context: Context
-) -> InventoryResult:
+) -> ToolResult:
     """Set inventory levels for a product.
 
     This tool updates stock on hand and stock on order quantities
@@ -98,24 +100,12 @@ async def set_product_inventory(
         context: Server context with StockTrimClient
 
     Returns:
-        InventoryResult with updated inventory details
-
-    Example:
-        Request: {
-            "product_id": "123",
-            "stock_on_hand": 50.0,
-            "stock_on_order": 100.0,
-            "location_code": "WAREHOUSE-A"
-        }
-        Returns: {
-            "product_id": "123",
-            "stock_on_hand": 50.0,
-            "stock_on_order": 100.0,
-            "location_code": "WAREHOUSE-A",
-            "location_name": null
-        }
+        A :class:`fastmcp.tools.ToolResult` per SEP-1865; use
+        ``unwrap_tool_result(result, InventoryResult)`` to recover the
+        typed payload.
     """
-    return await _set_product_inventory_impl(request, context)
+    response = await _set_product_inventory_impl(request, context)
+    return make_json_result(response)
 
 
 # ============================================================================

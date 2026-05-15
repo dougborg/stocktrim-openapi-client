@@ -12,9 +12,11 @@ from fastmcp.server.elicitation import (
     CancelledElicitation,
     DeclinedElicitation,
 )
+from fastmcp.tools import ToolResult
 from pydantic import BaseModel, Field
 
 from stocktrim_mcp_server.dependencies import get_services
+from stocktrim_mcp_server.tools.tool_result_utils import make_json_result
 from stocktrim_mcp_server.unpack import Unpack, unpack_pydantic_params
 
 logger = logging.getLogger(__name__)
@@ -39,6 +41,13 @@ class PurchaseOrderInfo(BaseModel):
     status: str | None
     total_cost: float | None
     line_items_count: int
+
+
+class GetPurchaseOrderResponse(BaseModel):
+    """Response wrapper so the ``None`` case still serializes through
+    ``make_json_result``."""
+
+    purchase_order: PurchaseOrderInfo | None = None
 
 
 async def _get_purchase_order_impl(
@@ -87,7 +96,7 @@ async def _get_purchase_order_impl(
 @unpack_pydantic_params
 async def get_purchase_order(
     request: Annotated[GetPurchaseOrderRequest, Unpack()], context: Context
-) -> PurchaseOrderInfo | None:
+) -> ToolResult:
     """Get a purchase order by reference number.
 
     This tool retrieves detailed information about a specific purchase order
@@ -98,13 +107,12 @@ async def get_purchase_order(
         context: Server context with StockTrimClient
 
     Returns:
-        PurchaseOrderInfo if found, None if not found
-
-    Example:
-        Request: {"reference_number": "PO-2024-001"}
-        Returns: {"reference_number": "PO-2024-001", "supplier_code": "SUP-001", ...}
+        A :class:`fastmcp.tools.ToolResult` per SEP-1865; use
+        ``unwrap_tool_result(result, GetPurchaseOrderResponse)`` and read
+        ``response.purchase_order`` (``None`` if not found).
     """
-    return await _get_purchase_order_impl(request, context)
+    info = await _get_purchase_order_impl(request, context)
+    return make_json_result(GetPurchaseOrderResponse(purchase_order=info))
 
 
 # ============================================================================
@@ -182,7 +190,7 @@ async def _list_purchase_orders_impl(
 @unpack_pydantic_params
 async def list_purchase_orders(
     request: Annotated[ListPurchaseOrdersRequest, Unpack()], context: Context
-) -> ListPurchaseOrdersResponse:
+) -> ToolResult:
     """List all purchase orders.
 
     This tool retrieves all purchase orders from StockTrim (V1 API).
@@ -192,13 +200,11 @@ async def list_purchase_orders(
         context: Server context with StockTrimClient
 
     Returns:
-        ListPurchaseOrdersResponse with purchase orders
-
-    Example:
-        Request: {}
-        Returns: {"purchase_orders": [...], "total_count": 15}
+        A :class:`fastmcp.tools.ToolResult` per SEP-1865; use
+        ``unwrap_tool_result(result, ListPurchaseOrdersResponse)``.
     """
-    return await _list_purchase_orders_impl(request, context)
+    response = await _list_purchase_orders_impl(request, context)
+    return make_json_result(response)
 
 
 # ============================================================================
@@ -321,7 +327,7 @@ async def _create_purchase_order_impl(
 @unpack_pydantic_params
 async def create_purchase_order(
     request: Annotated[CreatePurchaseOrderRequest, Unpack()], context: Context
-) -> CreatePurchaseOrderResponse:
+) -> ToolResult:
     """Create a new purchase order.
 
     This tool creates a new purchase order in StockTrim.
@@ -331,27 +337,11 @@ async def create_purchase_order(
         context: Server context with StockTrimClient
 
     Returns:
-        CreatePurchaseOrderResponse with created PO details
-
-    Example:
-        Request: {
-            "supplier_code": "SUP-001",
-            "supplier_name": "Acme Supplies",
-            "line_items": [
-                {"product_code": "WIDGET-001", "quantity": 100, "unit_price": 15.50}
-            ],
-            "status": "Draft"
-        }
-        Returns: {
-            "reference_number": "PO-2024-001",
-            "supplier_code": "SUP-001",
-            "status": "Draft",
-            "total_cost": 1550.0,
-            "line_items_count": 1,
-            "message": "Purchase order PO-2024-001 created successfully"
-        }
+        A :class:`fastmcp.tools.ToolResult` per SEP-1865; use
+        ``unwrap_tool_result(result, CreatePurchaseOrderResponse)``.
     """
-    return await _create_purchase_order_impl(request, context)
+    response = await _create_purchase_order_impl(request, context)
+    return make_json_result(response)
 
 
 # ============================================================================
@@ -372,10 +362,77 @@ class DeletePurchaseOrderResponse(BaseModel):
     message: str
 
 
+async def _delete_purchase_order_impl(
+    request: DeletePurchaseOrderRequest, context: Context
+) -> DeletePurchaseOrderResponse:
+    """Pure-impl half of ``delete_purchase_order`` so the wrapper stays one line."""
+    services = get_services(context)
+
+    po_info = await _get_purchase_order_impl(
+        GetPurchaseOrderRequest(reference_number=request.reference_number), context
+    )
+
+    if not po_info:
+        return DeletePurchaseOrderResponse(
+            success=False,
+            message=f"Purchase order not found: {request.reference_number}",
+        )
+
+    supplier_info = (
+        f"{po_info.supplier_name} ({po_info.supplier_code})"
+        if po_info.supplier_name and po_info.supplier_code
+        else po_info.supplier_code or "Unknown Supplier"
+    )
+    cost_info = f"${po_info.total_cost:,.2f}" if po_info.total_cost else "Unknown"
+    items_info = (
+        f"{po_info.line_items_count} items" if po_info.line_items_count else "0 items"
+    )
+    status_info = po_info.status or "Unknown"
+
+    result = await context.elicit(
+        message=f"""⚠️ Delete purchase order {po_info.reference_number}?
+
+**Supplier**: {supplier_info}
+**Status**: {status_info}
+**Total Cost**: {cost_info}
+**Line Items**: {items_info}
+
+This action will permanently delete the purchase order and cannot be undone.
+
+Proceed with deletion?""",
+        response_type=None,
+    )
+
+    match result:
+        case AcceptedElicitation():
+            success, message = await services.purchase_orders.delete(
+                request.reference_number
+            )
+            return DeletePurchaseOrderResponse(
+                success=success,
+                message=f"✅ {message}" if success else message,
+            )
+        case DeclinedElicitation():
+            return DeletePurchaseOrderResponse(
+                success=False,
+                message=f"❌ Deletion of purchase order {po_info.reference_number} declined by user",
+            )
+        case CancelledElicitation():
+            return DeletePurchaseOrderResponse(
+                success=False,
+                message=f"❌ Deletion of purchase order {po_info.reference_number} cancelled by user",
+            )
+        case _:
+            return DeletePurchaseOrderResponse(
+                success=False,
+                message=f"Unexpected elicitation response for purchase order {po_info.reference_number}",
+            )
+
+
 @unpack_pydantic_params
 async def delete_purchase_order(
     request: Annotated[DeletePurchaseOrderRequest, Unpack()], context: Context
-) -> DeletePurchaseOrderResponse:
+) -> ToolResult:
     """Delete a purchase order by reference number.
 
     🔴 HIGH-RISK OPERATION: This action permanently deletes purchase order data
@@ -389,85 +446,11 @@ async def delete_purchase_order(
         context: Server context with StockTrimClient
 
     Returns:
-        DeletePurchaseOrderResponse indicating success or cancellation
-
-    Example:
-        Request: {"reference_number": "PO-2024-001"}
-        Returns: {"success": true, "message": "Purchase order PO-2024-001 deleted successfully"}
-                 or {"success": false, "message": "Deletion cancelled by user"}
+        A :class:`fastmcp.tools.ToolResult` per SEP-1865; use
+        ``unwrap_tool_result(result, DeletePurchaseOrderResponse)``.
     """
-    services = get_services(context)
-
-    # Get PO details for preview
-    po_info = await _get_purchase_order_impl(
-        GetPurchaseOrderRequest(reference_number=request.reference_number), context
-    )
-
-    if not po_info:
-        return DeletePurchaseOrderResponse(
-            success=False,
-            message=f"Purchase order not found: {request.reference_number}",
-        )
-
-    # Build preview information
-    supplier_info = (
-        f"{po_info.supplier_name} ({po_info.supplier_code})"
-        if po_info.supplier_name and po_info.supplier_code
-        else po_info.supplier_code or "Unknown Supplier"
-    )
-    cost_info = f"${po_info.total_cost:,.2f}" if po_info.total_cost else "Unknown"
-    items_info = (
-        f"{po_info.line_items_count} items" if po_info.line_items_count else "0 items"
-    )
-    status_info = po_info.status or "Unknown"
-
-    # Request user confirmation via elicitation
-    result = await context.elicit(
-        message=f"""⚠️ Delete purchase order {po_info.reference_number}?
-
-**Supplier**: {supplier_info}
-**Status**: {status_info}
-**Total Cost**: {cost_info}
-**Line Items**: {items_info}
-
-This action will permanently delete the purchase order and cannot be undone.
-
-Proceed with deletion?""",
-        response_type=None,  # Simple yes/no approval
-    )
-
-    # Handle elicitation response
-    match result:
-        case AcceptedElicitation():
-            # User confirmed - proceed with deletion
-            success, message = await services.purchase_orders.delete(
-                request.reference_number
-            )
-            return DeletePurchaseOrderResponse(
-                success=success,
-                message=f"✅ {message}" if success else message,
-            )
-
-        case DeclinedElicitation():
-            # User declined
-            return DeletePurchaseOrderResponse(
-                success=False,
-                message=f"❌ Deletion of purchase order {po_info.reference_number} declined by user",
-            )
-
-        case CancelledElicitation():
-            # User cancelled
-            return DeletePurchaseOrderResponse(
-                success=False,
-                message=f"❌ Deletion of purchase order {po_info.reference_number} cancelled by user",
-            )
-
-        case _:
-            # Unexpected response type
-            return DeletePurchaseOrderResponse(
-                success=False,
-                message=f"Unexpected elicitation response for purchase order {po_info.reference_number}",
-            )
+    response = await _delete_purchase_order_impl(request, context)
+    return make_json_result(response)
 
 
 # ============================================================================

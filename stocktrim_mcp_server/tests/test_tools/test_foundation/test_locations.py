@@ -1,16 +1,30 @@
 """Tests for location foundation tools."""
 
+from typing import Any
 from unittest.mock import AsyncMock
 
 import pytest
 
 from stocktrim_mcp_server.tools.foundation.locations import (
+    CreateLocationResponse,
+    ListLocationsResponse,
     create_location,
     list_locations,
 )
+from stocktrim_mcp_server.tools.tool_result_utils import unwrap_tool_result
 from stocktrim_public_api_client.generated.models.location_response_dto import (
     LocationResponseDto,
 )
+
+
+async def _call_list(**kwargs: Any) -> ListLocationsResponse:
+    result = await list_locations(**kwargs)
+    return unwrap_tool_result(result, ListLocationsResponse)
+
+
+async def _call_create(**kwargs: Any) -> CreateLocationResponse:
+    result = await create_location(**kwargs)
+    return unwrap_tool_result(result, CreateLocationResponse)
 
 
 @pytest.fixture
@@ -47,7 +61,7 @@ async def test_list_locations_success(mock_location_context, sample_location):
     services.locations.list_all.return_value = [sample_location, location2]
 
     # Execute
-    response = await list_locations(context=mock_location_context)
+    response = await _call_list(context=mock_location_context)
 
     # Verify
     assert response.total_count == 2
@@ -68,7 +82,7 @@ async def test_list_locations_empty(mock_location_context):
     services.locations.list_all.return_value = []
 
     # Execute
-    response = await list_locations(context=mock_location_context)
+    response = await _call_list(context=mock_location_context)
 
     # Verify
     assert response.total_count == 0
@@ -89,7 +103,7 @@ async def test_list_locations_with_none_name(mock_location_context):
     services.locations.list_all.return_value = [location]
 
     # Execute
-    response = await list_locations(context=mock_location_context)
+    response = await _call_list(context=mock_location_context)
 
     # Verify
     assert response.total_count == 1
@@ -110,13 +124,13 @@ async def test_create_location_success(mock_location_context, sample_location):
     services.locations.create.return_value = sample_location
 
     # Execute
-    response = await create_location(
+    response = await _call_create(
         code="WH-01", name="Main Warehouse", context=mock_location_context
     )
 
     # Verify
-    assert response.code == "WH-01"
-    assert response.name == "Main Warehouse"
+    assert response.location.code == "WH-01"
+    assert response.location.name == "Main Warehouse"
 
     services.locations.create.assert_called_once_with(
         code="WH-01",
@@ -133,7 +147,7 @@ async def test_create_location_validation_error(mock_location_context):
 
     # Execute & Verify
     with pytest.raises(ValueError, match="Location code cannot be empty"):
-        await create_location(
+        await _call_create(
             code="", name="Empty Code Location", context=mock_location_context
         )
 
@@ -150,15 +164,15 @@ async def test_create_location_with_special_characters(mock_location_context):
     services.locations.create.return_value = location
 
     # Execute
-    response = await create_location(
+    response = await _call_create(
         code="WH-MAIN-01",
         name="Main Warehouse - Building A (North)",
         context=mock_location_context,
     )
 
     # Verify
-    assert response.code == "WH-MAIN-01"
-    assert response.name == "Main Warehouse - Building A (North)"
+    assert response.location.code == "WH-MAIN-01"
+    assert response.location.name == "Main Warehouse - Building A (North)"
 
 
 @pytest.mark.asyncio
@@ -172,6 +186,6 @@ async def test_create_location_duplicate_error(mock_location_context):
 
     # Execute & Verify
     with pytest.raises(Exception, match="already exists"):
-        await create_location(
+        await _call_create(
             code="WH-01", name="Duplicate Warehouse", context=mock_location_context
         )

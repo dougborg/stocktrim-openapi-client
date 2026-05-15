@@ -11,17 +11,21 @@ import time
 from typing import Literal
 
 from fastmcp import Context, FastMCP
+from fastmcp.tools import ToolResult
 from pydantic import BaseModel, Field
 
 from stocktrim_mcp_server.dependencies import get_services
 from stocktrim_mcp_server.logging_config import get_logger
-from stocktrim_mcp_server.templates import format_template, load_template
+from stocktrim_mcp_server.tools.tool_result_utils import make_json_result
 from stocktrim_public_api_client.client_types import UNSET
 from stocktrim_public_api_client.generated.models.order_plan_filter_criteria import (
     OrderPlanFilterCriteria,
 )
 from stocktrim_public_api_client.generated.models.products_request_dto import (
     ProductsRequestDto,
+)
+from stocktrim_public_api_client.generated.models.sku_optimized_results_dto import (
+    SkuOptimizedResultsDto,
 )
 
 logger = get_logger(__name__)
@@ -111,7 +115,7 @@ async def _manage_forecast_group_impl(
 
 async def manage_forecast_group(
     request: ManageForecastGroupRequest, ctx: Context
-) -> ManageForecastGroupResponse:
+) -> ToolResult:
     """Manage forecast groups (create, update, or delete).
 
     IMPORTANT: This tool is limited by StockTrim API capabilities. The StockTrim API
@@ -142,7 +146,8 @@ async def manage_forecast_group(
             "note": "Consider using product categories instead"
         }
     """
-    return await _manage_forecast_group_impl(request, ctx)
+    response = await _manage_forecast_group_impl(request, ctx)
+    return make_json_result(response)
 
 
 # ============================================================================
@@ -275,7 +280,7 @@ async def _update_forecast_settings_impl(
 
 async def update_forecast_settings(
     request: UpdateForecastSettingsRequest, ctx: Context
-) -> UpdateForecastSettingsResponse:
+) -> ToolResult:
     """Update forecast parameters for products.
 
     This workflow tool updates forecast-related settings for a product, including
@@ -308,7 +313,8 @@ async def update_forecast_settings(
             "message": "Successfully updated forecast settings for WIDGET-001"
         }
     """
-    return await _update_forecast_settings_impl(request, ctx)
+    response = await _update_forecast_settings_impl(request, ctx)
+    return make_json_result(response)
 
 
 # ============================================================================
@@ -344,67 +350,30 @@ class ForecastsUpdateAndMonitorResponse(BaseModel):
     )
 
 
-async def forecasts_update_and_monitor(
+async def _forecasts_update_and_monitor_impl(
     request: ForecastsUpdateAndMonitorRequest, ctx: Context
-) -> str:
-    """Trigger forecast recalculation and monitor progress.
-
-    This workflow tool triggers StockTrim's forecast calculation system and
-    optionally waits for completion while reporting progress. This is essential
-    after data imports, product changes, or before planning operations.
-
-    The tool provides real-time progress updates via logging and returns a
-    markdown-formatted status report.
-
-    Args:
-        request: Request with monitoring parameters
-        ctx: Server context with StockTrimClient
-
-    Returns:
-        Markdown-formatted status report with:
-        - Trigger confirmation
-        - Progress updates (if waiting)
-        - Completion status
-        - Time elapsed
-        - Recommended next steps
-
-    Example:
-        Request: {
-            "wait_for_completion": true,
-            "poll_interval_seconds": 5,
-            "timeout_seconds": 300
-        }
-        Returns markdown report:
-        # Forecast Update Status
-
-        Status: Complete
-        Time Elapsed: 45.2 seconds
-        Progress: 100%
-
-        The forecast calculation completed successfully.
-
-        ## Next Steps
-        - Use forecasts_get_for_products to review updated forecasts
-        - Use review_urgent_order_requirements to generate purchase orders
-    """
+) -> ForecastsUpdateAndMonitorResponse:
+    """Pure-impl half of forecasts_update_and_monitor."""
     logger.info(
         "forecast_update_triggered",
         wait_for_completion=request.wait_for_completion,
         timeout=request.timeout_seconds,
     )
 
+    triggered = False
     try:
-        # Get services from context
         services = get_services(ctx)
         client = services.client
-
-        # Trigger forecast recalculation
         await client.forecasting.run_calculations()
+        triggered = True  # set after run_calculations() returns successfully
 
         if not request.wait_for_completion:
-            return load_template("forecast_triggered")
+            return ForecastsUpdateAndMonitorResponse(
+                triggered=True,
+                completed=False,
+                status_message="Forecast calculation triggered (not waiting for completion)",
+            )
 
-        # Monitor progress
         start_time = time.time()
         last_percentage = -1
 
@@ -412,7 +381,6 @@ async def forecasts_update_and_monitor(
             status = await client.forecasting.get_processing_status()
             elapsed = time.time() - start_time
 
-            # Log progress if it changed
             current_percentage = (
                 status.percentage_complete
                 if status.percentage_complete not in (None, UNSET)
@@ -427,42 +395,74 @@ async def forecasts_update_and_monitor(
                 )
                 last_percentage = current_percentage
 
-            # Check if done
             if not status.is_processing:
                 logger.info(
                     "forecast_complete",
                     elapsed_seconds=round(elapsed, 1),
                     final_message=status.status_message,
                 )
-                return format_template(
-                    "forecast_complete",
-                    elapsed=elapsed,
+                return ForecastsUpdateAndMonitorResponse(
+                    triggered=True,
+                    completed=True,
                     status_message=status.status_message or "Calculation complete",
+                    elapsed_seconds=round(elapsed, 1),
+                    progress_percentage=100,
                 )
 
-            # Check timeout
             if elapsed > request.timeout_seconds:
                 logger.warning(
                     "forecast_timeout",
                     elapsed_seconds=round(elapsed, 1),
                     last_percentage=current_percentage,
                 )
-                return format_template(
-                    "forecast_timeout",
-                    elapsed=elapsed,
-                    current_percentage=current_percentage,
-                    timeout_seconds=request.timeout_seconds,
-                    status_message=status.status_message or "Processing...",
+                return ForecastsUpdateAndMonitorResponse(
+                    triggered=True,
+                    completed=False,
+                    status_message=(
+                        f"Timeout reached after {request.timeout_seconds} seconds; "
+                        f"forecast still processing. Last status: "
+                        f"{status.status_message or 'Processing...'}"
+                    ),
+                    elapsed_seconds=round(elapsed, 1),
+                    progress_percentage=round(current_percentage),
                 )
 
-            # Wait before next poll
             await asyncio.sleep(request.poll_interval_seconds)
 
     except Exception as e:
+        # If run_calculations() succeeded but the polling loop blew up, the
+        # background calculation is still running — preserve `triggered=True`
+        # so callers don't think nothing happened (Copilot review on PR #188).
         logger.error(
             "forecast_update_failed", error=str(e), error_type=type(e).__name__
         )
-        return format_template("forecast_failed", error=str(e))
+        return ForecastsUpdateAndMonitorResponse(
+            triggered=triggered,
+            completed=False,
+            status_message=f"Forecast update failed: {e}",
+        )
+
+
+async def forecasts_update_and_monitor(
+    request: ForecastsUpdateAndMonitorRequest, ctx: Context
+) -> ToolResult:
+    """Trigger forecast recalculation and monitor progress.
+
+    This workflow tool triggers StockTrim's forecast calculation system and
+    optionally waits for completion while reporting progress.
+
+    Args:
+        request: Request with monitoring parameters
+        ctx: Server context with StockTrimClient
+
+    Returns:
+        A :class:`fastmcp.tools.ToolResult` per SEP-1865; use
+        ``unwrap_tool_result(result, ForecastsUpdateAndMonitorResponse)``
+        to recover the typed status payload (triggered/completed/elapsed/
+        progress_percentage/status_message).
+    """
+    response = await _forecasts_update_and_monitor_impl(request, ctx)
+    return make_json_result(response)
 
 
 # ============================================================================
@@ -485,43 +485,125 @@ class ForecastsGetForProductsRequest(BaseModel):
     max_results: int = Field(default=50, description="Limit results", ge=1, le=500)
 
 
-async def forecasts_get_for_products(
-    request: ForecastsGetForProductsRequest, ctx: Context
-) -> str:
-    """Get forecast data for specific products or categories.
+class ForecastItem(BaseModel):
+    """One product's forecast snapshot."""
 
-    This workflow tool queries StockTrim's order plan (forecast results) and formats
-    the data into an actionable markdown report. Use this to review demand predictions,
-    safety stock levels, and reorder recommendations.
+    product_code: str = Field(description="Product code")
+    priority: Literal["HIGH", "MEDIUM", "LOW", "UNKNOWN"] = Field(
+        description=(
+            "Urgency tier derived from days_until_stockout. ``UNKNOWN`` when the "
+            "underlying API returned no days_until_stockout — operators should "
+            "investigate before treating the item as urgent (would otherwise be "
+            "indistinguishable from genuine 0-day-stockout items)."
+        )
+    )
+    current_stock: float = Field(description="Stock on hand (units)")
+    days_until_stockout: float | None = Field(
+        default=None,
+        description="Projected days until stock runs out; ``None`` if forecast data was missing",
+    )
+    recommended_order_quantity: float = Field(
+        description="Recommended order quantity (units)"
+    )
+    safety_stock_level: float = Field(description="Safety stock level (units)")
+    lead_time_days: int | None = Field(
+        default=None, description="Lead time in days, if known"
+    )
 
-    The tool provides comprehensive forecast analysis including:
-    - Current inventory levels
-    - Demand forecasts
-    - Days until stockout
-    - Recommended reorder quantities
-    - Safety stock levels
-    - Forecast confidence metrics
 
-    Args:
-        request: Request with query filters
-        ctx: Server context with StockTrimClient
+class ForecastsGetForProductsResponse(BaseModel):
+    """Typed response for forecasts_get_for_products.
 
-    Returns:
-        Markdown-formatted forecast report with:
-        - Product-by-product forecast details
-        - Current vs recommended stock levels
-        - Days until stockout
-        - Reorder recommendations
-        - Summary statistics
-
-    Example:
-        Request: {
-            "category": "Widgets",
-            "location_code": "WAREHOUSE-A",
-            "max_results": 20
-        }
-        Returns markdown report with forecast data for top 20 widgets at WAREHOUSE-A
+    Hosts that want a markdown report can render one from this structured
+    payload (see priority + summary fields).
     """
+
+    items: list[ForecastItem] = Field(
+        description="Forecast items, sorted per request.sort_by, capped at max_results"
+    )
+    total_available: int = Field(
+        description="Total matching items before max_results truncation"
+    )
+    truncated_for_size: bool = Field(
+        description="True if results were further trimmed to fit MAX_RESPONSE_SIZE_BYTES"
+    )
+    sort_by: str = Field(description="Sort order applied")
+    filters: dict[str, str | list[str]] = Field(
+        description="Filters that were applied (category/supplier/location/product_codes)"
+    )
+    total_recommended_quantity: float = Field(
+        description="Sum of recommended order quantities across returned items"
+    )
+    average_days_until_stockout: float | None = Field(
+        default=None,
+        description="Mean days_until_stockout across returned items (None if empty)",
+    )
+    error: str | None = Field(
+        default=None,
+        description="Error message if the query failed; non-None signals an error response",
+    )
+
+
+def _priority_for(
+    days_until_stockout: float | None,
+) -> Literal["HIGH", "MEDIUM", "LOW", "UNKNOWN"]:
+    """Map a days-until-stockout value to a priority tier.
+
+    Returns ``"UNKNOWN"`` for ``None`` (missing forecast data) so callers
+    don't conflate "no data" with "0 days remaining" — the previous
+    implementation substituted ``0.0`` which silently classified missing
+    data as ``HIGH`` priority (Copilot review on PR #188).
+    """
+    if days_until_stockout is None:
+        return "UNKNOWN"
+    if days_until_stockout < HIGH_PRIORITY_THRESHOLD_DAYS:
+        return "HIGH"
+    if days_until_stockout < MEDIUM_PRIORITY_THRESHOLD_DAYS:
+        return "MEDIUM"
+    return "LOW"
+
+
+def _to_forecast_item(item: SkuOptimizedResultsDto) -> ForecastItem:
+    """Map an order-plan DTO row to a typed ForecastItem.
+
+    Centralises the UNSET → None / default coercion that was inlined six
+    times in ``_forecasts_get_for_products_impl``; tests can now exercise
+    the boundary directly without spinning up the full query path.
+
+    ``days_until_stockout`` stays ``None`` when the API returned no value
+    so ``_priority_for`` can map it to ``"UNKNOWN"`` — substituting ``0.0``
+    would silently bucket missing-data items as ``HIGH``.
+    """
+    days_until_stockout = (
+        float(item.days_until_stock_out)
+        if item.days_until_stock_out not in (None, UNSET)
+        else None
+    )
+    return ForecastItem(
+        product_code=str(item.product_code)
+        if item.product_code not in (None, UNSET)
+        else "Unknown",
+        priority=_priority_for(days_until_stockout),
+        current_stock=float(item.stock_on_hand)
+        if item.stock_on_hand not in (None, UNSET)
+        else 0.0,
+        days_until_stockout=days_until_stockout,
+        recommended_order_quantity=float(item.order_quantity)
+        if item.order_quantity not in (None, UNSET)
+        else 0.0,
+        safety_stock_level=float(item.safety_stock_level)
+        if item.safety_stock_level not in (None, UNSET)
+        else 0.0,
+        lead_time_days=int(item.lead_time_days)
+        if item.lead_time_days not in (None, UNSET)
+        else None,
+    )
+
+
+async def _forecasts_get_for_products_impl(
+    request: ForecastsGetForProductsRequest, ctx: Context
+) -> ForecastsGetForProductsResponse:
+    """Pure-impl half of forecasts_get_for_products."""
     logger.info(
         "forecast_query_started",
         category=request.category,
@@ -530,28 +612,32 @@ async def forecasts_get_for_products(
         max_results=request.max_results,
     )
 
+    filters: dict[str, str | list[str]] = {}
+    if request.category:
+        filters["category"] = request.category
+    if request.supplier_code:
+        filters["supplier_code"] = request.supplier_code
+    if request.location_code:
+        filters["location_code"] = request.location_code
+    if request.product_codes:
+        filters["product_codes"] = request.product_codes
+
     try:
-        # Get services from context
         services = get_services(ctx)
         client = services.client
 
-        # Build filter criteria
         criteria = OrderPlanFilterCriteria(
             category=request.category or UNSET,
             supplier=request.supplier_code or UNSET,
             location=request.location_code or UNSET,
         )
-
-        # Query order plan
         all_items = await client.order_plan.query(criteria)
 
-        # Filter by specific product codes if provided
         if request.product_codes:
             all_items = [
                 item for item in all_items if item.product_code in request.product_codes
             ]
 
-        # Sort based on request
         if request.sort_by == "days_until_stockout":
             all_items.sort(
                 key=lambda x: (
@@ -569,17 +655,16 @@ async def forecasts_get_for_products(
                 ),
                 reverse=True,
             )
-        else:  # product_code
+        else:
             all_items.sort(
                 key=lambda x: (
                     str(x.product_code) if x.product_code not in (None, UNSET) else ""
                 )
             )
 
-        # Limit results
         limited_items = all_items[: request.max_results]
 
-        # Check token budget
+        truncated_for_size = False
         estimated_size = len(limited_items) * ESTIMATED_CHARS_PER_FORECAST_ITEM
         if estimated_size > MAX_RESPONSE_SIZE_BYTES:
             logger.warning(
@@ -587,133 +672,80 @@ async def forecasts_get_for_products(
                 item_count=len(limited_items),
                 estimated_bytes=estimated_size,
             )
-            # Reduce to fit budget
-            limited_items = limited_items[: min(50, len(limited_items))]
+            # Only flag truncation when the slice actually drops items —
+            # `[: min(50, len(items))]` is a no-op when len <= 50, and
+            # falsely setting the flag misleads consumers that use it as
+            # a "results were trimmed" indicator (Copilot review, PR #188).
+            before_trim = len(limited_items)
+            limited_items = limited_items[: min(50, before_trim)]
+            truncated_for_size = len(limited_items) < before_trim
 
-        # Build markdown report
-        report_lines = ["# Forecast Data\n"]
-
-        # Add filters
-        filter_parts = []
-        if request.category:
-            filter_parts.append(f"Category: {request.category}")
-        if request.supplier_code:
-            filter_parts.append(f"Supplier: {request.supplier_code}")
-        if request.location_code:
-            filter_parts.append(f"Location: {request.location_code}")
-        if filter_parts:
-            report_lines.append(f"**Filters**: {', '.join(filter_parts)}\n")
-
-        report_lines.append(
-            f"**Results**: Showing {len(limited_items)} of {len(all_items)} total items\n"
-        )
-        report_lines.append(f"**Sorted by**: {request.sort_by}\n")
-
-        if not limited_items:
-            report_lines.append(load_template("forecast_query_empty"))
-            return "\n".join(report_lines)
-
-        # Add summary statistics
-        total_recommended = sum(
-            float(item.order_quantity)
-            if item.order_quantity not in (None, UNSET)
-            else 0
-            for item in limited_items
-        )
-        avg_days_until_stockout = sum(
-            float(item.days_until_stock_out)
-            if item.days_until_stock_out not in (None, UNSET)
-            else 0
-            for item in limited_items
-        ) / len(limited_items)
-
-        report_lines.append("\n## Summary\n")
-        report_lines.append(
-            f"- **Total Recommended Order Quantity**: {total_recommended:,.0f} units\n"
-        )
-        report_lines.append(
-            f"- **Average Days Until Stockout**: {avg_days_until_stockout:.1f} days\n"
-        )
-
-        # Add detailed product data
-        report_lines.append("\n## Product Forecasts\n")
-
-        for item in limited_items:
-            product_code = (
-                item.product_code
-                if item.product_code not in (None, UNSET)
-                else "Unknown"
-            )
-            # Note: Using product_code as name since DTO doesn't have product_description
-            product_name = product_code
-            current_stock = (
-                float(item.stock_on_hand)
-                if item.stock_on_hand not in (None, UNSET)
-                else 0
-            )
-            days_until_stockout = (
-                float(item.days_until_stock_out)
-                if item.days_until_stock_out not in (None, UNSET)
-                else 0
-            )
-            recommended_qty = (
-                float(item.order_quantity)
-                if item.order_quantity not in (None, UNSET)
-                else 0
-            )
-            safety_stock = (
-                float(item.safety_stock_level)
-                if item.safety_stock_level not in (None, UNSET)
-                else 0
-            )
-
-            # Priority indicator based on days until stockout
-            if days_until_stockout < HIGH_PRIORITY_THRESHOLD_DAYS:
-                priority = "🔴 HIGH"
-            elif days_until_stockout < MEDIUM_PRIORITY_THRESHOLD_DAYS:
-                priority = "🟡 MEDIUM"
-            else:
-                priority = "🟢 LOW"
-
-            report_lines.append(f"\n### {product_code} - {product_name}\n")
-            report_lines.append(f"**Priority**: {priority}\n")
-            report_lines.append(f"- **Current Stock**: {current_stock:,.0f} units\n")
-            report_lines.append(
-                f"- **Days Until Stockout**: {days_until_stockout:.1f} days\n"
-            )
-            report_lines.append(
-                f"- **Recommended Order**: {recommended_qty:,.0f} units\n"
-            )
-            report_lines.append(f"- **Safety Stock**: {safety_stock:,.0f} units\n")
-
-            # Add lead time if available
-            if item.lead_time_days not in (None, UNSET):
-                report_lines.append(f"- **Lead Time**: {item.lead_time_days} days\n")
-
-        # Add next steps
-        report_lines.append("\n## Next Steps\n")
-        report_lines.append("- Review high priority items (< 7 days until stockout)\n")
-        report_lines.append(
-            "- Use `review_urgent_order_requirements` to plan purchase orders\n"
-        )
-        report_lines.append(
-            "- Use `generate_purchase_orders_from_urgent_items` to create draft POs\n"
-        )
-        report_lines.append(
-            "- Update forecast settings for products with unexpected recommendations\n"
-        )
+        items = [_to_forecast_item(item) for item in limited_items]
+        total_recommended = sum(item.recommended_order_quantity for item in items)
+        days_values = [
+            item.days_until_stockout
+            for item in items
+            if item.days_until_stockout is not None
+        ]
+        avg_days = (sum(days_values) / len(days_values)) if days_values else None
 
         logger.info(
             "forecast_query_complete",
-            items_returned=len(limited_items),
+            items_returned=len(items),
             total_items=len(all_items),
         )
-
-        return "\n".join(report_lines)
+        return ForecastsGetForProductsResponse(
+            items=items,
+            total_available=len(all_items),
+            truncated_for_size=truncated_for_size,
+            sort_by=request.sort_by,
+            filters=filters,
+            total_recommended_quantity=total_recommended,
+            average_days_until_stockout=avg_days,
+        )
 
     except Exception as e:
         logger.error("forecast_query_failed", error=str(e), error_type=type(e).__name__)
-        return format_template("forecast_query_failed", error=str(e))
+        return ForecastsGetForProductsResponse(
+            items=[],
+            total_available=0,
+            truncated_for_size=False,
+            sort_by=request.sort_by,
+            filters=filters,
+            total_recommended_quantity=0.0,
+            average_days_until_stockout=None,
+            error=f"Forecast query failed: {e}",
+        )
+
+
+async def forecasts_get_for_products(
+    request: ForecastsGetForProductsRequest, ctx: Context
+) -> ToolResult:
+    """Get forecast data for specific products or categories.
+
+    This workflow tool queries StockTrim's order plan (forecast results) and
+    returns structured forecast data. Use this to review demand predictions,
+    safety stock levels, and reorder recommendations.
+
+    Args:
+        request: Request with query filters
+        ctx: Server context with StockTrimClient
+
+    Returns:
+        A :class:`fastmcp.tools.ToolResult` per SEP-1865; use
+        ``unwrap_tool_result(result, ForecastsGetForProductsResponse)``.
+
+    Example:
+        Request: {
+            "category": "Widgets",
+            "location_code": "WAREHOUSE-A",
+            "max_results": 20
+        }
+        Returns up to 20 forecast items at WAREHOUSE-A in the Widgets category,
+        sorted by urgency.
+    """
+    response = await _forecasts_get_for_products_impl(request, ctx)
+    return make_json_result(response)
 
 
 # ============================================================================

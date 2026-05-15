@@ -10,10 +10,12 @@ from fastmcp.server.elicitation import (
     CancelledElicitation,
     DeclinedElicitation,
 )
+from fastmcp.tools import ToolResult
 from pydantic import BaseModel, Field
 
 from stocktrim_mcp_server.dependencies import get_services
 from stocktrim_mcp_server.logging_config import get_logger
+from stocktrim_mcp_server.tools.tool_result_utils import make_json_result
 from stocktrim_mcp_server.unpack import Unpack, unpack_pydantic_params
 
 logger = get_logger(__name__)
@@ -38,10 +40,24 @@ class SupplierInfo(BaseModel):
     primary_contact: str | None
 
 
+class GetSupplierResponse(BaseModel):
+    """Response wrapper so the ``None`` case still serializes through
+    ``make_json_result``."""
+
+    supplier: SupplierInfo | None = None
+
+
+class CreateSupplierResponse(BaseModel):
+    """Response wrapper so a single ``SupplierInfo`` serializes through
+    ``make_json_result``."""
+
+    supplier: SupplierInfo
+
+
 @unpack_pydantic_params
 async def get_supplier(
     request: Annotated[GetSupplierRequest, Unpack()], context: Context
-) -> SupplierInfo | None:
+) -> ToolResult:
     """Get a supplier by code.
 
     This tool retrieves detailed information about a specific supplier
@@ -52,25 +68,24 @@ async def get_supplier(
         context: Server context with StockTrimClient
 
     Returns:
-        SupplierInfo if found, None if not found
-
-    Example:
-        Request: {"code": "SUP-001"}
-        Returns: {"code": "SUP-001", "name": "Acme Supplies", ...}
+        A :class:`fastmcp.tools.ToolResult` per SEP-1865; use
+        ``unwrap_tool_result(result, GetSupplierResponse)`` and read
+        ``response.supplier`` (``None`` if not found).
     """
     services = get_services(context)
     supplier = await services.suppliers.get_by_code(request.code)
 
-    if not supplier:
-        return None
-
-    # Build SupplierInfo from response
-    return SupplierInfo(
-        code=supplier.supplier_code,
-        name=supplier.supplier_name,
-        email=supplier.email_address,
-        primary_contact=supplier.primary_contact_name,
+    info = (
+        SupplierInfo(
+            code=supplier.supplier_code,
+            name=supplier.supplier_name,
+            email=supplier.email_address,
+            primary_contact=supplier.primary_contact_name,
+        )
+        if supplier
+        else None
     )
+    return make_json_result(GetSupplierResponse(supplier=info))
 
 
 # ============================================================================
@@ -96,7 +111,7 @@ class ListSuppliersResponse(BaseModel):
 @unpack_pydantic_params
 async def list_suppliers(
     request: Annotated[ListSuppliersRequest, Unpack()], context: Context
-) -> ListSuppliersResponse:
+) -> ToolResult:
     """List all suppliers.
 
     This tool retrieves all suppliers from StockTrim,
@@ -107,16 +122,12 @@ async def list_suppliers(
         context: Server context with StockTrimClient
 
     Returns:
-        ListSuppliersResponse with suppliers
-
-    Example:
-        Request: {"active_only": true}
-        Returns: {"suppliers": [...], "total_count": 10}
+        A :class:`fastmcp.tools.ToolResult` per SEP-1865; use
+        ``unwrap_tool_result(result, ListSuppliersResponse)``.
     """
     services = get_services(context)
     suppliers = await services.suppliers.list_all(request.active_only)
 
-    # Build response
     supplier_infos = [
         SupplierInfo(
             code=s.supplier_code,
@@ -126,10 +137,11 @@ async def list_suppliers(
         )
         for s in suppliers
     ]
-
-    return ListSuppliersResponse(
-        suppliers=supplier_infos,
-        total_count=len(supplier_infos),
+    return make_json_result(
+        ListSuppliersResponse(
+            suppliers=supplier_infos,
+            total_count=len(supplier_infos),
+        )
     )
 
 
@@ -152,7 +164,7 @@ class CreateSupplierRequest(BaseModel):
 @unpack_pydantic_params
 async def create_supplier(
     request: Annotated[CreateSupplierRequest, Unpack()], context: Context
-) -> SupplierInfo:
+) -> ToolResult:
     """Create a new supplier.
 
     This tool creates a new supplier in StockTrim.
@@ -162,11 +174,9 @@ async def create_supplier(
         context: Server context with StockTrimClient
 
     Returns:
-        SupplierInfo for the created supplier
-
-    Example:
-        Request: {"code": "SUP-001", "name": "Acme Supplies", "email": "contact@acme.com"}
-        Returns: {"code": "SUP-001", "name": "Acme Supplies", ...}
+        A :class:`fastmcp.tools.ToolResult` per SEP-1865; use
+        ``unwrap_tool_result(result, CreateSupplierResponse)`` and read
+        ``response.supplier``.
     """
     services = get_services(context)
     created_supplier = await services.suppliers.create(
@@ -176,13 +186,13 @@ async def create_supplier(
         primary_contact=request.primary_contact,
     )
 
-    # Build SupplierInfo from response
-    return SupplierInfo(
+    info = SupplierInfo(
         code=created_supplier.supplier_code,
         name=created_supplier.supplier_name,
         email=created_supplier.email_address,
         primary_contact=created_supplier.primary_contact_name,
     )
+    return make_json_result(CreateSupplierResponse(supplier=info))
 
 
 # ============================================================================
@@ -203,10 +213,66 @@ class DeleteSupplierResponse(BaseModel):
     message: str
 
 
+async def _delete_supplier_impl(
+    request: DeleteSupplierRequest, context: Context
+) -> DeleteSupplierResponse:
+    """Pure-impl half of ``delete_supplier`` so the ToolResult wrapper stays one line."""
+    services = get_services(context)
+    supplier = await services.suppliers.get_by_code(request.code)
+
+    if not supplier:
+        return DeleteSupplierResponse(
+            success=False,
+            message=f"Supplier not found: {request.code}",
+        )
+
+    supplier_code = supplier.supplier_code or request.code
+    supplier_name = supplier.supplier_name or "Unnamed Supplier"
+    contact_info = (
+        supplier.primary_contact_name or supplier.email_address or "No contact"
+    )
+
+    result = await context.elicit(
+        message=f"""⚠️ Delete supplier {supplier_code}?
+
+**{supplier_name}**
+Contact: {contact_info}
+
+This action will permanently delete the supplier and all associations (product mappings, purchase order history).
+This cannot be undone.
+
+Proceed with deletion?""",
+        response_type=None,
+    )
+
+    match result:
+        case AcceptedElicitation():
+            success, message = await services.suppliers.delete(request.code)
+            return DeleteSupplierResponse(
+                success=success,
+                message=f"✅ {message}" if success else message,
+            )
+        case DeclinedElicitation():
+            return DeleteSupplierResponse(
+                success=False,
+                message=f"❌ Deletion of supplier {supplier_code} declined by user",
+            )
+        case CancelledElicitation():
+            return DeleteSupplierResponse(
+                success=False,
+                message=f"❌ Deletion of supplier {supplier_code} cancelled by user",
+            )
+        case _:
+            return DeleteSupplierResponse(
+                success=False,
+                message=f"Unexpected elicitation response for supplier {supplier_code}",
+            )
+
+
 @unpack_pydantic_params
 async def delete_supplier(
     request: Annotated[DeleteSupplierRequest, Unpack()], context: Context
-) -> DeleteSupplierResponse:
+) -> ToolResult:
     """Delete a supplier by code.
 
     🔴 HIGH-RISK OPERATION: This action permanently deletes supplier data
@@ -220,75 +286,11 @@ async def delete_supplier(
         context: Server context with StockTrimClient
 
     Returns:
-        DeleteSupplierResponse indicating success or cancellation
-
-    Example:
-        Request: {"code": "SUP-001"}
-        Returns: {"success": true, "message": "Supplier SUP-001 deleted successfully"}
-                 or {"success": false, "message": "Deletion cancelled by user"}
+        A :class:`fastmcp.tools.ToolResult` per SEP-1865; use
+        ``unwrap_tool_result(result, DeleteSupplierResponse)``.
     """
-    services = get_services(context)
-
-    # Get supplier details for preview
-    supplier = await services.suppliers.get_by_code(request.code)
-
-    if not supplier:
-        return DeleteSupplierResponse(
-            success=False,
-            message=f"Supplier not found: {request.code}",
-        )
-
-    # Build preview information
-    supplier_code = supplier.supplier_code or request.code
-    supplier_name = supplier.supplier_name or "Unnamed Supplier"
-    contact_info = (
-        supplier.primary_contact_name or supplier.email_address or "No contact"
-    )
-
-    # Request user confirmation via elicitation
-    result = await context.elicit(
-        message=f"""⚠️ Delete supplier {supplier_code}?
-
-**{supplier_name}**
-Contact: {contact_info}
-
-This action will permanently delete the supplier and all associations (product mappings, purchase order history).
-This cannot be undone.
-
-Proceed with deletion?""",
-        response_type=None,  # Simple yes/no approval
-    )
-
-    # Handle elicitation response
-    match result:
-        case AcceptedElicitation():
-            # User confirmed - proceed with deletion
-            success, message = await services.suppliers.delete(request.code)
-            return DeleteSupplierResponse(
-                success=success,
-                message=f"✅ {message}" if success else message,
-            )
-
-        case DeclinedElicitation():
-            # User declined
-            return DeleteSupplierResponse(
-                success=False,
-                message=f"❌ Deletion of supplier {supplier_code} declined by user",
-            )
-
-        case CancelledElicitation():
-            # User cancelled
-            return DeleteSupplierResponse(
-                success=False,
-                message=f"❌ Deletion of supplier {supplier_code} cancelled by user",
-            )
-
-        case _:
-            # Unexpected response type
-            return DeleteSupplierResponse(
-                success=False,
-                message=f"Unexpected elicitation response for supplier {supplier_code}",
-            )
+    response = await _delete_supplier_impl(request, context)
+    return make_json_result(response)
 
 
 # ============================================================================
