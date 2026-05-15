@@ -30,6 +30,12 @@ def mock_context():
     context = MagicMock()
     context.request_context = MagicMock()
 
+    # ctx.get_state / set_state are async in fastmcp v3 — back them with
+    # AsyncMock so tools that read session preferences don't blow up.
+    # `get_state` returns None by default (no preferences set).
+    context.get_state = AsyncMock(return_value=None)
+    context.set_state = AsyncMock()
+
     # Create a mock ServerContext with autospec'd services
     lifespan_context = MagicMock()
 

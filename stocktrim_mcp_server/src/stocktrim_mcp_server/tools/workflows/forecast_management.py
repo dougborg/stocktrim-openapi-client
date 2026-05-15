@@ -16,6 +16,7 @@ from pydantic import BaseModel, Field
 
 from stocktrim_mcp_server.dependencies import get_services
 from stocktrim_mcp_server.logging_config import get_logger
+from stocktrim_mcp_server.tools.preferences import load_preferences, resolve
 from stocktrim_mcp_server.tools.tool_result_utils import make_json_result
 from stocktrim_mcp_server.utils import to_unset, unwrap_unset
 from stocktrim_public_api_client.client_types import UNSET
@@ -584,21 +585,26 @@ async def _forecasts_get_for_products_impl(
     request: ForecastsGetForProductsRequest, ctx: Context
 ) -> ForecastsGetForProductsResponse:
     """Pure-impl half of forecasts_get_for_products."""
+    prefs = await load_preferences(ctx)
+    category = resolve(request.category, prefs, "category", None)
+    supplier_code = resolve(request.supplier_code, prefs, "supplier_code", None)
+    location_code = resolve(request.location_code, prefs, "location_code", None)
+
     logger.info(
         "forecast_query_started",
-        category=request.category,
-        supplier=request.supplier_code,
-        location=request.location_code,
+        category=category,
+        supplier=supplier_code,
+        location=location_code,
         max_results=request.max_results,
     )
 
     filters: dict[str, str | list[str]] = {}
-    if request.category:
-        filters["category"] = request.category
-    if request.supplier_code:
-        filters["supplier_code"] = request.supplier_code
-    if request.location_code:
-        filters["location_code"] = request.location_code
+    if category:
+        filters["category"] = category
+    if supplier_code:
+        filters["supplier_code"] = supplier_code
+    if location_code:
+        filters["location_code"] = location_code
     if request.product_codes:
         filters["product_codes"] = request.product_codes
 
@@ -607,9 +613,9 @@ async def _forecasts_get_for_products_impl(
         client = services.client
 
         criteria = OrderPlanFilterCriteria(
-            category=request.category or UNSET,
-            supplier=request.supplier_code or UNSET,
-            location=request.location_code or UNSET,
+            category=category or UNSET,
+            supplier=supplier_code or UNSET,
+            location=location_code or UNSET,
         )
         all_items = await client.order_plan.query(criteria)
 

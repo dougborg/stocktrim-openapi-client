@@ -14,6 +14,7 @@ from pydantic import BaseModel, Field
 
 from stocktrim_mcp_server.dependencies import get_services
 from stocktrim_mcp_server.logging_config import get_logger
+from stocktrim_mcp_server.tools.preferences import load_preferences, resolve
 from stocktrim_mcp_server.tools.tool_result_utils import make_json_result
 from stocktrim_mcp_server.utils import unwrap_unset
 from stocktrim_public_api_client.client_types import UNSET
@@ -31,8 +32,9 @@ logger = get_logger(__name__)
 class ReviewUrgentOrdersRequest(BaseModel):
     """Request for reviewing urgent order requirements."""
 
-    days_threshold: int = Field(
-        default=30, description="Days until stockout threshold (default: 30)"
+    days_threshold: int | None = Field(
+        default=None,
+        description="Days until stockout threshold. Falls back to session preference, then 30.",
     )
     location_codes: list[str] | None = Field(
         default=None, description="Filter by specific locations"
@@ -96,8 +98,24 @@ async def _review_urgent_order_requirements_impl(
     Raises:
         Exception: If API call fails
     """
+    prefs = await load_preferences(context)
+    days_threshold = resolve(request.days_threshold, prefs, "days_threshold", 30)
+    # Use `is None` (not truthiness) so an explicit empty list from the caller
+    # clears the filter for this call instead of silently falling back to the
+    # stored preference. Same pattern below for supplier_codes.
+    location_codes = (
+        request.location_codes
+        if request.location_codes is not None
+        else ([prefs.location_code] if prefs.location_code else None)
+    )
+    supplier_codes = (
+        request.supplier_codes
+        if request.supplier_codes is not None
+        else ([prefs.supplier_code] if prefs.supplier_code else None)
+    )
+
     logger.info(
-        f"Reviewing urgent order requirements with threshold: {request.days_threshold} days"
+        f"Reviewing urgent order requirements with threshold: {days_threshold} days"
     )
 
     try:
@@ -108,8 +126,8 @@ async def _review_urgent_order_requirements_impl(
         # Note: order_plan.get_urgent_items() doesn't support all our filters,
         # so we'll query with filters and filter by days threshold ourselves
         filter_criteria = OrderPlanFilterCriteriaDto(
-            location_codes=request.location_codes or UNSET,
-            supplier_codes=request.supplier_codes or UNSET,
+            location_codes=location_codes or UNSET,
+            supplier_codes=supplier_codes or UNSET,
         )
 
         # Query order plan (uses client directly as order_plan not in service layer)
@@ -119,7 +137,7 @@ async def _review_urgent_order_requirements_impl(
         urgent_items = []
         for item in all_items:
             days = unwrap_unset(item.days_until_stock_out)
-            if days is not None and days < request.days_threshold:
+            if days is not None and days < days_threshold:
                 urgent_items.append(item)
 
         # Sort by urgency (lowest days first)
@@ -311,9 +329,12 @@ class GeneratePurchaseOrdersRequest(BaseModel):
     use review_urgent_order_requirements first, then manually create POs for selected items.
     """
 
-    days_threshold: int = Field(
-        default=30,
-        description="Days until stockout threshold (for API consistency; not used in V2 API filtering)",
+    days_threshold: int | None = Field(
+        default=None,
+        description=(
+            "Days until stockout threshold (for API consistency; not used in V2 API "
+            "filtering). Falls back to session preference, then 30."
+        ),
     )
     location_codes: list[str] | None = Field(
         default=None, description="Filter by specific locations"
@@ -358,8 +379,35 @@ async def _generate_purchase_orders_from_urgent_items_impl(
     Raises:
         Exception: If API call fails
     """
+    prefs = await load_preferences(context)
+    days_threshold = resolve(request.days_threshold, prefs, "days_threshold", 30)
+    # `is None` (not truthiness) so an explicit empty list clears the filter
+    # rather than falling back to the stored preference.
+    location_codes = (
+        request.location_codes
+        if request.location_codes is not None
+        else ([prefs.location_code] if prefs.location_code else None)
+    )
+    supplier_codes = (
+        request.supplier_codes
+        if request.supplier_codes is not None
+        else ([prefs.supplier_code] if prefs.supplier_code else None)
+    )
+
+    if prefs.dry_run:
+        logger.info(
+            "generate_pos_dry_run",
+            days_threshold=days_threshold,
+            location_codes=location_codes,
+            supplier_codes=supplier_codes,
+        )
+        return GeneratePurchaseOrdersResponse(
+            purchase_orders=[],
+            total_count=0,
+        )
+
     logger.info(
-        f"Generating purchase orders for urgent items with threshold: {request.days_threshold} days"
+        f"Generating purchase orders for urgent items with threshold: {days_threshold} days"
     )
 
     try:
@@ -374,8 +422,8 @@ async def _generate_purchase_orders_from_urgent_items_impl(
         # If more granular control is needed, use review_urgent_order_requirements first
         # to identify specific items, then manually create POs for selected suppliers.
         filter_criteria = OrderPlanFilterCriteriaDto(
-            location_codes=request.location_codes or UNSET,
-            supplier_codes=request.supplier_codes or UNSET,
+            location_codes=location_codes or UNSET,
+            supplier_codes=supplier_codes or UNSET,
         )
 
         # Generate POs using V2 API (uses client directly as purchase_orders_v2 not in service layer)

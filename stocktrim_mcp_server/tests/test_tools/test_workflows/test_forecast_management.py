@@ -896,3 +896,74 @@ async def test_forecasts_get_for_products_summary_stats(mock_context):
     # Verify
     assert response.total_recommended_quantity == 300.0  # 100 + 200
     assert response.average_days_until_stockout == 10.0  # (5 + 15) / 2
+
+
+# ============================================================================
+# Session preference fallback for forecasts_get_for_products
+# ============================================================================
+
+
+@pytest.mark.asyncio
+async def test_forecasts_get_for_products_falls_back_to_pref_filters(mock_context):
+    """When category/supplier_code/location_code are omitted, stored
+    SessionPreferences are applied to the underlying OrderPlanFilterCriteria
+    and reflected in the response.filters dict."""
+    from stocktrim_mcp_server.tools.preferences import SessionPreferences
+
+    pref = SessionPreferences(
+        category="Widgets", supplier_code="SUP-PREF", location_code="WH-PREF"
+    )
+    mock_context.get_state = AsyncMock(return_value=pref.model_dump())
+    mock_context.set_state = AsyncMock()
+
+    services = mock_context.request_context.lifespan_context
+    services.client = Mock()
+    services.client.order_plan = Mock()
+    services.client.order_plan.query = AsyncMock(return_value=[])
+
+    # No filter args supplied — must inherit all three from prefs.
+    request = ForecastsGetForProductsRequest(max_results=10)
+    response = await _call_get_forecasts(request, mock_context)
+
+    services.client.order_plan.query.assert_called_once()
+    criteria = services.client.order_plan.query.call_args.args[0]
+    assert criteria.category == "Widgets"
+    assert criteria.supplier == "SUP-PREF"
+    assert criteria.location == "WH-PREF"
+    # filters dict surfaced to the caller mirrors what was actually sent.
+    assert response.filters["category"] == "Widgets"
+    assert response.filters["supplier_code"] == "SUP-PREF"
+    assert response.filters["location_code"] == "WH-PREF"
+
+
+@pytest.mark.asyncio
+async def test_forecasts_get_for_products_explicit_args_override_prefs(mock_context):
+    """Explicit request fields beat stored preferences for the same key."""
+    from stocktrim_mcp_server.tools.preferences import SessionPreferences
+
+    pref = SessionPreferences(
+        category="Widgets", supplier_code="SUP-PREF", location_code="WH-PREF"
+    )
+    mock_context.get_state = AsyncMock(return_value=pref.model_dump())
+    mock_context.set_state = AsyncMock()
+
+    services = mock_context.request_context.lifespan_context
+    services.client = Mock()
+    services.client.order_plan = Mock()
+    services.client.order_plan.query = AsyncMock(return_value=[])
+
+    request = ForecastsGetForProductsRequest(
+        category="Gadgets",
+        supplier_code="SUP-EXPLICIT",
+        location_code="WH-EXPLICIT",
+        max_results=10,
+    )
+    response = await _call_get_forecasts(request, mock_context)
+
+    criteria = services.client.order_plan.query.call_args.args[0]
+    assert criteria.category == "Gadgets"
+    assert criteria.supplier == "SUP-EXPLICIT"
+    assert criteria.location == "WH-EXPLICIT"
+    assert response.filters["category"] == "Gadgets"
+    assert response.filters["supplier_code"] == "SUP-EXPLICIT"
+    assert response.filters["location_code"] == "WH-EXPLICIT"

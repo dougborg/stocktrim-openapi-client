@@ -406,3 +406,178 @@ async def test_generate_purchase_orders_with_filters(mock_urgent_context):
     filter_criteria = call_args[0][0]
     assert filter_criteria.location_codes == ["WH-01", "WH-02"]
     assert filter_criteria.supplier_codes == ["SUP-001", "SUP-002"]
+
+
+# ============================================================================
+# Session preference fallback (#150)
+# ============================================================================
+
+
+@pytest.mark.asyncio
+async def test_review_urgent_orders_falls_back_to_pref_threshold(mock_urgent_context):
+    """When request.days_threshold is None, prefs.days_threshold is used."""
+    from stocktrim_mcp_server.tools.preferences import SessionPreferences
+
+    # Stub get_state to return our preference dict.
+    pref = SessionPreferences(days_threshold=15)
+    mock_urgent_context.get_state = AsyncMock(return_value=pref.model_dump())
+    mock_urgent_context.set_state = AsyncMock()
+
+    # 5-day item (urgent under threshold=15) and 20-day item (not urgent).
+    urgent = SkuOptimizedResultsDto(
+        product_code="URGENT-001", days_until_stock_out=5, order_quantity=10.0
+    )
+    not_urgent = SkuOptimizedResultsDto(
+        product_code="OK-001", days_until_stock_out=20, order_quantity=10.0
+    )
+    mock_client = mock_urgent_context.request_context.lifespan_context.client
+    mock_client.order_plan.query.return_value = [urgent, not_urgent]
+
+    # No days_threshold supplied — must inherit from prefs.
+    request = ReviewUrgentOrdersRequest()
+    response = await _review(request, mock_urgent_context)
+
+    assert response.total_items == 1
+    assert response.suppliers[0].items[0].product_code == "URGENT-001"
+
+
+@pytest.mark.asyncio
+async def test_review_urgent_orders_explicit_arg_wins_over_pref(mock_urgent_context):
+    """Explicit request.days_threshold overrides any stored preference."""
+    from stocktrim_mcp_server.tools.preferences import SessionPreferences
+
+    pref = SessionPreferences(days_threshold=100)  # would let the 20-day item through
+    mock_urgent_context.get_state = AsyncMock(return_value=pref.model_dump())
+    mock_urgent_context.set_state = AsyncMock()
+
+    urgent = SkuOptimizedResultsDto(
+        product_code="URGENT-001", days_until_stock_out=5, order_quantity=10.0
+    )
+    not_urgent = SkuOptimizedResultsDto(
+        product_code="OK-001", days_until_stock_out=20, order_quantity=10.0
+    )
+    mock_client = mock_urgent_context.request_context.lifespan_context.client
+    mock_client.order_plan.query.return_value = [urgent, not_urgent]
+
+    # Explicit 10 should override pref's 100.
+    request = ReviewUrgentOrdersRequest(days_threshold=10)
+    response = await _review(request, mock_urgent_context)
+
+    assert response.total_items == 1
+    assert response.suppliers[0].items[0].product_code == "URGENT-001"
+
+
+@pytest.mark.asyncio
+async def test_review_urgent_orders_falls_back_to_pref_supplier(mock_urgent_context):
+    """When request.supplier_codes is omitted, the saved supplier_code
+    preference is wrapped into a one-item list and applied to the query."""
+    from stocktrim_mcp_server.tools.preferences import SessionPreferences
+
+    pref = SessionPreferences(supplier_code="SUP-PREF")
+    mock_urgent_context.get_state = AsyncMock(return_value=pref.model_dump())
+    mock_urgent_context.set_state = AsyncMock()
+
+    mock_client = mock_urgent_context.request_context.lifespan_context.client
+    mock_client.order_plan.query.return_value = []
+
+    request = ReviewUrgentOrdersRequest()  # no supplier_codes
+    await _review(request, mock_urgent_context)
+
+    mock_client.order_plan.query.assert_called_once()
+    filter_criteria = mock_client.order_plan.query.call_args.args[0]
+    assert filter_criteria.supplier_codes == ["SUP-PREF"]
+
+
+@pytest.mark.asyncio
+async def test_review_urgent_orders_explicit_supplier_codes_override_pref(
+    mock_urgent_context,
+):
+    """Explicit request.supplier_codes overrides the saved preference."""
+    from stocktrim_mcp_server.tools.preferences import SessionPreferences
+
+    pref = SessionPreferences(supplier_code="SUP-PREF")
+    mock_urgent_context.get_state = AsyncMock(return_value=pref.model_dump())
+    mock_urgent_context.set_state = AsyncMock()
+
+    mock_client = mock_urgent_context.request_context.lifespan_context.client
+    mock_client.order_plan.query.return_value = []
+
+    request = ReviewUrgentOrdersRequest(supplier_codes=["SUP-EXPLICIT"])
+    await _review(request, mock_urgent_context)
+
+    filter_criteria = mock_client.order_plan.query.call_args.args[0]
+    assert filter_criteria.supplier_codes == ["SUP-EXPLICIT"]
+
+
+@pytest.mark.asyncio
+async def test_review_urgent_orders_explicit_empty_clears_pref(mock_urgent_context):
+    """An explicit empty list must clear the filter, not fall back to the
+    stored preference — `or`-based truthiness would silently apply the pref."""
+    from stocktrim_mcp_server.tools.preferences import SessionPreferences
+
+    pref = SessionPreferences(location_code="WH-PREF", supplier_code="SUP-PREF")
+    mock_urgent_context.get_state = AsyncMock(return_value=pref.model_dump())
+    mock_urgent_context.set_state = AsyncMock()
+
+    mock_client = mock_urgent_context.request_context.lifespan_context.client
+    mock_client.order_plan.query.return_value = []
+
+    # Explicit empty lists — caller is asking for an unfiltered query.
+    request = ReviewUrgentOrdersRequest(location_codes=[], supplier_codes=[])
+    await _review(request, mock_urgent_context)
+
+    filter_criteria = mock_client.order_plan.query.call_args.args[0]
+    # Empty list is falsy, so the helper sends UNSET (no filter) to the API.
+    from stocktrim_public_api_client.client_types import UNSET
+
+    assert filter_criteria.location_codes is UNSET
+    assert filter_criteria.supplier_codes is UNSET
+
+
+@pytest.mark.asyncio
+async def test_generate_purchase_orders_falls_back_to_pref_supplier(
+    mock_urgent_context,
+):
+    """generate_purchase_orders_from_urgent_items must honor the saved
+    supplier_code preference too — otherwise it generates POs for *all*
+    suppliers when the user intended only their saved one."""
+    from stocktrim_mcp_server.tools.preferences import SessionPreferences
+
+    pref = SessionPreferences(supplier_code="SUP-PREF")
+    mock_urgent_context.get_state = AsyncMock(return_value=pref.model_dump())
+    mock_urgent_context.set_state = AsyncMock()
+
+    mock_client = mock_urgent_context.request_context.lifespan_context.client
+    mock_client.purchase_orders_v2.generate_from_order_plan.return_value = []
+
+    request = GeneratePurchaseOrdersRequest()  # no supplier_codes
+    await generate_purchase_orders_from_urgent_items(request, mock_urgent_context)
+
+    mock_client.purchase_orders_v2.generate_from_order_plan.assert_called_once()
+    filter_criteria = (
+        mock_client.purchase_orders_v2.generate_from_order_plan.call_args.args[0]
+    )
+    assert filter_criteria.supplier_codes == ["SUP-PREF"]
+
+
+@pytest.mark.asyncio
+async def test_generate_purchase_orders_dry_run_skips_api_call(mock_urgent_context):
+    """dry_run preference must short-circuit before any API mutation."""
+    from stocktrim_mcp_server.tools.preferences import SessionPreferences
+
+    pref = SessionPreferences(dry_run=True)
+    mock_urgent_context.get_state = AsyncMock(return_value=pref.model_dump())
+    mock_urgent_context.set_state = AsyncMock()
+
+    mock_client = mock_urgent_context.request_context.lifespan_context.client
+
+    request = GeneratePurchaseOrdersRequest(days_threshold=30)
+    result = await generate_purchase_orders_from_urgent_items(
+        request, mock_urgent_context
+    )
+    response = unwrap_tool_result(result, GeneratePurchaseOrdersResponse)
+
+    # No POs generated, no API call made.
+    assert response.total_count == 0
+    assert response.purchase_orders == []
+    mock_client.purchase_orders_v2.generate_from_order_plan.assert_not_called()
