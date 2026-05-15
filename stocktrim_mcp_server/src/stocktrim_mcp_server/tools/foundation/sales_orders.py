@@ -60,8 +60,8 @@ class SalesOrderInfo(BaseModel):
 
 
 class CreateSalesOrderResponse(BaseModel):
-    """Response wrapper so a single ``SalesOrderInfo`` serializes through
-    ``make_json_result``."""
+    """Response wrapper so the typed payload round-trips through
+    ``unwrap_tool_result``."""
 
     sales_order: SalesOrderInfo
 
