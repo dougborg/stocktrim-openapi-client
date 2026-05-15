@@ -6,15 +6,11 @@ import logging
 from typing import Annotated
 
 from fastmcp import Context, FastMCP
-from fastmcp.server.elicitation import (
-    AcceptedElicitation,
-    CancelledElicitation,
-    DeclinedElicitation,
-)
 from fastmcp.tools import ToolResult
 from pydantic import BaseModel, Field
 
 from stocktrim_mcp_server.dependencies import get_services
+from stocktrim_mcp_server.tools.elicitation import run_delete_elicitation
 from stocktrim_mcp_server.tools.tool_result_utils import make_json_result
 from stocktrim_mcp_server.unpack import Unpack, unpack_pydantic_params
 from stocktrim_mcp_server.utils import unwrap_unset
@@ -273,7 +269,8 @@ async def _delete_product_impl(
     status_emoji = "🔴" if product.discontinued else "🟢"
     status_text = "Discontinued" if product.discontinued else "Active"
 
-    result = await context.elicit(
+    return await run_delete_elicitation(
+        context,
         message=f"""⚠️ Delete product {product_code}?
 
 {status_emoji} **{product_name}**
@@ -282,31 +279,12 @@ Status: {status_text}
 This action will permanently delete the product and cannot be undone.
 
 Proceed with deletion?""",
-        response_type=None,
+        entity_label=f"product {product_code}",
+        on_accept=lambda: services.products.delete(request.code),
+        response_factory=lambda success, message: DeleteProductResponse(
+            success=success, message=message
+        ),
     )
-
-    match result:
-        case AcceptedElicitation():
-            success, message = await services.products.delete(request.code)
-            return DeleteProductResponse(
-                success=success,
-                message=f"✅ {message}" if success else message,
-            )
-        case DeclinedElicitation():
-            return DeleteProductResponse(
-                success=False,
-                message=f"❌ Deletion of product {product_code} declined by user",
-            )
-        case CancelledElicitation():
-            return DeleteProductResponse(
-                success=False,
-                message=f"❌ Deletion of product {product_code} cancelled by user",
-            )
-        case _:
-            return DeleteProductResponse(
-                success=False,
-                message=f"Unexpected elicitation response for product {product_code}",
-            )
 
 
 @unpack_pydantic_params
