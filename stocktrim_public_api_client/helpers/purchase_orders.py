@@ -50,6 +50,11 @@ class PurchaseOrders(Base):
             client=self._client,
             reference_number=reference_number,
         )
+        # StockTrim returns 404 instead of 200-with-empty-array when there are
+        # no purchase orders (or no PO matches the reference_number filter).
+        # See helpers/products.py for the same non-standard behavior.
+        if response.status_code == 404:
+            return []
         return cast(
             PurchaseOrderResponseDto | list[PurchaseOrderResponseDto],
             unwrap(response),
