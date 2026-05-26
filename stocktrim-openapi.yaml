@@ -2438,8 +2438,6 @@ components:
           nullable: true
       additionalProperties: false
     SupplierResponseDto:
-      required:
-      - supplierCode
       type: object
       properties:
         id:
@@ -2448,6 +2446,7 @@ components:
         supplierCode:
           minLength: 1
           type: string
+          nullable: true
         supplierName:
           type: string
           nullable: true

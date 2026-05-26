@@ -192,6 +192,26 @@ async def test_list_suppliers_empty(mock_supplier_context):
     assert len(response.suppliers) == 0
 
 
+@pytest.mark.asyncio
+async def test_list_suppliers_handles_null_supplier_code(mock_supplier_context):
+    """API has been observed returning suppliers with supplier_code=None;
+    SupplierInfo.code must accept None instead of raising a validation error."""
+    services = mock_supplier_context.request_context.lifespan_context
+    orphaned = SupplierResponseDto(
+        supplier_code=None,
+        supplier_name="Legacy Supplier",
+        email_address=None,
+        primary_contact_name=None,
+    )
+    services.suppliers.list_all.return_value = [orphaned]
+
+    response = await _call_list(active_only=True, context=mock_supplier_context)
+
+    assert response.total_count == 1
+    assert response.suppliers[0].code is None
+    assert response.suppliers[0].name == "Legacy Supplier"
+
+
 # ============================================================================
 # Test create_supplier
 # ============================================================================

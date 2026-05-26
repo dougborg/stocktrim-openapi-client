@@ -121,15 +121,7 @@ def unwrap(
             products = unwrap(response)  # Raises on error, returns parsed data
         ```
     """
-    if response.parsed is None:
-        if raise_on_error:
-            raise APIError(
-                f"No parsed response data for status {response.status_code}",
-                response.status_code,
-            )
-        return None
-
-    # Check if it's a ProblemDetails error response
+    # Identify ProblemDetails (if the body parsed into one) for richer messages
     problem_details = None
     try:
         from .generated.models.problem_details import ProblemDetails
@@ -139,7 +131,10 @@ def unwrap(
     except ImportError:
         pass
 
-    # Handle error status codes
+    # Handle error status codes first — even when the body did not parse
+    # (e.g. StockTrim returns 500 with an HTML stack trace that the OpenAPI
+    # client cannot decode). Without this branch every 5xx without a parseable
+    # body would surface as the misleading "No parsed response data" APIError.
     if response.status_code >= 400:
         if not raise_on_error:
             return None
@@ -172,6 +167,15 @@ def unwrap(
             raise ServerError(message, response.status_code, problem_details)
         else:
             raise APIError(message, response.status_code, problem_details)
+
+    # Successful status but no parsed body — likely a generator gap
+    if response.parsed is None:
+        if raise_on_error:
+            raise APIError(
+                f"No parsed response data for status {response.status_code}",
+                response.status_code,
+            )
+        return None
 
     return response.parsed
 

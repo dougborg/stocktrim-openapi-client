@@ -14,8 +14,8 @@ T = TypeVar("T", bound="SupplierResponseDto")
 class SupplierResponseDto:
     """
     Attributes:
-        supplier_code (str):
         id (int | Unset):
+        supplier_code (None | str | Unset):
         supplier_name (None | str | Unset):
         email_address (None | str | Unset):
         primary_contact_name (None | str | Unset):
@@ -29,8 +29,8 @@ class SupplierResponseDto:
         post_code (None | str | Unset):
     """
 
-    supplier_code: str
     id: int | Unset = UNSET
+    supplier_code: None | str | Unset = UNSET
     supplier_name: None | str | Unset = UNSET
     email_address: None | str | Unset = UNSET
     primary_contact_name: None | str | Unset = UNSET
@@ -44,9 +44,13 @@ class SupplierResponseDto:
     post_code: None | str | Unset = UNSET
 
     def to_dict(self) -> dict[str, Any]:
-        supplier_code = self.supplier_code
-
         id = self.id
+
+        supplier_code: None | str | Unset
+        if isinstance(self.supplier_code, Unset):
+            supplier_code = UNSET
+        else:
+            supplier_code = self.supplier_code
 
         supplier_name: None | str | Unset
         if isinstance(self.supplier_name, Unset):
@@ -116,13 +120,11 @@ class SupplierResponseDto:
 
         field_dict: dict[str, Any] = {}
 
-        field_dict.update(
-            {
-                "supplierCode": supplier_code,
-            }
-        )
+        field_dict.update({})
         if id is not UNSET:
             field_dict["id"] = id
+        if supplier_code is not UNSET:
+            field_dict["supplierCode"] = supplier_code
         if supplier_name is not UNSET:
             field_dict["supplierName"] = supplier_name
         if email_address is not UNSET:
@@ -151,9 +153,16 @@ class SupplierResponseDto:
     @classmethod
     def from_dict(cls: type[T], src_dict: Mapping[str, Any]) -> T:
         d = dict(src_dict)
-        supplier_code = d.pop("supplierCode")
-
         id = d.pop("id", UNSET)
+
+        def _parse_supplier_code(data: object) -> None | str | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(None | str | Unset, data)
+
+        supplier_code = _parse_supplier_code(d.pop("supplierCode", UNSET))
 
         def _parse_supplier_name(data: object) -> None | str | Unset:
             if data is None:
@@ -257,8 +266,8 @@ class SupplierResponseDto:
         post_code = _parse_post_code(d.pop("postCode", UNSET))
 
         supplier_response_dto = cls(
-            supplier_code=supplier_code,
             id=id,
+            supplier_code=supplier_code,
             supplier_name=supplier_name,
             email_address=email_address,
             primary_contact_name=primary_contact_name,

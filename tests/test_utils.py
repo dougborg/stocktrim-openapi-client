@@ -168,6 +168,42 @@ class TestUnwrap:
             AuthenticationError | PermissionError | NotFoundError | ValidationError,
         )
 
+    def test_unwrap_500_with_unparseable_body_raises_server_error(self):
+        """A 5xx response whose body did not parse (parsed=None) must still
+        raise ServerError, not the misleading 'No parsed response data' APIError.
+
+        Regression: StockTrim's Order Plan endpoint occasionally returns 500
+        with an HTML stack-trace body the OpenAPI client cannot decode."""
+        response: Response[Any] = Response(
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
+            content=b"<html>...</html>",
+            headers={},
+            parsed=None,
+        )
+        with pytest.raises(ServerError) as exc_info:
+            unwrap(response)
+        assert exc_info.value.status_code == 500
+        assert "No parsed response data" not in str(exc_info.value)
+
+    def test_unwrap_404_with_unparseable_body_raises_not_found_error(self):
+        """A 404 with parsed=None should raise NotFoundError, not generic APIError."""
+        response: Response[Any] = Response(
+            status_code=HTTPStatus.NOT_FOUND, content=b"", headers={}, parsed=None
+        )
+        with pytest.raises(NotFoundError) as exc_info:
+            unwrap(response)
+        assert exc_info.value.status_code == 404
+
+    def test_unwrap_2xx_with_no_parsed_body_raises_generic_api_error(self):
+        """A 2xx with no parsed body still hits the original APIError path
+        (this is the only legitimate use of 'No parsed response data')."""
+        response: Response[Any] = Response(
+            status_code=HTTPStatus.OK, content=b"", headers={}, parsed=None
+        )
+        with pytest.raises(APIError) as exc_info:
+            unwrap(response)
+        assert "No parsed response data" in str(exc_info.value)
+
 
 class TestIsSuccess:
     """Test the is_success function."""

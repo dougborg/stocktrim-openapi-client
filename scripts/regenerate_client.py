@@ -186,6 +186,9 @@ def add_nullable_to_date_fields(spec_path: Path) -> bool:
             "PurchaseOrderLineItem": [
                 "receivedDate",  # date-time ⚠️ CRITICAL - crashes when null
             ],
+            "SupplierResponseDto": [
+                "supplierCode",  # string - API returns null for orphaned suppliers
+            ],
         }
 
         schemas = spec.get("components", {}).get("schemas", {})
