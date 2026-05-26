@@ -9,6 +9,12 @@ from typing import TYPE_CHECKING, TypeVar, overload
 
 from .client_types import UNSET, Response, Unset
 
+# How many characters of the raw response body to attach to error messages
+# when the OpenAPI client could not parse it. Bounded so HTML stack-traces
+# and similar verbose bodies don't blow up log lines / MCP tool errors, but
+# long enough for the prefix to actually identify the problem.
+_BODY_EXCERPT_LIMIT = 500
+
 if TYPE_CHECKING:
     from .generated.models.problem_details import ProblemDetails
 
@@ -65,6 +71,64 @@ class ServerError(APIError):
     """Raised when server error occurs (5xx)."""
 
     pass
+
+
+def _is_unsafe_control_char(c: str) -> bool:
+    """Identify ASCII / C1 control chars that would corrupt log output.
+
+    Covers the C0 range (``\\x00``-``\\x1f``) and DEL plus the C1 range
+    (``\\x7f``-``\\x9f``). Whitelists ``\\n``, ``\\r``, ``\\t`` — those are
+    legitimate text formatting and useful inside JSON/HTML body excerpts.
+    """
+    if c in "\n\r\t":
+        return False
+    code = ord(c)
+    return code < 0x20 or 0x7F <= code <= 0x9F
+
+
+def _body_excerpt(response: "Response[T]") -> str | None:
+    """Return a short, printable excerpt of the response body for error messages.
+
+    Returns ``None`` when the body is empty (so callers can omit the trailing
+    ``: <excerpt>`` from the message). Bodies that aren't valid UTF-8 (binary
+    blobs, etc.) fall back to a ``<N bytes, undecodable>`` placeholder so the
+    exception text stays printable. Control characters in otherwise-text
+    bodies (C0 range, C1 range, and DEL — see :func:`_is_unsafe_control_char`)
+    are escaped with ``\\xNN`` so they don't corrupt log lines. When the
+    body exceeds the limit a ``…[+N chars]`` suffix tells the caller how many
+    source characters were dropped.
+
+    The output length is strictly bounded by ``_BODY_EXCERPT_LIMIT`` (plus
+    the short ``…[+N chars]`` suffix). Without per-char accounting a body of
+    all control characters would expand 4x to ``4 * LIMIT`` after escaping;
+    the loop below stops adding chars once the *escaped* budget is spent and
+    reports the unconsumed source length in the suffix instead.
+    """
+    content = getattr(response, "content", None)
+    if not content:
+        return None
+    try:
+        text = content.decode("utf-8").strip()
+    except UnicodeDecodeError:
+        return f"<{len(content)} bytes, undecodable>"
+    if not text:
+        return None
+
+    pieces: list[str] = []
+    output_len = 0
+    consumed = 0
+    for c in text:
+        escaped_c = f"\\x{ord(c):02x}" if _is_unsafe_control_char(c) else c
+        if output_len + len(escaped_c) > _BODY_EXCERPT_LIMIT:
+            break
+        pieces.append(escaped_c)
+        output_len += len(escaped_c)
+        consumed += 1
+
+    excerpt = "".join(pieces)
+    if consumed == len(text):
+        return excerpt
+    return f"{excerpt}…[+{len(text) - consumed} chars]"
 
 
 @overload
@@ -139,7 +203,10 @@ def unwrap(
         if not raise_on_error:
             return None
 
-        # Extract error message from ProblemDetails if available
+        # Extract error message from ProblemDetails if available; fall back
+        # to a generic message plus a body excerpt so 5xx responses with
+        # unparseable bodies (HTML stack traces, plain-text errors, etc.) are
+        # debuggable from the exception alone instead of opaque.
         if problem_details:
             title = unwrap_unset(problem_details.title)
             detail = unwrap_unset(problem_details.detail)
@@ -149,7 +216,9 @@ def unwrap(
                 else (title or detail or "Unknown error")
             )
         else:
-            message = f"API error with status {response.status_code}"
+            base = f"API error with status {response.status_code}"
+            excerpt = _body_excerpt(response)
+            message = f"{base}: {excerpt}" if excerpt else base
 
         # Raise specific exception based on status code
         if response.status_code == HTTPStatus.UNAUTHORIZED:

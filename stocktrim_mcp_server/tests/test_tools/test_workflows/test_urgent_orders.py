@@ -204,6 +204,116 @@ async def test_review_urgent_orders_with_cost_calculation(
 
 
 @pytest.mark.asyncio
+async def test_review_urgent_orders_sends_singular_filter_criteria(
+    mock_urgent_context, urgent_order_item
+):
+    """The /api/OrderPlan endpoint expects OrderPlanFilterCriteria (singular
+    `location`/`supplier`/`category`), not OrderPlanFilterCriteriaDto. Sending
+    the Dto returns 415 from StockTrim (bug surfaced 2026-05-26).
+    """
+    from stocktrim_public_api_client.generated.models.order_plan_filter_criteria import (
+        OrderPlanFilterCriteria,
+    )
+
+    mock_client = mock_urgent_context.request_context.lifespan_context.client
+    mock_client.order_plan.query.return_value = [urgent_order_item]
+
+    request = ReviewUrgentOrdersRequest(
+        days_threshold=30,
+        location_codes=["WH-01"],
+        supplier_codes=["SUP-001"],
+        category="Widgets",
+    )
+    await _review(request, mock_urgent_context)
+
+    mock_client.order_plan.query.assert_called_once()
+    criteria = mock_client.order_plan.query.call_args.args[0]
+    assert isinstance(criteria, OrderPlanFilterCriteria)
+    # Singular fields mapped from the list-shaped request:
+    assert criteria.location == "WH-01"
+    assert criteria.supplier == "SUP-001"
+    assert criteria.category == "Widgets"
+
+
+@pytest.mark.asyncio
+async def test_review_urgent_orders_narrows_multifilter_with_warning(
+    mock_urgent_context, urgent_order_item
+):
+    """When multiple locations/suppliers are requested, only the first is
+    sent to the API (which doesn't support multi-filter) and a warning is
+    logged so operators see that the others were dropped."""
+    import structlog.testing
+
+    mock_client = mock_urgent_context.request_context.lifespan_context.client
+    mock_client.order_plan.query.return_value = [urgent_order_item]
+
+    request = ReviewUrgentOrdersRequest(
+        days_threshold=30,
+        location_codes=["WH-01", "WH-02"],
+        supplier_codes=["SUP-001", "SUP-002", "SUP-003"],
+    )
+    with structlog.testing.capture_logs() as captured:
+        await _review(request, mock_urgent_context)
+
+    criteria = mock_client.order_plan.query.call_args.args[0]
+    assert criteria.location == "WH-01"
+    assert criteria.supplier == "SUP-001"
+    # Both narrowings should have surfaced as warnings.
+    warnings = [
+        r
+        for r in captured
+        if r.get("log_level") == "warning"
+        and r.get("event") == "order_plan_multifilter_narrowed"
+    ]
+    by_field = {r["field"]: r for r in warnings}
+    assert set(by_field) == {"location_codes", "supplier_codes"}
+    # Counts and bounded previews replace the raw `dropped` list to keep
+    # structured logs small when callers pass long filter lists.
+    assert by_field["location_codes"]["dropped_count"] == 1
+    assert by_field["location_codes"]["dropped_preview"] == ["WH-02"]
+    assert by_field["supplier_codes"]["dropped_count"] == 2
+    assert by_field["supplier_codes"]["dropped_preview"] == ["SUP-002", "SUP-003"]
+
+
+@pytest.mark.asyncio
+async def test_review_urgent_orders_caps_warning_preview_for_long_lists(
+    mock_urgent_context, urgent_order_item
+):
+    """A very long list should still narrow to one value, but the warning
+    log only carries a bounded preview (not the full dropped list) so
+    structured logs don't bloat for outlier inputs."""
+    import structlog.testing
+
+    from stocktrim_mcp_server.tools.workflows.urgent_orders import (
+        _NARROWED_LOG_PREVIEW,
+    )
+
+    mock_client = mock_urgent_context.request_context.lifespan_context.client
+    mock_client.order_plan.query.return_value = [urgent_order_item]
+
+    long_locations = [f"WH-{i:03d}" for i in range(50)]
+    request = ReviewUrgentOrdersRequest(
+        days_threshold=30, location_codes=long_locations
+    )
+    with structlog.testing.capture_logs() as captured:
+        await _review(request, mock_urgent_context)
+
+    warning = next(
+        r
+        for r in captured
+        if r.get("event") == "order_plan_multifilter_narrowed"
+        and r.get("field") == "location_codes"
+    )
+    # 50 inputs → first kept, remaining 49 dropped; preview must be exactly
+    # the impl's cap (not a looser bound — looser would silently regress).
+    assert warning["dropped_count"] == 49
+    assert len(warning["dropped_preview"]) == _NARROWED_LOG_PREVIEW
+    # Preview starts at the right offset (first dropped element).
+    assert warning["dropped_preview"][0] == "WH-001"
+    assert warning["dropped_preview"][-1] == f"WH-{_NARROWED_LOG_PREVIEW:03d}"
+
+
+@pytest.mark.asyncio
 async def test_review_urgent_orders_filters_by_threshold(mock_urgent_context):
     """Test that items are filtered by days_threshold."""
     # Setup - Mix of urgent and non-urgent items
@@ -470,7 +580,8 @@ async def test_review_urgent_orders_explicit_arg_wins_over_pref(mock_urgent_cont
 @pytest.mark.asyncio
 async def test_review_urgent_orders_falls_back_to_pref_supplier(mock_urgent_context):
     """When request.supplier_codes is omitted, the saved supplier_code
-    preference is wrapped into a one-item list and applied to the query."""
+    preference is applied to the (singular) OrderPlanFilterCriteria.supplier
+    sent to the /api/OrderPlan endpoint."""
     from stocktrim_mcp_server.tools.preferences import SessionPreferences
 
     pref = SessionPreferences(supplier_code="SUP-PREF")
@@ -485,7 +596,7 @@ async def test_review_urgent_orders_falls_back_to_pref_supplier(mock_urgent_cont
 
     mock_client.order_plan.query.assert_called_once()
     filter_criteria = mock_client.order_plan.query.call_args.args[0]
-    assert filter_criteria.supplier_codes == ["SUP-PREF"]
+    assert filter_criteria.supplier == "SUP-PREF"
 
 
 @pytest.mark.asyncio
@@ -506,7 +617,7 @@ async def test_review_urgent_orders_explicit_supplier_codes_override_pref(
     await _review(request, mock_urgent_context)
 
     filter_criteria = mock_client.order_plan.query.call_args.args[0]
-    assert filter_criteria.supplier_codes == ["SUP-EXPLICIT"]
+    assert filter_criteria.supplier == "SUP-EXPLICIT"
 
 
 @pytest.mark.asyncio
@@ -530,8 +641,8 @@ async def test_review_urgent_orders_explicit_empty_clears_pref(mock_urgent_conte
     # Empty list is falsy, so the helper sends UNSET (no filter) to the API.
     from stocktrim_public_api_client.client_types import UNSET
 
-    assert filter_criteria.location_codes is UNSET
-    assert filter_criteria.supplier_codes is UNSET
+    assert filter_criteria.location is UNSET
+    assert filter_criteria.supplier is UNSET
 
 
 @pytest.mark.asyncio
