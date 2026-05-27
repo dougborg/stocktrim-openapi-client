@@ -23,6 +23,7 @@ When adding new tool modules:
 from fastmcp import FastMCP
 
 from .foundation import register_all_foundation_tools
+from .preferences import register_tools as register_preference_tools
 from .workflows import register_all_workflow_tools
 
 
@@ -37,6 +38,9 @@ def register_all_tools(mcp: FastMCP) -> None:
 
     # Register workflow tools (high-level intent-based operations)
     register_all_workflow_tools(mcp)
+
+    # Register session preference tools
+    register_preference_tools(mcp)
 
 
 __all__ = [

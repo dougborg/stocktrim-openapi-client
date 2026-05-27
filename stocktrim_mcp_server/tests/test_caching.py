@@ -66,6 +66,30 @@ def test_mutating_tools_are_excluded_from_cache() -> None:
     assert not missing, f"mutating tools missing from cache exclusion: {missing}"
 
 
+def test_session_stateful_tools_are_excluded_from_cache() -> None:
+    """Tools whose response depends on ctx session state must be cache-excluded.
+
+    Without this, ResponseCachingMiddleware (which keys on tool args only)
+    could replay a cached response from a different session-state snapshot —
+    e.g. set_preferences would appear to succeed without persisting, and
+    forecasts_get_for_products / review_urgent_order_requirements would ignore
+    saved filters when called with the same args after a preference change.
+    """
+    middleware = _get_caching_middleware()
+    excluded = set(middleware._call_tool_settings.get("excluded_tools", []))
+
+    expected = {
+        "set_preferences",
+        "get_preferences",
+        "forecasts_get_for_products",
+        "review_urgent_order_requirements",
+    }
+    missing = expected - excluded
+    assert not missing, (
+        f"session-stateful tools missing from cache exclusion: {missing}"
+    )
+
+
 def test_call_tool_ttl_is_bounded() -> None:
     """call_tool TTL stays under 10 minutes — bounds the staleness window."""
     middleware = _get_caching_middleware()

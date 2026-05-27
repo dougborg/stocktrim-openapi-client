@@ -403,6 +403,21 @@ _MUTATING_TOOLS = [
     "generate_purchase_orders_from_urgent_items",
 ]
 
+# Tools whose response depends on per-session state held in ctx (FastMCP
+# set_state/get_state), not just their arguments. ResponseCachingMiddleware
+# keys cache entries on tool args only, so without these exclusions a cached
+# response from a different session-state snapshot could be replayed — making
+# set_preferences appear to succeed without persisting, get_preferences return
+# stale values, and the workflow tools below ignore the saved filters.
+_SESSION_STATEFUL_TOOLS = [
+    "set_preferences",
+    "get_preferences",
+    "forecasts_get_for_products",
+    "review_urgent_order_requirements",
+]
+
+_CACHE_EXCLUDED_TOOLS = _MUTATING_TOOLS + _SESSION_STATEFUL_TOOLS
+
 
 # Response caching: in-memory by default. Operators can swap in Redis/disk via
 # their own middleware wiring; see docs/mcp-server/observability.md.
@@ -411,7 +426,7 @@ mcp.add_middleware(
         call_tool_settings=CallToolSettings(
             ttl=300,  # 5 min — read-heavy tools (products, suppliers, locations)
             enabled=True,
-            excluded_tools=_MUTATING_TOOLS,
+            excluded_tools=_CACHE_EXCLUDED_TOOLS,
         ),
         read_resource_settings=ReadResourceSettings(
             ttl=60,  # 60s — resources are for discovery; favor freshness
@@ -419,7 +434,7 @@ mcp.add_middleware(
         ),
     )
 )
-logger.info("response_caching_enabled", excluded_tools=len(_MUTATING_TOOLS))
+logger.info("response_caching_enabled", excluded_tools=len(_CACHE_EXCLUDED_TOOLS))
 
 
 def main(**kwargs: Any) -> None:
