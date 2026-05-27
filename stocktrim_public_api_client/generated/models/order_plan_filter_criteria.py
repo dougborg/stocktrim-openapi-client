@@ -185,7 +185,7 @@ class OrderPlanFilterCriteria:
                 current_status_type_1 = CurrentStatusEnum(data)
 
                 return current_status_type_1
-            except:  # noqa: E722
+            except (TypeError, ValueError, AttributeError, KeyError):
                 pass
             return cast(CurrentStatusEnum | None | Unset, data)
 

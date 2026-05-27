@@ -3,7 +3,7 @@ from typing import Any, cast
 
 import httpx
 
-from ....client_types import Response
+from ....client_types import UNSET, Response, Unset
 from ... import errors
 from ...client import AuthenticatedClient, Client
 from ...models.problem_details import ProblemDetails
@@ -17,7 +17,8 @@ def _get_kwargs(
     *,
     body: SalesOrderWithLineItemsRequestDto
     | SalesOrderWithLineItemsRequestDto
-    | SalesOrderWithLineItemsRequestDto,
+    | SalesOrderWithLineItemsRequestDto
+    | Unset = UNSET,
 ) -> dict[str, Any]:
     headers: dict[str, Any] = {}
 
@@ -27,15 +28,18 @@ def _get_kwargs(
     }
 
     if isinstance(body, SalesOrderWithLineItemsRequestDto):
-        _kwargs["json"] = body.to_dict()
+        if not isinstance(body, Unset):
+            _kwargs["json"] = body.to_dict()
 
         headers["Content-Type"] = "application/json-patch+json"
     if isinstance(body, SalesOrderWithLineItemsRequestDto):
-        _kwargs["json"] = body.to_dict()
+        if not isinstance(body, Unset):
+            _kwargs["json"] = body.to_dict()
 
         headers["Content-Type"] = "application/json"
     if isinstance(body, SalesOrderWithLineItemsRequestDto):
-        _kwargs["json"] = body.to_dict()
+        if not isinstance(body, Unset):
+            _kwargs["json"] = body.to_dict()
 
         headers["Content-Type"] = "application/*+json"
 
@@ -82,13 +86,14 @@ def sync_detailed(
     client: AuthenticatedClient | Client,
     body: SalesOrderWithLineItemsRequestDto
     | SalesOrderWithLineItemsRequestDto
-    | SalesOrderWithLineItemsRequestDto,
+    | SalesOrderWithLineItemsRequestDto
+    | Unset = UNSET,
 ) -> Response[Any | ProblemDetails | SalesOrderResponseDto]:
     """
     Args:
-        body (SalesOrderWithLineItemsRequestDto):
-        body (SalesOrderWithLineItemsRequestDto):
-        body (SalesOrderWithLineItemsRequestDto):
+        body (SalesOrderWithLineItemsRequestDto | Unset):
+        body (SalesOrderWithLineItemsRequestDto | Unset):
+        body (SalesOrderWithLineItemsRequestDto | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -114,13 +119,14 @@ def sync(
     client: AuthenticatedClient | Client,
     body: SalesOrderWithLineItemsRequestDto
     | SalesOrderWithLineItemsRequestDto
-    | SalesOrderWithLineItemsRequestDto,
+    | SalesOrderWithLineItemsRequestDto
+    | Unset = UNSET,
 ) -> Any | ProblemDetails | SalesOrderResponseDto | None:
     """
     Args:
-        body (SalesOrderWithLineItemsRequestDto):
-        body (SalesOrderWithLineItemsRequestDto):
-        body (SalesOrderWithLineItemsRequestDto):
+        body (SalesOrderWithLineItemsRequestDto | Unset):
+        body (SalesOrderWithLineItemsRequestDto | Unset):
+        body (SalesOrderWithLineItemsRequestDto | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -141,13 +147,14 @@ async def asyncio_detailed(
     client: AuthenticatedClient | Client,
     body: SalesOrderWithLineItemsRequestDto
     | SalesOrderWithLineItemsRequestDto
-    | SalesOrderWithLineItemsRequestDto,
+    | SalesOrderWithLineItemsRequestDto
+    | Unset = UNSET,
 ) -> Response[Any | ProblemDetails | SalesOrderResponseDto]:
     """
     Args:
-        body (SalesOrderWithLineItemsRequestDto):
-        body (SalesOrderWithLineItemsRequestDto):
-        body (SalesOrderWithLineItemsRequestDto):
+        body (SalesOrderWithLineItemsRequestDto | Unset):
+        body (SalesOrderWithLineItemsRequestDto | Unset):
+        body (SalesOrderWithLineItemsRequestDto | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -171,13 +178,14 @@ async def asyncio(
     client: AuthenticatedClient | Client,
     body: SalesOrderWithLineItemsRequestDto
     | SalesOrderWithLineItemsRequestDto
-    | SalesOrderWithLineItemsRequestDto,
+    | SalesOrderWithLineItemsRequestDto
+    | Unset = UNSET,
 ) -> Any | ProblemDetails | SalesOrderResponseDto | None:
     """
     Args:
-        body (SalesOrderWithLineItemsRequestDto):
-        body (SalesOrderWithLineItemsRequestDto):
-        body (SalesOrderWithLineItemsRequestDto):
+        body (SalesOrderWithLineItemsRequestDto | Unset):
+        body (SalesOrderWithLineItemsRequestDto | Unset):
+        body (SalesOrderWithLineItemsRequestDto | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

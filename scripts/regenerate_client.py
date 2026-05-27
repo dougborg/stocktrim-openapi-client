@@ -163,31 +163,25 @@ def add_nullable_to_date_fields(spec_path: Path) -> bool:
         with open(spec_path) as f:
             spec = yaml.safe_load(f)
 
-        # Define which fields should be nullable based on real API behavior
-        # See docs/contributing/api-feedback.md for evidence
+        # Define which fields should be nullable based on real API behavior.
+        # See docs/contributing/api-feedback.md for evidence.
+        #
+        # Only entries the upstream spec does NOT yet mark nullable belong here.
+        # As of 2026-05-27, upstream natively marks the following nullable, so
+        # they were removed: PurchaseOrderResponseDto.{message,orderDate,
+        # fullyReceivedDate,externalId,referenceNumber};
+        # PurchaseOrderRequestDto.{orderDate,externalId,referenceNumber};
+        # PurchaseOrderSupplier.supplierCode; PurchaseOrderLineItem.receivedDate.
         NULLABLE_FIELDS = {
             "PurchaseOrderResponseDto": [
-                "message",  # string
-                "orderDate",  # date-time ⚠️ CRITICAL - crashes when null
-                "fullyReceivedDate",  # date-time ⚠️ CRITICAL - crashes when null
-                "externalId",  # string
-                "referenceNumber",  # string
-                "location",  # object
+                "location",  # $ref - needs allOf wrap to be nullable
             ],
             "PurchaseOrderRequestDto": [
-                "orderDate",  # date-time - needs to be nullable to clear dates on update
-                "externalId",  # string
-                "referenceNumber",  # string
-                "location",  # object
-            ],
-            "PurchaseOrderSupplier": [
-                "supplierCode",  # string
-            ],
-            "PurchaseOrderLineItem": [
-                "receivedDate",  # date-time ⚠️ CRITICAL - crashes when null
+                "location",  # $ref - needs allOf wrap to be nullable
             ],
             "SupplierResponseDto": [
-                "supplierCode",  # string - API returns null for orphaned suppliers
+                "supplierCode",  # upstream still marks required + minLength=1
+                #                   but API returns null for orphaned suppliers
             ],
         }
 
@@ -228,6 +222,26 @@ def add_nullable_to_date_fields(spec_path: Path) -> bool:
                         # For scalar/date fields, nullable: true works fine
                         field["nullable"] = True
                         fields_modified += 1
+                        # OpenAPI 3.0: nullable fields cannot enforce value constraints
+                        # like minLength/minimum (null doesn't satisfy them). Strip any
+                        # such conflicting constraints so the spec stays valid.
+                        for constraint in (
+                            "minLength",
+                            "maxLength",
+                            "pattern",
+                            "minimum",
+                            "maximum",
+                            "exclusiveMinimum",
+                            "exclusiveMaximum",
+                            "minItems",
+                            "maxItems",
+                            "uniqueItems",
+                        ):
+                            if constraint in field:
+                                del field[constraint]
+                                logger.info(
+                                    f"    ↳ stripped {constraint} from {schema_name}.{field_name} (incompatible with nullable)"
+                                )
                         field_type = field.get("type", "object")
                         field_format = field.get("format", "")
                         type_info = (
@@ -246,6 +260,12 @@ def add_nullable_to_date_fields(spec_path: Path) -> bool:
                     logger.info(
                         f"  ✓ Removed {schema_name}.{field_name} from required array"
                     )
+
+            # OpenAPI 3.0 requires `required` to be non-empty when present.
+            # If our patches emptied it, drop the key entirely.
+            if "required" in schema and not schema["required"]:
+                del schema["required"]
+                logger.info(f"  ✓ Removed empty required array from {schema_name}")
 
         # Save the modified spec
         with open(spec_path, "w") as f:

@@ -78,7 +78,7 @@ class OrderPlanResultsDto:
                     results_type_0.append(results_type_0_item)
 
                 return results_type_0
-            except:  # noqa: E722
+            except (TypeError, ValueError, AttributeError, KeyError):
                 pass
             return cast(list[SkuOptimizedResultsDto] | None | Unset, data)
 

@@ -194,27 +194,6 @@ paths:
                 $ref: '#/components/schemas/ProblemDetails'
         '500':
           description: Server Error
-  /api/InFlow/{tenantId}:
-    post:
-      tags:
-      - InFlow
-      parameters:
-      - name: tenantId
-        in: path
-        required: true
-        schema:
-          type: string
-      responses:
-        '200':
-          description: Success
-        '400':
-          description: Bad Request
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ProblemDetails'
-        '500':
-          description: Server Error
   /api/Inventory:
     post:
       tags:
@@ -433,6 +412,38 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ProcessingStatusResponseDto'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '500':
+          description: Server Error
+    post:
+      tags:
+      - ProcessingStatus
+      requestBody:
+        content:
+          application/json-patch+json:
+            schema:
+              $ref: '#/components/schemas/ProcessingStatusRequestDto'
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProcessingStatusRequestDto'
+          text/json:
+            schema:
+              $ref: '#/components/schemas/ProcessingStatusRequestDto'
+          application/*+json:
+            schema:
+              $ref: '#/components/schemas/ProcessingStatusRequestDto'
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProcessingStatusRequestDto'
         '400':
           description: Bad Request
           content:
@@ -930,35 +941,6 @@ paths:
                 $ref: '#/components/schemas/ProblemDetails'
         '500':
           description: Server Error
-  /api/Square:
-    post:
-      tags:
-      - Square
-      requestBody:
-        content:
-          application/json-patch+json:
-            schema:
-              $ref: '#/components/schemas/SquareWebHook'
-          application/json:
-            schema:
-              $ref: '#/components/schemas/SquareWebHook'
-          text/json:
-            schema:
-              $ref: '#/components/schemas/SquareWebHook'
-          application/*+json:
-            schema:
-              $ref: '#/components/schemas/SquareWebHook'
-      responses:
-        '200':
-          description: Success
-        '400':
-          description: Bad Request
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ProblemDetails'
-        '500':
-          description: Server Error
   /api/Suppliers:
     get:
       tags:
@@ -1067,28 +1049,6 @@ paths:
           description: Server Error
 components:
   schemas:
-    Address:
-      type: object
-      properties:
-        address_line_1:
-          type: string
-          nullable: true
-        address_line_2:
-          type: string
-          nullable: true
-        locality:
-          type: string
-          nullable: true
-        administrative_district_level_1:
-          type: string
-          nullable: true
-        postal_code:
-          type: string
-          nullable: true
-        country:
-          type: string
-          nullable: true
-      additionalProperties: false
     ApiEnum:
       enum:
       - Shopify
@@ -1118,6 +1078,9 @@ components:
       - Neto
       - Sellercloud
       - Acumatica
+      - AcumaticaErp
+      - All
+      - Master
       type: string
     BillOfMaterialsRequestDto:
       required:
@@ -1170,48 +1133,6 @@ components:
       - Discontinued
       - All
       type: string
-    Customer:
-      type: object
-      properties:
-        birthday:
-          type: string
-          nullable: true
-        company_name:
-          type: string
-          nullable: true
-        created_at:
-          type: string
-          format: date-time
-        creation_source:
-          type: string
-          nullable: true
-        email_address:
-          type: string
-          nullable: true
-        family_name:
-          type: string
-          nullable: true
-        given_name:
-          type: string
-          nullable: true
-        id:
-          type: string
-          nullable: true
-        phone_number:
-          type: string
-          nullable: true
-        reference_id:
-          type: string
-          nullable: true
-        updated_at:
-          type: string
-          format: date-time
-        version:
-          type: integer
-          format: int32
-        address:
-          $ref: '#/components/schemas/Address'
-      additionalProperties: false
     CustomerDto:
       type: object
       properties:
@@ -1267,28 +1188,6 @@ components:
         stockOnOrder:
           type: number
           format: double
-      additionalProperties: false
-    InventoryCountWebHook:
-      type: object
-      properties:
-        calculated_at:
-          type: string
-          format: date-time
-        catalog_object_id:
-          type: string
-          nullable: true
-        catalog_object_type:
-          type: string
-          nullable: true
-        location_id:
-          type: string
-          nullable: true
-        quantity:
-          type: number
-          format: double
-        state:
-          type: string
-          nullable: true
       additionalProperties: false
     InventoryManagementSystemRequest:
       type: object
@@ -1436,6 +1335,18 @@ components:
           type: string
           nullable: true
       additionalProperties: {}
+    ProcessingStatusRequestDto:
+      type: object
+      properties:
+        isProcessing:
+          type: boolean
+        percentageComplete:
+          type: integer
+          format: int32
+        statusMessage:
+          type: string
+          nullable: true
+      additionalProperties: false
     ProcessingStatusResponseDto:
       type: object
       properties:
@@ -2134,6 +2045,10 @@ components:
           type: number
           format: double
           nullable: true
+        finishedGoodStockOnOrder:
+          type: number
+          format: double
+          nullable: true
         finishedGoodQuantityUsed:
           type: number
           format: double
@@ -2320,80 +2235,6 @@ components:
           type: integer
           format: int32
       additionalProperties: false
-    SquareWebHook:
-      type: object
-      properties:
-        merchant_id:
-          type: string
-          nullable: true
-        type:
-          type: string
-          nullable: true
-        event_id:
-          type: string
-          nullable: true
-        created_at:
-          type: string
-          format: date-time
-        data:
-          $ref: '#/components/schemas/SquareWebHookData'
-      additionalProperties: false
-    SquareWebHookCatalog:
-      type: object
-      properties:
-        updated_at:
-          type: string
-          format: date-time
-      additionalProperties: false
-    SquareWebHookData:
-      type: object
-      properties:
-        type:
-          type: string
-          nullable: true
-        id:
-          type: string
-          nullable: true
-        object:
-          $ref: '#/components/schemas/SquareWebHookObject'
-      additionalProperties: false
-    SquareWebHookObject:
-      type: object
-      properties:
-        order_updated:
-          $ref: '#/components/schemas/SquareWebHookOrderUpdatedData'
-        catalog_version:
-          $ref: '#/components/schemas/SquareWebHookCatalog'
-        inventory_counts:
-          type: array
-          items:
-            $ref: '#/components/schemas/InventoryCountWebHook'
-          nullable: true
-        customer:
-          $ref: '#/components/schemas/Customer'
-      additionalProperties: false
-    SquareWebHookOrderUpdatedData:
-      type: object
-      properties:
-        created_at:
-          type: string
-          format: date-time
-        location_id:
-          type: string
-          nullable: true
-        order_id:
-          type: string
-          nullable: true
-        state:
-          type: string
-          nullable: true
-        updated_at:
-          type: string
-          format: date-time
-        version:
-          type: integer
-          format: int32
-      additionalProperties: false
     SupplierRequestDto:
       required:
       - supplierCode
@@ -2444,7 +2285,6 @@ components:
           type: integer
           format: int32
         supplierCode:
-          minLength: 1
           type: string
           nullable: true
         supplierName:

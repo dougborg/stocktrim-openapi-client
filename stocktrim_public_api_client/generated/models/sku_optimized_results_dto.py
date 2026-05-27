@@ -45,6 +45,7 @@ class SkuOptimizedResultsDto:
         stock_on_hand (float | None | Unset):
         stock_on_order (float | None | Unset):
         finished_good_stock_on_hand (float | None | Unset):
+        finished_good_stock_on_order (float | None | Unset):
         finished_good_quantity_used (float | None | Unset):
         component_stock_on_hand (float | None | Unset):
         days_until_replenishment_due (int | None | Unset):
@@ -129,6 +130,7 @@ class SkuOptimizedResultsDto:
     stock_on_hand: float | None | Unset = UNSET
     stock_on_order: float | None | Unset = UNSET
     finished_good_stock_on_hand: float | None | Unset = UNSET
+    finished_good_stock_on_order: float | None | Unset = UNSET
     finished_good_quantity_used: float | None | Unset = UNSET
     component_stock_on_hand: float | None | Unset = UNSET
     days_until_replenishment_due: int | None | Unset = UNSET
@@ -354,6 +356,12 @@ class SkuOptimizedResultsDto:
             finished_good_stock_on_hand = UNSET
         else:
             finished_good_stock_on_hand = self.finished_good_stock_on_hand
+
+        finished_good_stock_on_order: float | None | Unset
+        if isinstance(self.finished_good_stock_on_order, Unset):
+            finished_good_stock_on_order = UNSET
+        else:
+            finished_good_stock_on_order = self.finished_good_stock_on_order
 
         finished_good_quantity_used: float | None | Unset
         if isinstance(self.finished_good_quantity_used, Unset):
@@ -712,6 +720,8 @@ class SkuOptimizedResultsDto:
             field_dict["stockOnOrder"] = stock_on_order
         if finished_good_stock_on_hand is not UNSET:
             field_dict["finishedGoodStockOnHand"] = finished_good_stock_on_hand
+        if finished_good_stock_on_order is not UNSET:
+            field_dict["finishedGoodStockOnOrder"] = finished_good_stock_on_order
         if finished_good_quantity_used is not UNSET:
             field_dict["finishedGoodQuantityUsed"] = finished_good_quantity_used
         if component_stock_on_hand is not UNSET:
@@ -908,7 +918,7 @@ class SkuOptimizedResultsDto:
                 tenant_id_type_0 = UUID(data)
 
                 return tenant_id_type_0
-            except:  # noqa: E722
+            except (TypeError, ValueError, AttributeError, KeyError):
                 pass
             return cast(None | Unset | UUID, data)
 
@@ -934,7 +944,7 @@ class SkuOptimizedResultsDto:
                 effective_to_date_time_type_0 = isoparse(data)
 
                 return effective_to_date_time_type_0
-            except:  # noqa: E722
+            except (TypeError, ValueError, AttributeError, KeyError):
                 pass
             return cast(datetime.datetime | None | Unset, data)
 
@@ -1059,7 +1069,7 @@ class SkuOptimizedResultsDto:
                 latest_order_date_type_0 = isoparse(data)
 
                 return latest_order_date_type_0
-            except:  # noqa: E722
+            except (TypeError, ValueError, AttributeError, KeyError):
                 pass
             return cast(datetime.datetime | None | Unset, data)
 
@@ -1078,7 +1088,7 @@ class SkuOptimizedResultsDto:
                 first_purchase_date_type_0 = isoparse(data)
 
                 return first_purchase_date_type_0
-            except:  # noqa: E722
+            except (TypeError, ValueError, AttributeError, KeyError):
                 pass
             return cast(datetime.datetime | None | Unset, data)
 
@@ -1133,6 +1143,17 @@ class SkuOptimizedResultsDto:
 
         finished_good_stock_on_hand = _parse_finished_good_stock_on_hand(
             d.pop("finishedGoodStockOnHand", UNSET)
+        )
+
+        def _parse_finished_good_stock_on_order(data: object) -> float | None | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            return cast(float | None | Unset, data)
+
+        finished_good_stock_on_order = _parse_finished_good_stock_on_order(
+            d.pop("finishedGoodStockOnOrder", UNSET)
         )
 
         def _parse_finished_good_quantity_used(data: object) -> float | None | Unset:
@@ -1621,6 +1642,7 @@ class SkuOptimizedResultsDto:
             stock_on_hand=stock_on_hand,
             stock_on_order=stock_on_order,
             finished_good_stock_on_hand=finished_good_stock_on_hand,
+            finished_good_stock_on_order=finished_good_stock_on_order,
             finished_good_quantity_used=finished_good_quantity_used,
             component_stock_on_hand=component_stock_on_hand,
             days_until_replenishment_due=days_until_replenishment_due,

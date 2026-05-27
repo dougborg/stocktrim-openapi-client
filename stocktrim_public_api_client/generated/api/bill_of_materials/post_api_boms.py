@@ -3,7 +3,7 @@ from typing import Any, cast
 
 import httpx
 
-from ....client_types import Response
+from ....client_types import UNSET, Response, Unset
 from ... import errors
 from ...client import AuthenticatedClient, Client
 from ...models.bill_of_materials_request_dto import BillOfMaterialsRequestDto
@@ -15,7 +15,8 @@ def _get_kwargs(
     *,
     body: BillOfMaterialsRequestDto
     | BillOfMaterialsRequestDto
-    | BillOfMaterialsRequestDto,
+    | BillOfMaterialsRequestDto
+    | Unset = UNSET,
 ) -> dict[str, Any]:
     headers: dict[str, Any] = {}
 
@@ -25,15 +26,18 @@ def _get_kwargs(
     }
 
     if isinstance(body, BillOfMaterialsRequestDto):
-        _kwargs["json"] = body.to_dict()
+        if not isinstance(body, Unset):
+            _kwargs["json"] = body.to_dict()
 
         headers["Content-Type"] = "application/json-patch+json"
     if isinstance(body, BillOfMaterialsRequestDto):
-        _kwargs["json"] = body.to_dict()
+        if not isinstance(body, Unset):
+            _kwargs["json"] = body.to_dict()
 
         headers["Content-Type"] = "application/json"
     if isinstance(body, BillOfMaterialsRequestDto):
-        _kwargs["json"] = body.to_dict()
+        if not isinstance(body, Unset):
+            _kwargs["json"] = body.to_dict()
 
         headers["Content-Type"] = "application/*+json"
 
@@ -80,13 +84,14 @@ def sync_detailed(
     client: AuthenticatedClient | Client,
     body: BillOfMaterialsRequestDto
     | BillOfMaterialsRequestDto
-    | BillOfMaterialsRequestDto,
+    | BillOfMaterialsRequestDto
+    | Unset = UNSET,
 ) -> Response[Any | BillOfMaterialsResponseDto | ProblemDetails]:
     """
     Args:
-        body (BillOfMaterialsRequestDto):
-        body (BillOfMaterialsRequestDto):
-        body (BillOfMaterialsRequestDto):
+        body (BillOfMaterialsRequestDto | Unset):
+        body (BillOfMaterialsRequestDto | Unset):
+        body (BillOfMaterialsRequestDto | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -112,13 +117,14 @@ def sync(
     client: AuthenticatedClient | Client,
     body: BillOfMaterialsRequestDto
     | BillOfMaterialsRequestDto
-    | BillOfMaterialsRequestDto,
+    | BillOfMaterialsRequestDto
+    | Unset = UNSET,
 ) -> Any | BillOfMaterialsResponseDto | ProblemDetails | None:
     """
     Args:
-        body (BillOfMaterialsRequestDto):
-        body (BillOfMaterialsRequestDto):
-        body (BillOfMaterialsRequestDto):
+        body (BillOfMaterialsRequestDto | Unset):
+        body (BillOfMaterialsRequestDto | Unset):
+        body (BillOfMaterialsRequestDto | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -139,13 +145,14 @@ async def asyncio_detailed(
     client: AuthenticatedClient | Client,
     body: BillOfMaterialsRequestDto
     | BillOfMaterialsRequestDto
-    | BillOfMaterialsRequestDto,
+    | BillOfMaterialsRequestDto
+    | Unset = UNSET,
 ) -> Response[Any | BillOfMaterialsResponseDto | ProblemDetails]:
     """
     Args:
-        body (BillOfMaterialsRequestDto):
-        body (BillOfMaterialsRequestDto):
-        body (BillOfMaterialsRequestDto):
+        body (BillOfMaterialsRequestDto | Unset):
+        body (BillOfMaterialsRequestDto | Unset):
+        body (BillOfMaterialsRequestDto | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -169,13 +176,14 @@ async def asyncio(
     client: AuthenticatedClient | Client,
     body: BillOfMaterialsRequestDto
     | BillOfMaterialsRequestDto
-    | BillOfMaterialsRequestDto,
+    | BillOfMaterialsRequestDto
+    | Unset = UNSET,
 ) -> Any | BillOfMaterialsResponseDto | ProblemDetails | None:
     """
     Args:
-        body (BillOfMaterialsRequestDto):
-        body (BillOfMaterialsRequestDto):
-        body (BillOfMaterialsRequestDto):
+        body (BillOfMaterialsRequestDto | Unset):
+        body (BillOfMaterialsRequestDto | Unset):
+        body (BillOfMaterialsRequestDto | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

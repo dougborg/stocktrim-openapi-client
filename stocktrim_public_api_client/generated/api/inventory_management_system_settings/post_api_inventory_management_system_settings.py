@@ -3,7 +3,7 @@ from typing import Any, cast
 
 import httpx
 
-from ....client_types import Response
+from ....client_types import UNSET, Response, Unset
 from ... import errors
 from ...client import AuthenticatedClient, Client
 from ...models.inventory_management_system_request import (
@@ -16,7 +16,8 @@ def _get_kwargs(
     *,
     body: InventoryManagementSystemRequest
     | InventoryManagementSystemRequest
-    | InventoryManagementSystemRequest,
+    | InventoryManagementSystemRequest
+    | Unset = UNSET,
 ) -> dict[str, Any]:
     headers: dict[str, Any] = {}
 
@@ -26,15 +27,18 @@ def _get_kwargs(
     }
 
     if isinstance(body, InventoryManagementSystemRequest):
-        _kwargs["json"] = body.to_dict()
+        if not isinstance(body, Unset):
+            _kwargs["json"] = body.to_dict()
 
         headers["Content-Type"] = "application/json-patch+json"
     if isinstance(body, InventoryManagementSystemRequest):
-        _kwargs["json"] = body.to_dict()
+        if not isinstance(body, Unset):
+            _kwargs["json"] = body.to_dict()
 
         headers["Content-Type"] = "application/json"
     if isinstance(body, InventoryManagementSystemRequest):
-        _kwargs["json"] = body.to_dict()
+        if not isinstance(body, Unset):
+            _kwargs["json"] = body.to_dict()
 
         headers["Content-Type"] = "application/*+json"
 
@@ -80,13 +84,14 @@ def sync_detailed(
     client: AuthenticatedClient | Client,
     body: InventoryManagementSystemRequest
     | InventoryManagementSystemRequest
-    | InventoryManagementSystemRequest,
+    | InventoryManagementSystemRequest
+    | Unset = UNSET,
 ) -> Response[Any | ProblemDetails]:
     """
     Args:
-        body (InventoryManagementSystemRequest):
-        body (InventoryManagementSystemRequest):
-        body (InventoryManagementSystemRequest):
+        body (InventoryManagementSystemRequest | Unset):
+        body (InventoryManagementSystemRequest | Unset):
+        body (InventoryManagementSystemRequest | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -112,13 +117,14 @@ def sync(
     client: AuthenticatedClient | Client,
     body: InventoryManagementSystemRequest
     | InventoryManagementSystemRequest
-    | InventoryManagementSystemRequest,
+    | InventoryManagementSystemRequest
+    | Unset = UNSET,
 ) -> Any | ProblemDetails | None:
     """
     Args:
-        body (InventoryManagementSystemRequest):
-        body (InventoryManagementSystemRequest):
-        body (InventoryManagementSystemRequest):
+        body (InventoryManagementSystemRequest | Unset):
+        body (InventoryManagementSystemRequest | Unset):
+        body (InventoryManagementSystemRequest | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -139,13 +145,14 @@ async def asyncio_detailed(
     client: AuthenticatedClient | Client,
     body: InventoryManagementSystemRequest
     | InventoryManagementSystemRequest
-    | InventoryManagementSystemRequest,
+    | InventoryManagementSystemRequest
+    | Unset = UNSET,
 ) -> Response[Any | ProblemDetails]:
     """
     Args:
-        body (InventoryManagementSystemRequest):
-        body (InventoryManagementSystemRequest):
-        body (InventoryManagementSystemRequest):
+        body (InventoryManagementSystemRequest | Unset):
+        body (InventoryManagementSystemRequest | Unset):
+        body (InventoryManagementSystemRequest | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -169,13 +176,14 @@ async def asyncio(
     client: AuthenticatedClient | Client,
     body: InventoryManagementSystemRequest
     | InventoryManagementSystemRequest
-    | InventoryManagementSystemRequest,
+    | InventoryManagementSystemRequest
+    | Unset = UNSET,
 ) -> Any | ProblemDetails | None:
     """
     Args:
-        body (InventoryManagementSystemRequest):
-        body (InventoryManagementSystemRequest):
-        body (InventoryManagementSystemRequest):
+        body (InventoryManagementSystemRequest | Unset):
+        body (InventoryManagementSystemRequest | Unset):
+        body (InventoryManagementSystemRequest | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
