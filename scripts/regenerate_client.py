@@ -173,12 +173,16 @@ def add_nullable_to_date_fields(spec_path: Path) -> bool:
                 "externalId",  # string
                 "referenceNumber",  # string
                 "location",  # object
+                "supplier",  # object ($ref PurchaseOrderSupplier) — issue #214
+                "purchaseOrderLineItems",  # array — issue #214
             ],
             "PurchaseOrderRequestDto": [
                 "orderDate",  # date-time - needs to be nullable to clear dates on update
                 "externalId",  # string
                 "referenceNumber",  # string
                 "location",  # object
+                "supplier",  # object ($ref PurchaseOrderSupplier) — issue #214
+                "purchaseOrderLineItems",  # array — issue #214
             ],
             "PurchaseOrderSupplier": [
                 "supplierCode",  # string

@@ -23,44 +23,36 @@ T = TypeVar("T", bound="PurchaseOrderResponseDto")
 class PurchaseOrderResponseDto:
     """
     Attributes:
-        supplier (PurchaseOrderSupplier):
-        purchase_order_line_items (list[PurchaseOrderLineItem]):
         id (int | Unset):
         message (None | str | Unset):
         order_date (datetime.datetime | None | Unset):
         created_date (datetime.datetime | None | Unset):
         fully_received_date (datetime.datetime | None | Unset):
+        supplier (None | PurchaseOrderSupplier | Unset):
         external_id (None | str | Unset):
         reference_number (None | str | Unset):
         client_reference_number (None | str | Unset):
         location (None | PurchaseOrderLocation | Unset):
         status (PurchaseOrderStatusDto | Unset):
+        purchase_order_line_items (list[PurchaseOrderLineItem] | None | Unset):
     """
 
-    supplier: PurchaseOrderSupplier
-    purchase_order_line_items: list[PurchaseOrderLineItem]
     id: int | Unset = UNSET
     message: None | str | Unset = UNSET
     order_date: datetime.datetime | None | Unset = UNSET
     created_date: datetime.datetime | None | Unset = UNSET
     fully_received_date: datetime.datetime | None | Unset = UNSET
+    supplier: None | PurchaseOrderSupplier | Unset = UNSET
     external_id: None | str | Unset = UNSET
     reference_number: None | str | Unset = UNSET
     client_reference_number: None | str | Unset = UNSET
     location: None | PurchaseOrderLocation | Unset = UNSET
     status: PurchaseOrderStatusDto | Unset = UNSET
+    purchase_order_line_items: list[PurchaseOrderLineItem] | None | Unset = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         from ..models.purchase_order_location import PurchaseOrderLocation
-
-        supplier = self.supplier.to_dict()
-
-        purchase_order_line_items = []
-        for purchase_order_line_items_item_data in self.purchase_order_line_items:
-            purchase_order_line_items_item = (
-                purchase_order_line_items_item_data.to_dict()
-            )
-            purchase_order_line_items.append(purchase_order_line_items_item)
+        from ..models.purchase_order_supplier import PurchaseOrderSupplier
 
         id = self.id
 
@@ -94,6 +86,14 @@ class PurchaseOrderResponseDto:
         else:
             fully_received_date = self.fully_received_date
 
+        supplier: dict[str, Any] | None | Unset
+        if isinstance(self.supplier, Unset):
+            supplier = UNSET
+        elif isinstance(self.supplier, PurchaseOrderSupplier):
+            supplier = self.supplier.to_dict()
+        else:
+            supplier = self.supplier
+
         external_id: None | str | Unset
         if isinstance(self.external_id, Unset):
             external_id = UNSET
@@ -124,14 +124,25 @@ class PurchaseOrderResponseDto:
         if not isinstance(self.status, Unset):
             status = self.status.value
 
+        purchase_order_line_items: list[dict[str, Any]] | None | Unset
+        if isinstance(self.purchase_order_line_items, Unset):
+            purchase_order_line_items = UNSET
+        elif isinstance(self.purchase_order_line_items, list):
+            purchase_order_line_items = []
+            for (
+                purchase_order_line_items_type_0_item_data
+            ) in self.purchase_order_line_items:
+                purchase_order_line_items_type_0_item = (
+                    purchase_order_line_items_type_0_item_data.to_dict()
+                )
+                purchase_order_line_items.append(purchase_order_line_items_type_0_item)
+
+        else:
+            purchase_order_line_items = self.purchase_order_line_items
+
         field_dict: dict[str, Any] = {}
 
-        field_dict.update(
-            {
-                "supplier": supplier,
-                "purchaseOrderLineItems": purchase_order_line_items,
-            }
-        )
+        field_dict.update({})
         if id is not UNSET:
             field_dict["id"] = id
         if message is not UNSET:
@@ -142,6 +153,8 @@ class PurchaseOrderResponseDto:
             field_dict["createdDate"] = created_date
         if fully_received_date is not UNSET:
             field_dict["fullyReceivedDate"] = fully_received_date
+        if supplier is not UNSET:
+            field_dict["supplier"] = supplier
         if external_id is not UNSET:
             field_dict["externalId"] = external_id
         if reference_number is not UNSET:
@@ -152,6 +165,8 @@ class PurchaseOrderResponseDto:
             field_dict["location"] = location
         if status is not UNSET:
             field_dict["status"] = status
+        if purchase_order_line_items is not UNSET:
+            field_dict["purchaseOrderLineItems"] = purchase_order_line_items
 
         return field_dict
 
@@ -162,17 +177,6 @@ class PurchaseOrderResponseDto:
         from ..models.purchase_order_supplier import PurchaseOrderSupplier
 
         d = dict(src_dict)
-        supplier = PurchaseOrderSupplier.from_dict(d.pop("supplier"))
-
-        purchase_order_line_items = []
-        _purchase_order_line_items = d.pop("purchaseOrderLineItems")
-        for purchase_order_line_items_item_data in _purchase_order_line_items:
-            purchase_order_line_items_item = PurchaseOrderLineItem.from_dict(
-                cast(Mapping[str, Any], purchase_order_line_items_item_data)
-            )
-
-            purchase_order_line_items.append(purchase_order_line_items_item)
-
         id = d.pop("id", UNSET)
 
         def _parse_message(data: object) -> None | str | Unset:
@@ -239,6 +243,25 @@ class PurchaseOrderResponseDto:
             d.pop("fullyReceivedDate", UNSET)
         )
 
+        def _parse_supplier(data: object) -> None | PurchaseOrderSupplier | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            try:
+                if not isinstance(data, dict):
+                    raise TypeError()
+                supplier_type_1 = PurchaseOrderSupplier.from_dict(
+                    cast(Mapping[str, Any], data)
+                )
+
+                return supplier_type_1
+            except:  # noqa: E722
+                pass
+            return cast(None | PurchaseOrderSupplier | Unset, data)
+
+        supplier = _parse_supplier(d.pop("supplier", UNSET))
+
         def _parse_external_id(data: object) -> None | str | Unset:
             if data is None:
                 return data
@@ -294,19 +317,56 @@ class PurchaseOrderResponseDto:
         else:
             status = PurchaseOrderStatusDto(_status)
 
+        def _parse_purchase_order_line_items(
+            data: object,
+        ) -> list[PurchaseOrderLineItem] | None | Unset:
+            if data is None:
+                return data
+            if isinstance(data, Unset):
+                return data
+            try:
+                if not isinstance(data, list):
+                    raise TypeError()
+                purchase_order_line_items_type_0 = []
+                _purchase_order_line_items_type_0 = data
+                for (
+                    purchase_order_line_items_type_0_item_data
+                ) in _purchase_order_line_items_type_0:
+                    purchase_order_line_items_type_0_item = (
+                        PurchaseOrderLineItem.from_dict(
+                            cast(
+                                Mapping[str, Any],
+                                purchase_order_line_items_type_0_item_data,
+                            )
+                        )
+                    )
+
+                    purchase_order_line_items_type_0.append(
+                        purchase_order_line_items_type_0_item
+                    )
+
+                return purchase_order_line_items_type_0
+            except:  # noqa: E722
+                pass
+            return cast(list[PurchaseOrderLineItem] | None | Unset, data)
+
+        purchase_order_line_items = _parse_purchase_order_line_items(
+            d.pop("purchaseOrderLineItems", UNSET)
+        )
+
         purchase_order_response_dto = cls(
-            supplier=supplier,
-            purchase_order_line_items=purchase_order_line_items,
             id=id,
             message=message,
             order_date=order_date,
             created_date=created_date,
             fully_received_date=fully_received_date,
+            supplier=supplier,
             external_id=external_id,
             reference_number=reference_number,
             client_reference_number=client_reference_number,
             location=location,
             status=status,
+            purchase_order_line_items=purchase_order_line_items,
         )
 
         return purchase_order_response_dto

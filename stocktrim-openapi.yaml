@@ -1801,9 +1801,6 @@ components:
           nullable: true
       additionalProperties: false
     PurchaseOrderRequestDto:
-      required:
-      - purchaseOrderLineItems
-      - supplier
       type: object
       properties:
         orderDate:
@@ -1819,7 +1816,9 @@ components:
           format: date-time
           nullable: true
         supplier:
-          $ref: '#/components/schemas/PurchaseOrderSupplier'
+          allOf:
+          - $ref: '#/components/schemas/PurchaseOrderSupplier'
+          nullable: true
         externalId:
           type: string
           nullable: true
@@ -1839,11 +1838,9 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/PurchaseOrderLineItem'
+          nullable: true
       additionalProperties: false
     PurchaseOrderResponseDto:
-      required:
-      - purchaseOrderLineItems
-      - supplier
       type: object
       properties:
         id:
@@ -1865,7 +1862,9 @@ components:
           format: date-time
           nullable: true
         supplier:
-          $ref: '#/components/schemas/PurchaseOrderSupplier'
+          allOf:
+          - $ref: '#/components/schemas/PurchaseOrderSupplier'
+          nullable: true
         externalId:
           type: string
           nullable: true
@@ -1885,6 +1884,7 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/PurchaseOrderLineItem'
+          nullable: true
       additionalProperties: false
     PurchaseOrderStatusDto:
       enum:
