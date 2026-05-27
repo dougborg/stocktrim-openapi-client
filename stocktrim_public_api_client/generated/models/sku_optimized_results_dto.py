@@ -908,7 +908,7 @@ class SkuOptimizedResultsDto:
                 tenant_id_type_0 = UUID(data)
 
                 return tenant_id_type_0
-            except:  # noqa: E722
+            except (TypeError, ValueError, AttributeError, KeyError):
                 pass
             return cast(None | Unset | UUID, data)
 
@@ -934,7 +934,7 @@ class SkuOptimizedResultsDto:
                 effective_to_date_time_type_0 = isoparse(data)
 
                 return effective_to_date_time_type_0
-            except:  # noqa: E722
+            except (TypeError, ValueError, AttributeError, KeyError):
                 pass
             return cast(datetime.datetime | None | Unset, data)
 
@@ -1059,7 +1059,7 @@ class SkuOptimizedResultsDto:
                 latest_order_date_type_0 = isoparse(data)
 
                 return latest_order_date_type_0
-            except:  # noqa: E722
+            except (TypeError, ValueError, AttributeError, KeyError):
                 pass
             return cast(datetime.datetime | None | Unset, data)
 
@@ -1078,7 +1078,7 @@ class SkuOptimizedResultsDto:
                 first_purchase_date_type_0 = isoparse(data)
 
                 return first_purchase_date_type_0
-            except:  # noqa: E722
+            except (TypeError, ValueError, AttributeError, KeyError):
                 pass
             return cast(datetime.datetime | None | Unset, data)
 

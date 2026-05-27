@@ -123,7 +123,7 @@ class SquareWebHookObject:
                     inventory_counts_type_0.append(inventory_counts_type_0_item)
 
                 return inventory_counts_type_0
-            except:  # noqa: E722
+            except (TypeError, ValueError, AttributeError, KeyError):
                 pass
             return cast(list[InventoryCountWebHook] | None | Unset, data)
 

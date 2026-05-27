@@ -195,7 +195,7 @@ class PurchaseOrderResponseDto:
                 order_date_type_0 = isoparse(data)
 
                 return order_date_type_0
-            except:  # noqa: E722
+            except (TypeError, ValueError, AttributeError, KeyError):
                 pass
             return cast(datetime.datetime | None | Unset, data)
 
@@ -212,7 +212,7 @@ class PurchaseOrderResponseDto:
                 created_date_type_0 = isoparse(data)
 
                 return created_date_type_0
-            except:  # noqa: E722
+            except (TypeError, ValueError, AttributeError, KeyError):
                 pass
             return cast(datetime.datetime | None | Unset, data)
 
@@ -231,7 +231,7 @@ class PurchaseOrderResponseDto:
                 fully_received_date_type_0 = isoparse(data)
 
                 return fully_received_date_type_0
-            except:  # noqa: E722
+            except (TypeError, ValueError, AttributeError, KeyError):
                 pass
             return cast(datetime.datetime | None | Unset, data)
 
@@ -281,7 +281,7 @@ class PurchaseOrderResponseDto:
                 )
 
                 return location_type_1
-            except:  # noqa: E722
+            except (TypeError, ValueError, AttributeError, KeyError):
                 pass
             return cast(None | PurchaseOrderLocation | Unset, data)
 
