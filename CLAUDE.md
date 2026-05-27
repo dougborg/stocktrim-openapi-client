@@ -112,7 +112,8 @@ uv run poe test-mcp              # Run MCP server tests (stocktrim_mcp_server/te
 uv run poe test-coverage         # Run tests with coverage reports (HTML, terminal, XML)
 ```
 
-`uv run poe check` runs both `test` and `test-mcp`, so the MCP server suite cannot regress silently when only the client lib is touched.
+`uv run poe check` runs both `test` and `test-mcp`, so the MCP server suite cannot
+regress silently when only the client lib is touched.
 
 ### Documentation
 
@@ -180,6 +181,8 @@ this format for consistency.
 - Call real APIs in tests
 - Leave debug code or commented sections
 - Ignore pre-existing test failures or linting errors
+- **Surgical regens** — manually running `openapi-python-client generate` and copying
+  1–2 files into `generated/`
 
 ✅ **Do this instead:**
 
@@ -189,39 +192,79 @@ this format for consistency.
 - Mock all external dependencies
 - Remove all debug code before PR
 - Fix ALL tests and linting issues, regardless of when they were introduced
+- **Always run the full regeneration pipeline (`uv run poe regenerate-client`)** when
+  touching `generated/`. Absorb the upstream spec drift in the same PR.
+
+## Client regeneration policy
+
+The StockTrim OpenAPI spec evolves continuously. **Always pull the latest spec and adapt
+downstream code as necessary.**
+
+- **Default path**: `uv run poe regenerate-client` (downloads latest spec → patches →
+  regenerates everything → ruff post-processing).
+
+- **Surgical regens** (manually running `openapi-python-client generate` on a cached
+  spec and copying individual files) are an **ANTI-PATTERN**. They bypass the spec
+  download, leave the rest of `generated/` stale against the modern generator, and
+  accumulate invisible drift bugs (stale field types, bare-except patterns, missing
+  nullable markers, etc.).
+
+- **Drift compounds.** Six months of deferred regens caused multiple production bugs in
+  2026-05 (null `supplierCode`, null `purchaseOrderLineItems`/`supplier`, bare-except
+  parser patterns). All would have been caught by routine full regens.
+
+- **Embrace the diff.** When a full regen pulls in changes beyond your immediate fix,
+  the **default is to ship the broader adaptations in the same PR** as additional
+  commits — keep the immediate-fix commit focused, then add follow-up commits adapting
+  helpers/services/tests to absorb the drift.
+
+- **Deferral protocol.** If absorbing the full regen genuinely cannot ride in the same
+  PR (e.g. the immediate fix is urgent and the drift introduces sprawling adaptations
+  that would block it), then ALL THREE of the following are mandatory:
+
+  1. **File a tracking issue** (labelled `tech-debt`) noting that a regen is owed, with
+     the specific reason it was deferred.
+  1. **Open the regen PR as the very next piece of work** — do not start unrelated tasks
+     first. The drift doesn't sit on the shelf.
+  1. **Reference the tracking issue from the immediate-fix PR description** so reviewers
+     and future-you see the debt explicitly.
+
+  Deferring without these three steps is the same anti-pattern that caused the 2026-05
+  bugs. Don't.
+
+See `.claude/skills/regenerate-client/SKILL.md` for the full procedure.
 
 ## Agent Harness
 
-This repo uses the [harness-kit](https://github.com/dougborg/harness-kit) plugin
-for Claude Code, with project-specific extensions in `.claude/`. Provenance is
-tracked in `.harness-lock.json`. Run `/harness-kit:harness` to audit, update, or
-retro the harness.
+This repo uses the [harness-kit](https://github.com/dougborg/harness-kit) plugin for
+Claude Code, with project-specific extensions in `.claude/`. Provenance is tracked in
+`.harness-lock.json`. Run `/harness-kit:harness` to audit, update, or retro the harness.
 
 ### Skills
 
-| Skill | Purpose |
-| --- | --- |
-| `/commit` | Quality-gated conventional commits (upstream) |
-| `/feature-spec` | Spec before multi-file implementations (upstream) |
-| `/open-pr` | Push, create PR, wait for CI, address first round (upstream) |
-| `/code-reviewer` | Six-dimension review with project-specific BLOCKING rules |
-| `/skill-writer` | Author new skills with progressive disclosure (upstream) |
-| `/standup` | Git/GitHub activity recap (upstream) |
-| `/regenerate-client` | Run the OpenAPI regeneration pipeline + commit |
+| Skill                 | Purpose                                                      |
+| --------------------- | ------------------------------------------------------------ |
+| `/commit`             | Quality-gated conventional commits (upstream)                |
+| `/feature-spec`       | Spec before multi-file implementations (upstream)            |
+| `/open-pr`            | Push, create PR, wait for CI, address first round (upstream) |
+| `/code-reviewer`      | Six-dimension review with project-specific BLOCKING rules    |
+| `/skill-writer`       | Author new skills with progressive disclosure (upstream)     |
+| `/standup`            | Git/GitHub activity recap (upstream)                         |
+| `/regenerate-client`  | Run the OpenAPI regeneration pipeline + commit               |
 | `/add-nullable-field` | Patch `NULLABLE_FIELDS` and regenerate (no `# type: ignore`) |
-| `/add-helper-method` | Add a typed helper that wraps a generated call |
-| `/add-mcp-tool` | Add an MCP tool + service + test |
-| `/quality-gate` | CLAUDE.md zero-tolerance pre-done checklist |
+| `/add-helper-method`  | Add a typed helper that wraps a generated call               |
+| `/add-mcp-tool`       | Add an MCP tool + service + test                             |
+| `/quality-gate`       | CLAUDE.md zero-tolerance pre-done checklist                  |
 
 ### Agents
 
-| Agent | Purpose | Model |
-| --- | --- | --- |
-| `code-reviewer` | Pre-PR review (6 dimensions + StockTrim-specific blockers) | sonnet |
-| `verifier` | Final-gate check: validation, branch, no shortcuts | haiku |
-| `test-writer` | Pytest tests with httpx transport mocks | sonnet |
-| `domain-advisor` | Read-only Q&A on StockTrim API quirks, retry policy, auth | sonnet |
-| `project-manager` | GitHub issues, PRs, releases, dependabot triage | sonnet |
+| Agent             | Purpose                                                    | Model  |
+| ----------------- | ---------------------------------------------------------- | ------ |
+| `code-reviewer`   | Pre-PR review (6 dimensions + StockTrim-specific blockers) | sonnet |
+| `verifier`        | Final-gate check: validation, branch, no shortcuts         | haiku  |
+| `test-writer`     | Pytest tests with httpx transport mocks                    | sonnet |
+| `domain-advisor`  | Read-only Q&A on StockTrim API quirks, retry policy, auth  | sonnet |
+| `project-manager` | GitHub issues, PRs, releases, dependabot triage            | sonnet |
 
 ### Automation Philosophy
 
@@ -229,11 +272,10 @@ retro the harness.
 
 1. **Formatters** (silent, zero-token) — `ruff check --fix` and `ruff format` run
    automatically on every Python edit so style issues never reach Claude.
-2. **Validators** (bounded, gated) — `ty check` and per-file `pytest` run on the
-   touched file only; output is capped at ≤25 lines so noise never drowns signal.
-3. **Guidance** (≤20 lines) — generated/ edits, regenerate_client.py changes,
-   and OpenAPI spec touches print a one-line nudge pointing to the right skill.
+1. **Validators** (bounded, gated) — `ty check` and per-file `pytest` run on the touched
+   file only; output is capped at ≤25 lines so noise never drowns signal.
+1. **Guidance** (≤20 lines) — generated/ edits, regenerate_client.py changes, and
+   OpenAPI spec touches print a one-line nudge pointing to the right skill.
 
-A Stop hook nudges toward `/harness-kit:harness retro` after sessions touching
-more than three files. Never silence these by removing them — fix the cause they
-surface.
+A Stop hook nudges toward `/harness-kit:harness retro` after sessions touching more than
+three files. Never silence these by removing them — fix the cause they surface.

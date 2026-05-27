@@ -13,17 +13,22 @@ Patch `NULLABLE_FIELDS` in the regeneration script, regenerate, validate, and do
 
 ## PURPOSE
 
-Make a generated model field nullable so the client stops crashing on null API responses — without adding `# type: ignore`.
+Make a generated model field nullable so the client stops crashing on null API responses
+— without adding `# type: ignore`.
 
 ## CRITICAL
 
-- **Never use `# type: ignore` to silence the error** — that's a forbidden shortcut per CLAUDE.md. Add the field to `NULLABLE_FIELDS` and regenerate.
-- **Never edit `stocktrim_public_api_client/generated/` directly** — changes are lost on regeneration.
-- **The fix must be reproducible from the spec** — anyone running `uv run poe regenerate-client` must get the same result.
+- **Never use `# type: ignore` to silence the error** — that's a forbidden shortcut per
+  CLAUDE.md. Add the field to `NULLABLE_FIELDS` and regenerate.
+- **Never edit `stocktrim_public_api_client/generated/` directly** — changes are lost on
+  regeneration.
+- **The fix must be reproducible from the spec** — anyone running
+  `uv run poe regenerate-client` must get the same result.
 
 ## ASSUMES
 
-- You have an actual error message identifying the schema and field (e.g., `PurchaseOrderResponseDto.orderDate` returns null but spec marks it required).
+- You have an actual error message identifying the schema and field (e.g.,
+  `PurchaseOrderResponseDto.orderDate` returns null but spec marks it required).
 - `scripts/regenerate_client.py` exists and contains a `NULLABLE_FIELDS` dict.
 
 ## STANDARD PATH
@@ -53,7 +58,8 @@ NULLABLE_FIELDS = {
 }
 ```
 
-Use the same comment style as existing entries. Mark with `⚠️ CRITICAL` if null actually crashes (not just wrong types).
+Use the same comment style as existing entries. Mark with `⚠️ CRITICAL` if null actually
+crashes (not just wrong types).
 
 ### 3. Regenerate
 
@@ -67,30 +73,53 @@ uv run poe regenerate-client
 uv run poe check
 ```
 
-ALL must pass. If a different field is now broken, repeat from step 1 — don't bail with `# type: ignore`.
+ALL must pass. If a different field is now broken, repeat from step 1 — don't bail with
+`# type: ignore`.
 
-### 5. Confirm the diff is bounded
+### 5. Inspect the diff and absorb any upstream drift
 
 ```bash
 git diff --stat
 ```
 
-You should see:
+You'll see at minimum:
 
 - `scripts/regenerate_client.py` (1 small change)
-- `stocktrim_public_api_client/generated/models/<schema>.py` (the field becomes `Optional`)
+- `stocktrim_public_api_client/generated/models/<schema>.py` (the field becomes
+  `Optional`)
 - Possibly `client_types.py` if reexports change
 
-If the diff is much bigger, regeneration picked up an unrelated upstream change. Stash, run regeneration on a clean baseline, then re-apply your `NULLABLE_FIELDS` change.
+**If the diff is bigger than that, it's because the live StockTrim spec drifted since
+the last regen — this is expected and good.** The regen pulls the latest spec; **default
+is to absorb that drift in the same PR as additional commits.** Adapt downstream code
+(helpers, services, tests, MCP tools) to match any new field shapes, renames, or
+removals. Document the broader changes in the commit body so reviewers see what changed
+in the API surface.
+
+If the drift introduces sprawling adaptations that would meaningfully delay your
+nullable-field fix and absolutely cannot ride along, follow the **deferral protocol** in
+`.claude/skills/regenerate-client/SKILL.md` (file `tech-debt` tracking issue + open the
+regen PR next + reference from this PR's description). Deferring without those three
+steps is the anti-pattern that caused the 2026-05 drift bugs.
+
+**DO NOT** stash, reset, or otherwise try to suppress the drift to keep the diff small.
+Surgical regens that only touch 1–2 files are an **anti-pattern**; they bypass the live
+spec download and leave the rest of `generated/` frozen against an old generator.
 
 ### 6. Document evidence (optional)
 
-If `docs/contributing/api-feedback.md` exists, append a row noting the schema + field + observed behavior. This is the canonical record for "spec says required, API returns null."
+If `docs/contributing/api-feedback.md` exists, append a row noting the schema + field +
+observed behavior. This is the canonical record for "spec says required, API returns
+null."
 
 ## EDGE CASES
 
-- [Field is in a deeply nested array item] — `NULLABLE_FIELDS` works at the top level of a schema. For nested types, check whether the nested schema is itself a top-level component (it usually is) and add it there.
-- [Field is required in some endpoints but not others] — `NULLABLE_FIELDS` marks the schema field nullable everywhere it's used. Acceptable trade-off; document in the comment.
+- [Field is in a deeply nested array item] — `NULLABLE_FIELDS` works at the top level of
+  a schema. For nested types, check whether the nested schema is itself a top-level
+  component (it usually is) and add it there.
+- [Field is required in some endpoints but not others] — `NULLABLE_FIELDS` marks the
+  schema field nullable everywhere it's used. Acceptable trade-off; document in the
+  comment.
 
 ## RELATED
 
