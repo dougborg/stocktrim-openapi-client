@@ -1,8 +1,11 @@
 # ADR 002: Tool Interface Pattern with Pydantic Models
 
-**Status**: Accepted
+**Status**: Updated 2026-05-27 — canonical pattern is now
+`Annotated[RequestModel, Unpack()]` + `@unpack_pydantic_params`; see
+[#116](https://github.com/dougborg/stocktrim-openapi-client/issues/116) and the PR
+closing it.
 
-**Date**: 2025-11-07
+**Date**: 2025-11-07 (revised 2026-05-27)
 
 **Deciders**: Development Team
 
@@ -153,13 +156,30 @@ def register_tools(mcp: FastMCP) -> None:
 
 ## Implementation Pattern
 
-### Standard Tool Structure
+### Standard Tool Structure (canonical as of 2026-05-27)
+
+Wrap each tool with `@unpack_pydantic_params` and annotate the request parameter as
+`Annotated[RequestModel, Unpack()]`. The decorator flattens the model's fields into the
+wrapper's signature so FastMCP's emitted `inputSchema` lists each field as a top-level
+property — eliminating the extra `{"request": {...}}` wrapper that some MCP clients
+serialize incorrectly
+([#116](https://github.com/dougborg/stocktrim-openapi-client/issues/116)).
+
+The Pydantic model still defines the contract; the decorator does the shape transform.
+The implementation function continues to receive a validated model instance — both tests
+and production code keep the same ergonomics they had before flattening.
 
 ```python
+from typing import Annotated
+
 from pydantic import BaseModel, Field
 from fastmcp import FastMCP, Context
 
-# 1. Define Request Model
+from stocktrim_mcp_server.unpack import Unpack, unpack_pydantic_params
+
+# 1. Define Request Model — UNCHANGED. Keep the Pydantic model for
+#    validation, field-level constraints, descriptions, and test
+#    ergonomics.
 class ToolRequest(BaseModel):
     """Brief description of what this request does."""
 
@@ -172,7 +192,7 @@ class ToolRequest(BaseModel):
         description="What this optional field represents"
     )
 
-# 2. Define Response Model
+# 2. Define Response Model — UNCHANGED.
 class ToolResponse(BaseModel):
     """Response from the tool."""
 
@@ -180,36 +200,36 @@ class ToolResponse(BaseModel):
     message: str
     data: dict | None = None
 
-# 3. Implement Tool Function
+# 3. Implement Tool Function with @unpack_pydantic_params + Unpack()
+@unpack_pydantic_params
 async def tool_name(
-    request: ToolRequest,
-    context: Context
+    request: Annotated[ToolRequest, Unpack()],
+    context: Context,
 ) -> ToolResponse:
-    """Tool description that appears in MCP.
-
-    Longer explanation of what the tool does.
-    Include usage examples and important notes.
-
-    Args:
-        request: Request parameters
-        context: Server context with services
-
-    Returns:
-        ToolResponse indicating result
-
-    Example:
-        Request: {"required_field": "value"}
-        Returns: {"success": true, "message": "Done"}
-    """
+    """Tool description that appears in MCP."""
     services = get_services(context)
-    # ... implementation ...
+    # `request` is a validated ToolRequest instance — no behavioural
+    # difference from the pre-flattening pattern inside the function body.
     return ToolResponse(success=True, message="Success")
 
-# 4. Register Tool
+# 4. Register Tool — UNCHANGED.
 def register_tools(mcp: FastMCP) -> None:
     """Register tools with FastMCP server."""
     mcp.tool()(tool_name)
 ```
+
+#### How `Unpack` works (and why the Pydantic model stays)
+
+`@unpack_pydantic_params` reads the model's fields, synthesizes a flat keyword-only
+`inspect.Signature`, and rewrites `__annotations__` so FastMCP's schema extraction sees
+flat fields. At call time the wrapper either (a) forwards a positional `BaseModel`
+straight through (in-process test path), or (b) reconstructs the model from flat kwargs
+(FastMCP path). Field descriptions, `ge`/`le` constraints, and other `FieldInfo`
+metadata are preserved via `Annotated[T, FieldInfo(...)]` on the synthesized parameter
+so the emitted JSON schema retains full documentation.
+
+The Pydantic model itself remains the source of truth for validation, descriptions,
+defaults, and the test-side construction idiom (`await tool(MyRequest(...), ctx)`).
 
 ### Model Naming Conventions
 
@@ -331,3 +351,8 @@ schema.
 ## Changelog
 
 - 2025-11-07: Initial ADR documenting Pydantic + FastMCP tool interface pattern
+- 2026-05-27: Canonical pattern switched to `Annotated[RequestModel, Unpack()]`
+  - `@unpack_pydantic_params` so MCP clients see flat top-level parameters instead of
+    the `{"request": {...}}` wrapper. Pydantic models still define the contract — only
+    the schema shape changes. See
+    [#116](https://github.com/dougborg/stocktrim-openapi-client/issues/116).

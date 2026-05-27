@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import asyncio
 import time
-from typing import Literal
+from typing import Annotated, Literal
 
 from fastmcp import Context, FastMCP
 from fastmcp.tools import ToolResult
@@ -18,6 +18,7 @@ from stocktrim_mcp_server.dependencies import get_services
 from stocktrim_mcp_server.logging_config import get_logger
 from stocktrim_mcp_server.tools.preferences import load_preferences, resolve
 from stocktrim_mcp_server.tools.tool_result_utils import make_json_result
+from stocktrim_mcp_server.unpack import Unpack, unpack_pydantic_params
 from stocktrim_mcp_server.utils import to_unset, unwrap_unset
 from stocktrim_public_api_client.client_types import UNSET
 from stocktrim_public_api_client.generated.models.order_plan_filter_criteria import (
@@ -115,8 +116,9 @@ async def _manage_forecast_group_impl(
     )
 
 
+@unpack_pydantic_params
 async def manage_forecast_group(
-    request: ManageForecastGroupRequest, ctx: Context
+    request: Annotated[ManageForecastGroupRequest, Unpack()], ctx: Context
 ) -> ToolResult:
     """Manage forecast groups (create, update, or delete).
 
@@ -271,8 +273,9 @@ async def _update_forecast_settings_impl(
         raise
 
 
+@unpack_pydantic_params
 async def update_forecast_settings(
-    request: UpdateForecastSettingsRequest, ctx: Context
+    request: Annotated[UpdateForecastSettingsRequest, Unpack()], ctx: Context
 ) -> ToolResult:
     """Update forecast parameters for products.
 
@@ -432,8 +435,9 @@ async def _forecasts_update_and_monitor_impl(
         )
 
 
+@unpack_pydantic_params
 async def forecasts_update_and_monitor(
-    request: ForecastsUpdateAndMonitorRequest, ctx: Context
+    request: Annotated[ForecastsUpdateAndMonitorRequest, Unpack()], ctx: Context
 ) -> ToolResult:
     """Trigger forecast recalculation and monitor progress.
 
@@ -692,8 +696,9 @@ async def _forecasts_get_for_products_impl(
         )
 
 
+@unpack_pydantic_params
 async def forecasts_get_for_products(
-    request: ForecastsGetForProductsRequest, ctx: Context
+    request: Annotated[ForecastsGetForProductsRequest, Unpack()], ctx: Context
 ) -> ToolResult:
     """Get forecast data for specific products or categories.
 

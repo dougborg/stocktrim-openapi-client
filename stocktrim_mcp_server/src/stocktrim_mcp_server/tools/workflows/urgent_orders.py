@@ -7,6 +7,7 @@ based on forecast data and automatically generating purchase orders.
 from __future__ import annotations
 
 from collections import defaultdict
+from typing import Annotated
 
 from fastmcp import Context, FastMCP
 from fastmcp.tools import ToolResult
@@ -16,6 +17,7 @@ from stocktrim_mcp_server.dependencies import get_services
 from stocktrim_mcp_server.logging_config import get_logger
 from stocktrim_mcp_server.tools.preferences import load_preferences, resolve
 from stocktrim_mcp_server.tools.tool_result_utils import make_json_result
+from stocktrim_mcp_server.unpack import Unpack, unpack_pydantic_params
 from stocktrim_mcp_server.utils import unwrap_unset
 from stocktrim_public_api_client.client_types import UNSET, Unset
 from stocktrim_public_api_client.generated.models.order_plan_filter_criteria import (
@@ -306,8 +308,9 @@ async def _review_urgent_order_requirements_impl(
         raise
 
 
+@unpack_pydantic_params
 async def review_urgent_order_requirements(
-    request: ReviewUrgentOrdersRequest, ctx: Context
+    request: Annotated[ReviewUrgentOrdersRequest, Unpack()], ctx: Context
 ) -> ToolResult:
     """Review items that need urgent reordering based on forecast data.
 
@@ -509,8 +512,9 @@ async def _generate_purchase_orders_from_urgent_items_impl(
         raise
 
 
+@unpack_pydantic_params
 async def generate_purchase_orders_from_urgent_items(
-    request: GeneratePurchaseOrdersRequest, ctx: Context
+    request: Annotated[GeneratePurchaseOrdersRequest, Unpack()], ctx: Context
 ) -> ToolResult:
     """Generate draft purchase orders for urgent items based on forecast recommendations.
 

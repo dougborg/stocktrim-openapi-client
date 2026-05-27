@@ -2,6 +2,45 @@
 
 <!-- version list -->
 
+## mcp v0.16.0 (2026-05-27)
+
+### Changed
+
+- **mcp**: The 9 workflow tools (`manage_forecast_group`,
+  `update_forecast_settings`, `forecasts_update_and_monitor`,
+  `forecasts_get_for_products`, `review_urgent_order_requirements`,
+  `generate_purchase_orders_from_urgent_items`, `configure_product`,
+  `products_configure_lifecycle`, `create_supplier_with_products`) now emit
+  flat top-level parameters instead of the nested `{"request": {...}}`
+  wrapper. Foundation tools were already flat — workflow tools are now
+  consistent with them. Closes
+  [#116](https://github.com/dougborg/stocktrim-openapi-client/issues/116).
+
+### Fixed
+
+- **mcp**: `Field(description=...)` metadata is now preserved when
+  `@unpack_pydantic_params` flattens a Pydantic model. The 22 foundation
+  tools' emitted schemas previously dropped field descriptions because
+  the synthetic `inspect.Parameter` used only the bare annotation;
+  descriptions now reach FastMCP via `Annotated[T, FieldInfo(...)]`.
+  Numeric/string constraints (`ge`, `le`, `min_length`, etc.) are
+  preserved through the same mechanism.
+
+### Removed
+
+- **mcp**: The legacy `{"request": {...}}` wrapper input shape. Calls using
+  the legacy shape now raise `TypeError` naming the flat field names so
+  callers get actionable feedback. Clients must update to flat parameters
+  (this is the documented purpose of the 0.16.0 schema flattening — see
+  [#116](https://github.com/dougborg/stocktrim-openapi-client/issues/116)).
+
+### Tracking
+
+- Upstream contribution to `jlowin/fastmcp#1784` is tracked in
+  [#206](https://github.com/dougborg/stocktrim-openapi-client/issues/206).
+  Once FastMCP itself learns to flatten parameters at registration time,
+  `stocktrim_mcp_server/src/stocktrim_mcp_server/unpack.py` can be deleted.
+
 ## v0.12.0 (2025-11-22)
 
 ### Bug Fixes

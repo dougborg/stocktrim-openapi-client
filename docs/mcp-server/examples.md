@@ -36,11 +36,9 @@ efficiently.
 ```json
 {
   "tool": "review_urgent_order_requirements",
-  "request": {
-    "days_threshold": 30,
-    "location_codes": ["WAREHOUSE-A"],
-    "supplier_codes": null
-  }
+  "days_threshold": 30,
+  "location_codes": ["WAREHOUSE-A"],
+  "supplier_codes": null
 }
 ```
 
@@ -109,11 +107,9 @@ After reviewing the recommendations, generate draft POs for approved suppliers:
 ```json
 {
   "tool": "generate_purchase_orders_from_urgent_items",
-  "request": {
-    "days_threshold": 30,
-    "supplier_codes": ["SUP-001", "SUP-002"],
-    "location_codes": ["WAREHOUSE-A"]
-  }
+  "days_threshold": 30,
+  "supplier_codes": ["SUP-001", "SUP-002"],
+  "location_codes": ["WAREHOUSE-A"]
 }
 ```
 
@@ -154,10 +150,8 @@ Use foundation tools when you need granular control over each step.
 ```json
 {
   "tool": "list_products",
-  "request": {
-    "category": "Widgets",
-    "page_size": 50
-  }
+  "category": "Widgets",
+  "page_size": 50
 }
 ```
 
@@ -168,10 +162,8 @@ For each product from step 1:
 ```json
 {
   "tool": "get_inventory",
-  "request": {
-    "product_code": "WIDGET-001",
-    "location_code": "WAREHOUSE-A"
-  }
+  "product_code": "WIDGET-001",
+  "location_code": "WAREHOUSE-A"
 }
 ```
 
@@ -180,18 +172,16 @@ For each product from step 1:
 ```json
 {
   "tool": "create_purchase_order",
-  "request": {
-    "supplier_code": "SUP-001",
-    "reference_number": "PO-2024-0156",
-    "line_items": [
-      {
-        "product_code": "WIDGET-001",
-        "quantity": 200,
-        "unit_price": 15.50
-      }
-    ],
-    "expected_delivery_date": "2024-02-15"
-  }
+  "supplier_code": "SUP-001",
+  "reference_number": "PO-2024-0156",
+  "line_items": [
+    {
+      "product_code": "WIDGET-001",
+      "quantity": 200,
+      "unit_price": 15.50
+    }
+  ],
+  "expected_delivery_date": "2024-02-15"
 }
 ```
 
@@ -221,11 +211,9 @@ ______________________________________________________________________
 ```json
 {
   "tool": "forecasts_update_and_monitor",
-  "request": {
-    "wait_for_completion": true,
-    "poll_interval_seconds": 5,
-    "timeout_seconds": 600
-  }
+  "wait_for_completion": true,
+  "poll_interval_seconds": 5,
+  "timeout_seconds": 600
 }
 ```
 
@@ -255,12 +243,10 @@ Query forecasts with filters to focus on specific categories:
 ```json
 {
   "tool": "forecasts_get_for_products",
-  "request": {
-    "category": "Widgets",
-    "location_code": "WAREHOUSE-A",
-    "sort_by": "days_until_stockout",
-    "max_results": 20
-  }
+  "category": "Widgets",
+  "location_code": "WAREHOUSE-A",
+  "sort_by": "days_until_stockout",
+  "max_results": 20
 }
 ```
 
@@ -311,13 +297,11 @@ If a product's forecast seems off (e.g., WIDGET-001 shows unexpectedly high dema
 ```json
 {
   "tool": "update_forecast_settings",
-  "request": {
-    "product_code": "WIDGET-001",
-    "lead_time_days": 14,
-    "safety_stock_days": 10,
-    "service_level": 98.0,
-    "minimum_order_quantity": 50.0
-  }
+  "product_code": "WIDGET-001",
+  "lead_time_days": 14,
+  "safety_stock_days": 10,
+  "service_level": 98.0,
+  "minimum_order_quantity": 50.0
 }
 ```
 
@@ -339,11 +323,9 @@ If a product's forecast seems off (e.g., WIDGET-001 shows unexpectedly high dema
 ```json
 {
   "tool": "forecasts_update_and_monitor",
-  "request": {
-    "wait_for_completion": true,
-    "poll_interval_seconds": 5,
-    "timeout_seconds": 300
-  }
+  "wait_for_completion": true,
+  "poll_interval_seconds": 5,
+  "timeout_seconds": 300
 }
 ```
 
@@ -367,28 +349,26 @@ ______________________________________________________________________
 ```json
 {
   "tool": "create_supplier_with_products",
-  "request": {
-    "supplier_code": "SUP-NEW-001",
-    "supplier_name": "NewTech Suppliers Ltd",
-    "is_active": true,
-    "product_mappings": [
-      {
-        "product_code": "WIDGET-001",
-        "supplier_product_code": "NT-WID-001",
-        "cost_price": 14.50
-      },
-      {
-        "product_code": "WIDGET-002",
-        "supplier_product_code": "NT-WID-002",
-        "cost_price": 11.00
-      },
-      {
-        "product_code": "GADGET-001",
-        "supplier_product_code": "NT-GAD-001",
-        "cost_price": 24.00
-      }
-    ]
-  }
+  "supplier_code": "SUP-NEW-001",
+  "supplier_name": "NewTech Suppliers Ltd",
+  "is_active": true,
+  "product_mappings": [
+    {
+      "product_code": "WIDGET-001",
+      "supplier_product_code": "NT-WID-001",
+      "cost_price": 14.50
+    },
+    {
+      "product_code": "WIDGET-002",
+      "supplier_product_code": "NT-WID-002",
+      "cost_price": 11.00
+    },
+    {
+      "product_code": "GADGET-001",
+      "supplier_product_code": "NT-GAD-001",
+      "cost_price": 24.00
+    }
+  ]
 }
 ```
 
@@ -436,15 +416,13 @@ ______________________________________________________________________
 ```json
 {
   "tool": "create_suppliers",
-  "request": {
-    "suppliers": [
-      {
-        "code": "SUP-NEW-001",
-        "name": "NewTech Suppliers Ltd",
-        "is_active": true
-      }
-    ]
-  }
+  "suppliers": [
+    {
+      "code": "SUP-NEW-001",
+      "name": "NewTech Suppliers Ltd",
+      "is_active": true
+    }
+  ]
 }
 ```
 
@@ -455,9 +433,7 @@ For each product, update with new supplier info (requires more complex logic):
 ```json
 {
   "tool": "get_product",
-  "request": {
-    "product_code": "WIDGET-001"
-  }
+  "product_code": "WIDGET-001"
 }
 ```
 
@@ -494,11 +470,9 @@ When discontinuing a product, you typically want to:
 ```json
 {
   "tool": "configure_product",
-  "request": {
-    "product_code": "WIDGET-OLD",
-    "discontinue": true,
-    "configure_forecast": false
-  }
+  "product_code": "WIDGET-OLD",
+  "discontinue": true,
+  "configure_forecast": false
 }
 ```
 
@@ -520,11 +494,9 @@ When activating a seasonal product (e.g., holiday items):
 ```json
 {
   "tool": "configure_product",
-  "request": {
-    "product_code": "HOLIDAY-001",
-    "discontinue": false,
-    "configure_forecast": true
-  }
+  "product_code": "HOLIDAY-001",
+  "discontinue": false,
+  "configure_forecast": true
 }
 ```
 
@@ -545,12 +517,10 @@ and trigger a forecast recalculation:
 ```json
 {
   "tool": "update_forecast_settings",
-  "request": {
-    "product_code": "HOLIDAY-001",
-    "lead_time_days": 30,
-    "safety_stock_days": 14,
-    "service_level": 99.0
-  }
+  "product_code": "HOLIDAY-001",
+  "lead_time_days": 30,
+  "safety_stock_days": 14,
+  "service_level": 99.0
 }
 ```
 
@@ -573,9 +543,7 @@ ______________________________________________________________________
 ```json
 {
   "tool": "get_customer",
-  "request": {
-    "customer_code": "CUST-001"
-  }
+  "customer_code": "CUST-001"
 }
 ```
 
@@ -596,9 +564,7 @@ ______________________________________________________________________
 ```json
 {
   "tool": "get_product",
-  "request": {
-    "product_code": "WIDGET-001"
-  }
+  "product_code": "WIDGET-001"
 }
 ```
 
@@ -619,10 +585,8 @@ ______________________________________________________________________
 ```json
 {
   "tool": "get_inventory",
-  "request": {
-    "product_code": "WIDGET-001",
-    "location_code": "WAREHOUSE-A"
-  }
+  "product_code": "WIDGET-001",
+  "location_code": "WAREHOUSE-A"
 }
 ```
 
@@ -645,24 +609,22 @@ ______________________________________________________________________
 ```json
 {
   "tool": "create_sales_order",
-  "request": {
-    "customer_code": "CUST-001",
-    "reference_number": "SO-2024-0089",
-    "order_date": "2024-01-15",
-    "line_items": [
-      {
-        "product_code": "WIDGET-001",
-        "quantity": 25,
-        "unit_price": 29.99
-      }
-    ],
-    "shipping_address": {
-      "street": "123 Main St",
-      "city": "Portland",
-      "state": "OR",
-      "postal_code": "97201",
-      "country": "US"
+  "customer_code": "CUST-001",
+  "reference_number": "SO-2024-0089",
+  "order_date": "2024-01-15",
+  "line_items": [
+    {
+      "product_code": "WIDGET-001",
+      "quantity": 25,
+      "unit_price": 29.99
     }
+  ],
+  "shipping_address": {
+    "street": "123 Main St",
+    "city": "Portland",
+    "state": "OR",
+    "postal_code": "97201",
+    "country": "US"
   }
 }
 ```
@@ -686,12 +648,10 @@ Once the order ships, deduct from inventory:
 ```json
 {
   "tool": "set_inventory",
-  "request": {
-    "product_code": "WIDGET-001",
-    "location_code": "WAREHOUSE-A",
-    "quantity": 125.0,
-    "adjustment_reason": "Sales Order SO-2024-0089 shipped"
-  }
+  "product_code": "WIDGET-001",
+  "location_code": "WAREHOUSE-A",
+  "quantity": 125.0,
+  "adjustment_reason": "Sales Order SO-2024-0089 shipped"
 }
 ```
 
@@ -719,10 +679,8 @@ When managing multiple warehouses, review urgent items per location:
 ```json
 {
   "tool": "review_urgent_order_requirements",
-  "request": {
-    "days_threshold": 30,
-    "location_codes": ["WAREHOUSE-A", "WAREHOUSE-B", "WAREHOUSE-C"]
-  }
+  "days_threshold": 30,
+  "location_codes": ["WAREHOUSE-A", "WAREHOUSE-B", "WAREHOUSE-C"]
 }
 ```
 
@@ -769,10 +727,8 @@ Track urgent items by supplier to identify reliability issues:
 ```json
 {
   "tool": "review_urgent_order_requirements",
-  "request": {
-    "days_threshold": 14,
-    "supplier_codes": null
-  }
+  "days_threshold": 14,
+  "supplier_codes": null
 }
 ```
 
