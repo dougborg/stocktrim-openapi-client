@@ -185,6 +185,140 @@ class TestUnwrap:
         assert exc_info.value.status_code == 500
         assert "No parsed response data" not in str(exc_info.value)
 
+    def test_unwrap_error_message_includes_body_excerpt(self):
+        """When parsed=None on an error, surface the raw body in the exception
+        message so callers can debug 5xx/415 without diving into transport logs."""
+        body = b'{"error":"required field \'location\' missing"}'
+        response: Response[Any] = Response(
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
+            content=body,
+            headers={"Content-Type": "application/json"},
+            parsed=None,
+        )
+        with pytest.raises(ServerError) as exc_info:
+            unwrap(response)
+        assert "required field 'location' missing" in str(exc_info.value)
+
+    def test_unwrap_error_message_truncates_long_body(self):
+        """Very long bodies (HTML stack traces, etc.) get truncated to keep
+        log/MCP-error lines manageable, but the truncation marker preserves
+        the original length so operators know how much was dropped."""
+        long_body = b"x" * 5000
+        response: Response[Any] = Response(
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
+            content=long_body,
+            headers={},
+            parsed=None,
+        )
+        with pytest.raises(ServerError) as exc_info:
+            unwrap(response)
+        message = str(exc_info.value)
+        assert "+4500 chars" in message  # 5000 total - 500 limit
+        # Message stays bounded — limit + envelope is < 700 chars.
+        assert len(message) < 700
+
+    def test_unwrap_error_message_omits_body_when_empty(self):
+        """No body → no trailing colon — keeps the bare 'API error with status N'
+        message clean for empty 5xx responses."""
+        response: Response[Any] = Response(
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
+            content=b"",
+            headers={},
+            parsed=None,
+        )
+        with pytest.raises(ServerError) as exc_info:
+            unwrap(response)
+        assert str(exc_info.value) == "API error with status 500"
+
+    def test_unwrap_error_message_handles_undecodable_body(self):
+        """Bodies that aren't valid UTF-8 (binary blobs) fall back to a
+        ``<N bytes, undecodable>`` placeholder so the exception text stays
+        printable instead of leaking raw bytes or U+FFFD into log lines."""
+        # 0xff is an invalid UTF-8 start byte — strict decode fails.
+        content = b"\xff\xfe\x00bin"
+        response: Response[Any] = Response(
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
+            content=content,
+            headers={},
+            parsed=None,
+        )
+        with pytest.raises(ServerError) as exc_info:
+            unwrap(response)
+        assert f"<{len(content)} bytes, undecodable>" in str(exc_info.value)
+
+    def test_unwrap_error_message_escapes_control_chars_in_text_body(self):
+        """Valid-UTF-8 bodies with embedded control characters (e.g. NUL from
+        a corrupted response) have those chars escaped as ``\\xNN`` so they
+        don't break log/MCP-error formatting; legitimate whitespace
+        (``\\n``, ``\\r``, ``\\t``) passes through unchanged."""
+        response: Response[Any] = Response(
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
+            content=b"prefix\x00\x01\nstill text\t!",
+            headers={},
+            parsed=None,
+        )
+        with pytest.raises(ServerError) as exc_info:
+            unwrap(response)
+        msg = str(exc_info.value)
+        # Control chars escaped:
+        assert "\\x00" in msg
+        assert "\\x01" in msg
+        # Raw control chars NOT present in the message:
+        assert "\x00" not in msg
+        assert "\x01" not in msg
+        # Legitimate whitespace preserved:
+        assert "\nstill text\t!" in msg
+
+    def test_unwrap_error_message_bounds_escaped_output_for_all_controls(self):
+        """A body composed entirely of control chars expands 4x when escaped
+        (each ``\\x00`` becomes the 4-char sequence ``\\x00``). The output
+        must still be bounded to roughly ``_BODY_EXCERPT_LIMIT`` characters
+        — not 4x that — so log lines stay manageable even in pathological
+        cases."""
+        from stocktrim_public_api_client.utils import _BODY_EXCERPT_LIMIT
+
+        # 2000 NUL bytes → 8000 chars after naïve full-body escape; bounded
+        # impl should stop at the first _BODY_EXCERPT_LIMIT chars of output.
+        nul_body = b"\x00" * 2000
+        response: Response[Any] = Response(
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
+            content=nul_body,
+            headers={},
+            parsed=None,
+        )
+        with pytest.raises(ServerError) as exc_info:
+            unwrap(response)
+        msg = str(exc_info.value)
+        # Each NUL escapes to 4 chars, so the budget fits LIMIT/4 source chars.
+        # The suffix reports the remaining 2000 - LIMIT/4 dropped chars.
+        kept = _BODY_EXCERPT_LIMIT // 4
+        assert f"+{2000 - kept} chars" in msg
+        # Strict upper bound: escaped excerpt ≤ limit, plus a short suffix
+        # (≤ 30 chars: "…[+NNNN chars]"). Total stays well under 4x limit.
+        assert len(msg) < _BODY_EXCERPT_LIMIT * 2
+
+    def test_unwrap_error_message_escapes_del_and_c1_controls(self):
+        """DEL (``\\x7f``) and the C1 range (``\\x80``-``\\x9f``) are also
+        control characters and should be escaped, even though they sit above
+        the C0 range. Plain ASCII printables stay unescaped."""
+        # Valid UTF-8: \x7f is single-byte ASCII DEL, \xc2\x80 is U+0080 (C1),
+        # \xc2\x9f is U+009F (last C1).
+        response: Response[Any] = Response(
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
+            content=b"ok\x7fDEL\xc2\x80C1lo\xc2\x9fhi",
+            headers={},
+            parsed=None,
+        )
+        with pytest.raises(ServerError) as exc_info:
+            unwrap(response)
+        msg = str(exc_info.value)
+        assert "\\x7f" in msg
+        assert "\\x80" in msg
+        assert "\\x9f" in msg
+        # Printable ASCII chunks should still be present:
+        assert "okDEL" not in msg  # the DEL between them got escaped
+        assert "ok\\x7fDEL" in msg
+
     def test_unwrap_404_with_unparseable_body_raises_not_found_error(self):
         """A 404 with parsed=None should raise NotFoundError, not generic APIError."""
         response: Response[Any] = Response(

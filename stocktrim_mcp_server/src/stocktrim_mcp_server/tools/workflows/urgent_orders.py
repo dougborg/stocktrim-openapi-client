@@ -17,12 +17,44 @@ from stocktrim_mcp_server.logging_config import get_logger
 from stocktrim_mcp_server.tools.preferences import load_preferences, resolve
 from stocktrim_mcp_server.tools.tool_result_utils import make_json_result
 from stocktrim_mcp_server.utils import unwrap_unset
-from stocktrim_public_api_client.client_types import UNSET
+from stocktrim_public_api_client.client_types import UNSET, Unset
+from stocktrim_public_api_client.generated.models.order_plan_filter_criteria import (
+    OrderPlanFilterCriteria,
+)
 from stocktrim_public_api_client.generated.models.order_plan_filter_criteria_dto import (
     OrderPlanFilterCriteriaDto,
 )
 
 logger = get_logger(__name__)
+
+
+_NARROWED_LOG_PREVIEW = 5
+
+
+def _first_or_unset(values: list[str] | None, field_name: str) -> str | Unset:
+    """Narrow a list-shaped MCP request field down to a single API-side filter.
+
+    StockTrim's /api/OrderPlan accepts only one location/supplier per call,
+    but the MCP request schema takes lists for forward compatibility. When
+    the caller supplies multiple values we keep the first and log a warning
+    so the call still succeeds (instead of 415-ing) and operators see that
+    further narrowing happened. The warning payload only includes a
+    bounded preview of the dropped values to keep structured logs small
+    when callers pass long lists.
+    """
+    if not values:
+        return UNSET
+    if len(values) > 1:
+        dropped = values[1:]
+        logger.warning(
+            "order_plan_multifilter_narrowed",
+            field=field_name,
+            kept=values[0],
+            dropped_count=len(dropped),
+            dropped_preview=dropped[:_NARROWED_LOG_PREVIEW],
+        )
+    return values[0]
+
 
 # ============================================================================
 # Tool 1: review_urgent_order_requirements
@@ -100,6 +132,7 @@ async def _review_urgent_order_requirements_impl(
     """
     prefs = await load_preferences(context)
     days_threshold = resolve(request.days_threshold, prefs, "days_threshold", 30)
+    category = resolve(request.category, prefs, "category", None)
     # Use `is None` (not truthiness) so an explicit empty list from the caller
     # clears the filter for this call instead of silently falling back to the
     # stored preference. Same pattern below for supplier_codes.
@@ -122,12 +155,22 @@ async def _review_urgent_order_requirements_impl(
         # Get services from context (note: order_plan not in service layer yet, uses client directly)
         services = get_services(context)
 
-        # Build filter criteria for order plan query
-        # Note: order_plan.get_urgent_items() doesn't support all our filters,
-        # so we'll query with filters and filter by days threshold ourselves
-        filter_criteria = OrderPlanFilterCriteriaDto(
-            location_codes=location_codes or UNSET,
-            supplier_codes=supplier_codes or UNSET,
+        # The /api/OrderPlan endpoint expects an OrderPlanFilterCriteria
+        # (singular `location`/`supplier`/`category`), not the list-shaped
+        # OrderPlanFilterCriteriaDto used by the V2 PO generation endpoint.
+        # Passing the Dto here made StockTrim reject the body with 415
+        # (bug surfaced 2026-05-26). The API only supports one location/one
+        # supplier per call; the lists produced by the session-preference
+        # fallback above are narrowed to the first element here (logged as
+        # a warning) so the call no longer fails when callers supply more
+        # than one value.
+        location = _first_or_unset(location_codes, "location_codes")
+        supplier = _first_or_unset(supplier_codes, "supplier_codes")
+
+        filter_criteria = OrderPlanFilterCriteria(
+            location=location,
+            supplier=supplier,
+            category=category or UNSET,
         )
 
         # Query order plan (uses client directly as order_plan not in service layer)
