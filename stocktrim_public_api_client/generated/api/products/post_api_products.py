@@ -3,7 +3,7 @@ from typing import Any, cast
 
 import httpx
 
-from ....client_types import Response
+from ....client_types import UNSET, Response, Unset
 from ... import errors
 from ...client import AuthenticatedClient, Client
 from ...models.problem_details import ProblemDetails
@@ -13,7 +13,7 @@ from ...models.products_response_dto import ProductsResponseDto
 
 def _get_kwargs(
     *,
-    body: ProductsRequestDto | ProductsRequestDto | ProductsRequestDto,
+    body: ProductsRequestDto | ProductsRequestDto | ProductsRequestDto | Unset = UNSET,
 ) -> dict[str, Any]:
     headers: dict[str, Any] = {}
 
@@ -23,15 +23,18 @@ def _get_kwargs(
     }
 
     if isinstance(body, ProductsRequestDto):
-        _kwargs["json"] = body.to_dict()
+        if not isinstance(body, Unset):
+            _kwargs["json"] = body.to_dict()
 
         headers["Content-Type"] = "application/json-patch+json"
     if isinstance(body, ProductsRequestDto):
-        _kwargs["json"] = body.to_dict()
+        if not isinstance(body, Unset):
+            _kwargs["json"] = body.to_dict()
 
         headers["Content-Type"] = "application/json"
     if isinstance(body, ProductsRequestDto):
-        _kwargs["json"] = body.to_dict()
+        if not isinstance(body, Unset):
+            _kwargs["json"] = body.to_dict()
 
         headers["Content-Type"] = "application/*+json"
 
@@ -81,13 +84,13 @@ def _build_response(
 def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
-    body: ProductsRequestDto | ProductsRequestDto | ProductsRequestDto,
+    body: ProductsRequestDto | ProductsRequestDto | ProductsRequestDto | Unset = UNSET,
 ) -> Response[Any | ProblemDetails | ProductsResponseDto]:
     """
     Args:
-        body (ProductsRequestDto):
-        body (ProductsRequestDto):
-        body (ProductsRequestDto):
+        body (ProductsRequestDto | Unset):
+        body (ProductsRequestDto | Unset):
+        body (ProductsRequestDto | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -111,13 +114,13 @@ def sync_detailed(
 def sync(
     *,
     client: AuthenticatedClient | Client,
-    body: ProductsRequestDto | ProductsRequestDto | ProductsRequestDto,
+    body: ProductsRequestDto | ProductsRequestDto | ProductsRequestDto | Unset = UNSET,
 ) -> Any | ProblemDetails | ProductsResponseDto | None:
     """
     Args:
-        body (ProductsRequestDto):
-        body (ProductsRequestDto):
-        body (ProductsRequestDto):
+        body (ProductsRequestDto | Unset):
+        body (ProductsRequestDto | Unset):
+        body (ProductsRequestDto | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -136,13 +139,13 @@ def sync(
 async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
-    body: ProductsRequestDto | ProductsRequestDto | ProductsRequestDto,
+    body: ProductsRequestDto | ProductsRequestDto | ProductsRequestDto | Unset = UNSET,
 ) -> Response[Any | ProblemDetails | ProductsResponseDto]:
     """
     Args:
-        body (ProductsRequestDto):
-        body (ProductsRequestDto):
-        body (ProductsRequestDto):
+        body (ProductsRequestDto | Unset):
+        body (ProductsRequestDto | Unset):
+        body (ProductsRequestDto | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -164,13 +167,13 @@ async def asyncio_detailed(
 async def asyncio(
     *,
     client: AuthenticatedClient | Client,
-    body: ProductsRequestDto | ProductsRequestDto | ProductsRequestDto,
+    body: ProductsRequestDto | ProductsRequestDto | ProductsRequestDto | Unset = UNSET,
 ) -> Any | ProblemDetails | ProductsResponseDto | None:
     """
     Args:
-        body (ProductsRequestDto):
-        body (ProductsRequestDto):
-        body (ProductsRequestDto):
+        body (ProductsRequestDto | Unset):
+        body (ProductsRequestDto | Unset):
+        body (ProductsRequestDto | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

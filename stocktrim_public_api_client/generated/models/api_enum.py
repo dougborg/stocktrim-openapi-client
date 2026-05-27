@@ -3,6 +3,8 @@ from enum import StrEnum
 
 class ApiEnum(StrEnum):
     ACUMATICA = "Acumatica"
+    ACUMATICAERP = "AcumaticaErp"
+    ALL = "All"
     AMAZONFBA = "AmazonFba"
     BIGCOMMERCE = "BigCommerce"
     CIN7 = "Cin7"
@@ -13,6 +15,7 @@ class ApiEnum(StrEnum):
     INFLOW = "InFlow"
     KATANA = "Katana"
     MAGENTO = "Magento"
+    MASTER = "Master"
     MRPEASY = "MrpEasy"
     MYOB = "Myob"
     NETO = "Neto"

@@ -3,7 +3,7 @@ from typing import Any, cast
 
 import httpx
 
-from ....client_types import Response
+from ....client_types import UNSET, Response, Unset
 from ... import errors
 from ...client import AuthenticatedClient, Client
 from ...models.order_plan_filter_criteria_dto import OrderPlanFilterCriteriaDto
@@ -15,7 +15,8 @@ def _get_kwargs(
     *,
     body: OrderPlanFilterCriteriaDto
     | OrderPlanFilterCriteriaDto
-    | OrderPlanFilterCriteriaDto,
+    | OrderPlanFilterCriteriaDto
+    | Unset = UNSET,
 ) -> dict[str, Any]:
     headers: dict[str, Any] = {}
 
@@ -25,15 +26,18 @@ def _get_kwargs(
     }
 
     if isinstance(body, OrderPlanFilterCriteriaDto):
-        _kwargs["json"] = body.to_dict()
+        if not isinstance(body, Unset):
+            _kwargs["json"] = body.to_dict()
 
         headers["Content-Type"] = "application/json-patch+json"
     if isinstance(body, OrderPlanFilterCriteriaDto):
-        _kwargs["json"] = body.to_dict()
+        if not isinstance(body, Unset):
+            _kwargs["json"] = body.to_dict()
 
         headers["Content-Type"] = "application/json"
     if isinstance(body, OrderPlanFilterCriteriaDto):
-        _kwargs["json"] = body.to_dict()
+        if not isinstance(body, Unset):
+            _kwargs["json"] = body.to_dict()
 
         headers["Content-Type"] = "application/*+json"
 
@@ -87,15 +91,16 @@ def sync_detailed(
     client: AuthenticatedClient | Client,
     body: OrderPlanFilterCriteriaDto
     | OrderPlanFilterCriteriaDto
-    | OrderPlanFilterCriteriaDto,
+    | OrderPlanFilterCriteriaDto
+    | Unset = UNSET,
 ) -> Response[Any | ProblemDetails | list[PurchaseOrderResponseDto]]:
     """Generate purchase orders based on the filters passed in. Same as how the StockTrim Order plan screen
     works
 
     Args:
-        body (OrderPlanFilterCriteriaDto):
-        body (OrderPlanFilterCriteriaDto):
-        body (OrderPlanFilterCriteriaDto):
+        body (OrderPlanFilterCriteriaDto | Unset):
+        body (OrderPlanFilterCriteriaDto | Unset):
+        body (OrderPlanFilterCriteriaDto | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -121,15 +126,16 @@ def sync(
     client: AuthenticatedClient | Client,
     body: OrderPlanFilterCriteriaDto
     | OrderPlanFilterCriteriaDto
-    | OrderPlanFilterCriteriaDto,
+    | OrderPlanFilterCriteriaDto
+    | Unset = UNSET,
 ) -> Any | ProblemDetails | list[PurchaseOrderResponseDto] | None:
     """Generate purchase orders based on the filters passed in. Same as how the StockTrim Order plan screen
     works
 
     Args:
-        body (OrderPlanFilterCriteriaDto):
-        body (OrderPlanFilterCriteriaDto):
-        body (OrderPlanFilterCriteriaDto):
+        body (OrderPlanFilterCriteriaDto | Unset):
+        body (OrderPlanFilterCriteriaDto | Unset):
+        body (OrderPlanFilterCriteriaDto | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -150,15 +156,16 @@ async def asyncio_detailed(
     client: AuthenticatedClient | Client,
     body: OrderPlanFilterCriteriaDto
     | OrderPlanFilterCriteriaDto
-    | OrderPlanFilterCriteriaDto,
+    | OrderPlanFilterCriteriaDto
+    | Unset = UNSET,
 ) -> Response[Any | ProblemDetails | list[PurchaseOrderResponseDto]]:
     """Generate purchase orders based on the filters passed in. Same as how the StockTrim Order plan screen
     works
 
     Args:
-        body (OrderPlanFilterCriteriaDto):
-        body (OrderPlanFilterCriteriaDto):
-        body (OrderPlanFilterCriteriaDto):
+        body (OrderPlanFilterCriteriaDto | Unset):
+        body (OrderPlanFilterCriteriaDto | Unset):
+        body (OrderPlanFilterCriteriaDto | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -182,15 +189,16 @@ async def asyncio(
     client: AuthenticatedClient | Client,
     body: OrderPlanFilterCriteriaDto
     | OrderPlanFilterCriteriaDto
-    | OrderPlanFilterCriteriaDto,
+    | OrderPlanFilterCriteriaDto
+    | Unset = UNSET,
 ) -> Any | ProblemDetails | list[PurchaseOrderResponseDto] | None:
     """Generate purchase orders based on the filters passed in. Same as how the StockTrim Order plan screen
     works
 
     Args:
-        body (OrderPlanFilterCriteriaDto):
-        body (OrderPlanFilterCriteriaDto):
-        body (OrderPlanFilterCriteriaDto):
+        body (OrderPlanFilterCriteriaDto | Unset):
+        body (OrderPlanFilterCriteriaDto | Unset):
+        body (OrderPlanFilterCriteriaDto | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

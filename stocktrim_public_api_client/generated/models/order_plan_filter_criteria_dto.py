@@ -100,7 +100,7 @@ class OrderPlanFilterCriteriaDto:
                 location_codes_type_0 = cast(list[str], data)
 
                 return location_codes_type_0
-            except:  # noqa: E722
+            except (TypeError, ValueError, AttributeError, KeyError):
                 pass
             return cast(list[str] | None | Unset, data)
 
@@ -117,7 +117,7 @@ class OrderPlanFilterCriteriaDto:
                 supplier_codes_type_0 = cast(list[str], data)
 
                 return supplier_codes_type_0
-            except:  # noqa: E722
+            except (TypeError, ValueError, AttributeError, KeyError):
                 pass
             return cast(list[str] | None | Unset, data)
 

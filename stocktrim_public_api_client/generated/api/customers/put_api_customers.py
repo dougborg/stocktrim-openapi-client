@@ -3,7 +3,7 @@ from typing import Any, cast
 
 import httpx
 
-from ....client_types import Response
+from ....client_types import UNSET, Response, Unset
 from ... import errors
 from ...client import AuthenticatedClient, Client
 from ...models.customer_dto import CustomerDto
@@ -13,7 +13,7 @@ from ...models.purchase_order_response_dto import PurchaseOrderResponseDto
 
 def _get_kwargs(
     *,
-    body: CustomerDto | CustomerDto | CustomerDto,
+    body: CustomerDto | CustomerDto | CustomerDto | Unset = UNSET,
 ) -> dict[str, Any]:
     headers: dict[str, Any] = {}
 
@@ -23,15 +23,18 @@ def _get_kwargs(
     }
 
     if isinstance(body, CustomerDto):
-        _kwargs["json"] = body.to_dict()
+        if not isinstance(body, Unset):
+            _kwargs["json"] = body.to_dict()
 
         headers["Content-Type"] = "application/json-patch+json"
     if isinstance(body, CustomerDto):
-        _kwargs["json"] = body.to_dict()
+        if not isinstance(body, Unset):
+            _kwargs["json"] = body.to_dict()
 
         headers["Content-Type"] = "application/json"
     if isinstance(body, CustomerDto):
-        _kwargs["json"] = body.to_dict()
+        if not isinstance(body, Unset):
+            _kwargs["json"] = body.to_dict()
 
         headers["Content-Type"] = "application/*+json"
 
@@ -83,14 +86,14 @@ def _build_response(
 def sync_detailed(
     *,
     client: AuthenticatedClient | Client,
-    body: CustomerDto | CustomerDto | CustomerDto,
+    body: CustomerDto | CustomerDto | CustomerDto | Unset = UNSET,
 ) -> Response[Any | ProblemDetails | list[PurchaseOrderResponseDto]]:
     """Preforms a Create or Update based on Code.
 
     Args:
-        body (CustomerDto):
-        body (CustomerDto):
-        body (CustomerDto):
+        body (CustomerDto | Unset):
+        body (CustomerDto | Unset):
+        body (CustomerDto | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -114,14 +117,14 @@ def sync_detailed(
 def sync(
     *,
     client: AuthenticatedClient | Client,
-    body: CustomerDto | CustomerDto | CustomerDto,
+    body: CustomerDto | CustomerDto | CustomerDto | Unset = UNSET,
 ) -> Any | ProblemDetails | list[PurchaseOrderResponseDto] | None:
     """Preforms a Create or Update based on Code.
 
     Args:
-        body (CustomerDto):
-        body (CustomerDto):
-        body (CustomerDto):
+        body (CustomerDto | Unset):
+        body (CustomerDto | Unset):
+        body (CustomerDto | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -140,14 +143,14 @@ def sync(
 async def asyncio_detailed(
     *,
     client: AuthenticatedClient | Client,
-    body: CustomerDto | CustomerDto | CustomerDto,
+    body: CustomerDto | CustomerDto | CustomerDto | Unset = UNSET,
 ) -> Response[Any | ProblemDetails | list[PurchaseOrderResponseDto]]:
     """Preforms a Create or Update based on Code.
 
     Args:
-        body (CustomerDto):
-        body (CustomerDto):
-        body (CustomerDto):
+        body (CustomerDto | Unset):
+        body (CustomerDto | Unset):
+        body (CustomerDto | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -169,14 +172,14 @@ async def asyncio_detailed(
 async def asyncio(
     *,
     client: AuthenticatedClient | Client,
-    body: CustomerDto | CustomerDto | CustomerDto,
+    body: CustomerDto | CustomerDto | CustomerDto | Unset = UNSET,
 ) -> Any | ProblemDetails | list[PurchaseOrderResponseDto] | None:
     """Preforms a Create or Update based on Code.
 
     Args:
-        body (CustomerDto):
-        body (CustomerDto):
-        body (CustomerDto):
+        body (CustomerDto | Unset):
+        body (CustomerDto | Unset):
+        body (CustomerDto | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.

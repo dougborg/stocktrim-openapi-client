@@ -95,7 +95,7 @@ class SetInventoryRequest:
                     inventory_type_0.append(inventory_type_0_item)
 
                 return inventory_type_0
-            except:  # noqa: E722
+            except (TypeError, ValueError, AttributeError, KeyError):
                 pass
             return cast(list[Inventory] | None | Unset, data)
 

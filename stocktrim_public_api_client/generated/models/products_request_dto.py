@@ -536,7 +536,7 @@ class ProductsRequestDto:
                     suppliers_type_0.append(suppliers_type_0_item)
 
                 return suppliers_type_0
-            except:  # noqa: E722
+            except (TypeError, ValueError, AttributeError, KeyError):
                 pass
             return cast(list[ProductSupplier] | None | Unset, data)
 
@@ -707,7 +707,7 @@ class ProductsRequestDto:
                     stock_locations_type_0.append(stock_locations_type_0_item)
 
                 return stock_locations_type_0
-            except:  # noqa: E722
+            except (TypeError, ValueError, AttributeError, KeyError):
                 pass
             return cast(list[ProductLocation] | None | Unset, data)
 

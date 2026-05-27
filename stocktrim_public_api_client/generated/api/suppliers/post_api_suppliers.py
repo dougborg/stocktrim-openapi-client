@@ -3,7 +3,7 @@ from typing import Any, cast
 
 import httpx
 
-from ....client_types import Response
+from ....client_types import UNSET, Response, Unset
 from ... import errors
 from ...client import AuthenticatedClient, Client
 from ...models.problem_details import ProblemDetails
@@ -15,7 +15,8 @@ def _get_kwargs(
     *,
     body: list[SupplierRequestDto]
     | list[SupplierRequestDto]
-    | list[SupplierRequestDto],
+    | list[SupplierRequestDto]
+    | Unset = UNSET,
 ) -> dict[str, Any]:
     headers: dict[str, Any] = {}
 
@@ -25,24 +26,27 @@ def _get_kwargs(
     }
 
     if isinstance(body, list[SupplierRequestDto]):
-        _kwargs["json"] = []
-        for body_item_data in body:
-            body_item = body_item_data.to_dict()
-            _kwargs["json"].append(body_item)
+        if not isinstance(body, Unset):
+            _kwargs["json"] = []
+            for body_item_data in body:
+                body_item = body_item_data.to_dict()
+                _kwargs["json"].append(body_item)
 
         headers["Content-Type"] = "application/json-patch+json"
     if isinstance(body, list[SupplierRequestDto]):
-        _kwargs["json"] = []
-        for body_item_data in body:
-            body_item = body_item_data.to_dict()
-            _kwargs["json"].append(body_item)
+        if not isinstance(body, Unset):
+            _kwargs["json"] = []
+            for body_item_data in body:
+                body_item = body_item_data.to_dict()
+                _kwargs["json"].append(body_item)
 
         headers["Content-Type"] = "application/json"
     if isinstance(body, list[SupplierRequestDto]):
-        _kwargs["json"] = []
-        for body_item_data in body:
-            body_item = body_item_data.to_dict()
-            _kwargs["json"].append(body_item)
+        if not isinstance(body, Unset):
+            _kwargs["json"] = []
+            for body_item_data in body:
+                body_item = body_item_data.to_dict()
+                _kwargs["json"].append(body_item)
 
         headers["Content-Type"] = "application/*+json"
 
@@ -94,13 +98,14 @@ def sync_detailed(
     client: AuthenticatedClient | Client,
     body: list[SupplierRequestDto]
     | list[SupplierRequestDto]
-    | list[SupplierRequestDto],
+    | list[SupplierRequestDto]
+    | Unset = UNSET,
 ) -> Response[Any | ProblemDetails | list[SupplierResponseDto]]:
     """
     Args:
-        body (list[SupplierRequestDto]):
-        body (list[SupplierRequestDto]):
-        body (list[SupplierRequestDto]):
+        body (list[SupplierRequestDto] | Unset):
+        body (list[SupplierRequestDto] | Unset):
+        body (list[SupplierRequestDto] | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -126,13 +131,14 @@ def sync(
     client: AuthenticatedClient | Client,
     body: list[SupplierRequestDto]
     | list[SupplierRequestDto]
-    | list[SupplierRequestDto],
+    | list[SupplierRequestDto]
+    | Unset = UNSET,
 ) -> Any | ProblemDetails | list[SupplierResponseDto] | None:
     """
     Args:
-        body (list[SupplierRequestDto]):
-        body (list[SupplierRequestDto]):
-        body (list[SupplierRequestDto]):
+        body (list[SupplierRequestDto] | Unset):
+        body (list[SupplierRequestDto] | Unset):
+        body (list[SupplierRequestDto] | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -153,13 +159,14 @@ async def asyncio_detailed(
     client: AuthenticatedClient | Client,
     body: list[SupplierRequestDto]
     | list[SupplierRequestDto]
-    | list[SupplierRequestDto],
+    | list[SupplierRequestDto]
+    | Unset = UNSET,
 ) -> Response[Any | ProblemDetails | list[SupplierResponseDto]]:
     """
     Args:
-        body (list[SupplierRequestDto]):
-        body (list[SupplierRequestDto]):
-        body (list[SupplierRequestDto]):
+        body (list[SupplierRequestDto] | Unset):
+        body (list[SupplierRequestDto] | Unset):
+        body (list[SupplierRequestDto] | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
@@ -183,13 +190,14 @@ async def asyncio(
     client: AuthenticatedClient | Client,
     body: list[SupplierRequestDto]
     | list[SupplierRequestDto]
-    | list[SupplierRequestDto],
+    | list[SupplierRequestDto]
+    | Unset = UNSET,
 ) -> Any | ProblemDetails | list[SupplierResponseDto] | None:
     """
     Args:
-        body (list[SupplierRequestDto]):
-        body (list[SupplierRequestDto]):
-        body (list[SupplierRequestDto]):
+        body (list[SupplierRequestDto] | Unset):
+        body (list[SupplierRequestDto] | Unset):
+        body (list[SupplierRequestDto] | Unset):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
