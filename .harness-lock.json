@@ -26,7 +26,30 @@
     ".claude/skills/open-pr/SKILL.md": {
       "source": "harness-kit",
       "modified": true,
-      "modification_note": "Rewrote ${CLAUDE_PLUGIN_ROOT} → .claude; closed fences with bare ```; resolved Simplify-optional-vs-mandatory contradiction. Hoist candidate."
+      "modification_note": "Rewrote ${CLAUDE_PLUGIN_ROOT} → .claude; closed fences with bare ```; resolved Simplify-optional-vs-mandatory contradiction; added CRITICAL rebase-before-PR bullet + Phase 1 rebase step (issue #180). Hoist candidate."
+    },
+    ".claude/skills/review-pr/SKILL.md": {
+      "source": "harness-kit",
+      "modified": true,
+      "modification_note": "Project-local overlay copying upstream + adding CRITICAL rebase-before-fix bullet, mandatory STANDARD PATH sync step, and re-rebase guidance in Mode B (issue #180). Hoist candidate."
+    },
+    ".claude/skills/review-pr/fetch-unresolved-comments.sh": {
+      "source": "harness-kit",
+      "modified": true,
+      "modification_note": "Fixed two upstream bugs: (1) jq filter now selects .comments.nodes[-1] (latest comment) instead of [0] (oldest) — the original picked the reviewer ORIGINAL comment even after follow-up asks, missing newer activity; (2) added line field to GraphQL selection + jq output to match header docstring promise. Worth upstreaming to harness-kit."
+    },
+    ".claude/skills/review-pr/fixup-and-push.sh": {
+      "source": "harness-kit",
+      "modified": false
+    },
+    ".claude/skills/pr-comments/SKILL.md": {
+      "source": "harness-kit",
+      "modified": true,
+      "modification_note": "Rewrote ${CLAUDE_PLUGIN_ROOT}/skills/ → .claude/skills/ to match repo overlay convention (allowed-tools + 5 in-body refs). Hoist candidate."
+    },
+    ".claude/skills/pr-comments/reply-to-comment.sh": {
+      "source": "harness-kit",
+      "modified": false
     },
     ".claude/skills/open-pr/ensure-feature-branch.sh": {
       "source": "harness-kit",
