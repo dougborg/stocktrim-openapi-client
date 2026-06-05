@@ -24,6 +24,7 @@ from .generated.models.problem_details import ProblemDetails
 from .utils import unwrap_unset
 
 if TYPE_CHECKING:
+    from .helpers.assemblies import Assemblies
     from .helpers.bill_of_materials import BillOfMaterials
     from .helpers.customers import Customers
     from .helpers.forecasting import Forecasting
@@ -874,6 +875,15 @@ class StockTrimClient(AuthenticatedClient):
 
             self._bill_of_materials = BillOfMaterials(self)
         return self._bill_of_materials
+
+    @property
+    def assemblies(self) -> "Assemblies":
+        """Access the Assemblies helper for purchased-vs-manufactured BOM handling."""
+        if not hasattr(self, "_assemblies"):
+            from .helpers.assemblies import Assemblies
+
+            self._assemblies = Assemblies(self)
+        return self._assemblies
 
     async def _log_response_metrics(self, response: httpx.Response) -> None:
         """Log response metrics for observability."""

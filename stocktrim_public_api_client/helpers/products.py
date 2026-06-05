@@ -17,7 +17,24 @@ from stocktrim_public_api_client.generated.models.products_response_dto import (
     ProductsResponseDto,
 )
 from stocktrim_public_api_client.helpers.base import Base
-from stocktrim_public_api_client.utils import unwrap
+from stocktrim_public_api_client.utils import unwrap, unwrap_unset
+
+
+def is_variant_match(
+    product: ProductsResponseDto,
+    parent_id: str | None = None,
+    variant_type: str | None = None,
+) -> bool:
+    """Return True if a product matches the given variant relationship filters.
+
+    A filter that is ``None`` is ignored. Both ``parent_id`` and ``variant_type``
+    are compared against the product's resolved (Unset-stripped) values.
+    """
+    if parent_id is not None and unwrap_unset(product.parent_id) != parent_id:
+        return False
+    return not (
+        variant_type is not None and unwrap_unset(product.variant_type) != variant_type
+    )
 
 
 class Products(Base):
@@ -159,6 +176,41 @@ class Products(Base):
         """
         product = await self.find_by_code(code)
         return product is not None
+
+    async def find_variants(
+        self,
+        parent_id: str | None = None,
+        variant_type: str | None = None,
+    ) -> list[ProductsResponseDto]:
+        """Find product variants sharing a parent and/or variant type.
+
+        Scans the full catalog and returns products matching the given variant
+        relationship. Useful for catching every size/colour variant of a product
+        family (e.g. all variants of a frame) rather than a single SKU.
+
+        Args:
+            parent_id: Optional parent product ID; variants reference their family
+                parent via ``parent_id``.
+            variant_type: Optional variant type discriminator (e.g. "SIZE").
+
+        Returns:
+            List of matching ProductsResponseDto objects.
+
+        Raises:
+            ValueError: If neither ``parent_id`` nor ``variant_type`` is provided
+                (an unfiltered call would return the whole catalog).
+
+        Example:
+            >>> variants = await client.products.find_variants(parent_id="FRAME-X")
+        """
+        if parent_id is None and variant_type is None:
+            raise ValueError("find_variants requires parent_id and/or variant_type")
+        catalog = await self.get_all_paginated()
+        return [
+            product
+            for product in catalog
+            if is_variant_match(product, parent_id, variant_type)
+        ]
 
     async def get_all_paginated(self) -> list[ProductsResponseDto]:
         """Get ALL products by paginating through all pages.

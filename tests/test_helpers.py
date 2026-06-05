@@ -114,6 +114,12 @@ class TestHelpersIntegration:
         assert hasattr(stocktrim_client, "bill_of_materials")
         assert stocktrim_client.bill_of_materials is not None
 
+    def test_assemblies_helper_exists(self, stocktrim_client):
+        """Test assemblies helper is accessible and lazily cached."""
+        assert hasattr(stocktrim_client, "assemblies")
+        assert stocktrim_client.assemblies is not None
+        assert stocktrim_client.assemblies is stocktrim_client.assemblies
+
     def test_new_helpers_have_methods(self, stocktrim_client):
         """Test new helpers have expected core methods."""
         # OrderPlan
