@@ -1,8 +1,8 @@
 # Available MCP Tools
 
-The StockTrim MCP Server provides **30 tools** for interacting with the StockTrim API,
-organized into **Foundation Tools** (21 direct API operations) and **Workflow Tools**
-(9 high-level business operations).
+The StockTrim MCP Server provides **32 tools** for interacting with the StockTrim API,
+organized into **Foundation Tools** (21 direct API operations), **Workflow Tools** (9
+high-level business operations), and **Session Preference Tools** (2).
 
 ## Safety and User Confirmation
 
@@ -317,13 +317,10 @@ required before execution. See
 
 ## Inventory Tools
 
-### `stocktrim_get_inventory`
+### `set_product_inventory`
 
-Get current inventory levels.
-
-### `stocktrim_set_inventory`
-
-Set inventory levels for products.
+Set inventory levels for products. (There is no inventory-read tool; read a product's
+`stock_on_hand` via `get_product` instead.)
 
 **Parameters:**
 
@@ -505,43 +502,19 @@ Create a new location.
 
 - `location` (object): Location data
 
-## Planning Tools
+## Not Yet Available as MCP Tools
 
-### `stocktrim_run_order_plan`
+These capabilities exist in the StockTrim Python client library but are **not** exposed
+as MCP tools yet. Use the client library directly until they are added:
 
-Run inventory planning and get recommended orders.
-
-**Parameters:**
-
-- `filter_criteria` (object, optional): Filtering options
-
-### `stocktrim_run_forecast`
-
-Trigger demand forecasting calculations.
-
-## Configuration Tools
-
-### `stocktrim_get_configuration`
-
-Get system configuration values.
-
-**Parameters:**
-
-- `configuration_name` (string): Config key to retrieve
-
-## Bill of Materials Tools
-
-### `stocktrim_list_boms`
-
-List all bills of materials.
-
-### `stocktrim_create_bom`
-
-Create a new bill of materials.
-
-**Parameters:**
-
-- `bom` (object): BOM data
+- **Order-plan queries** — `client.order_plan.query(...)`. Forecast/reorder data is
+  currently reached indirectly through `forecasts_get_for_products` and
+  `review_urgent_order_requirements`; there is no standalone `run_order_plan` tool.
+- **Forecast triggering** — surfaced via the `forecasts_update_and_monitor` workflow
+  tool, not a standalone `run_forecast` tool.
+- **Bill of materials** — `client.bill_of_materials` (note: StockTrim's `/api/boms`
+  endpoint is currently unreliable and may return 404 even when BOMs exist).
+- **Inventory read** and **system configuration** — no MCP tool yet.
 
 ## Next Steps
 

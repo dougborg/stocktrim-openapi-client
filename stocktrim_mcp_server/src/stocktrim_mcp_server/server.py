@@ -150,15 +150,17 @@ Authentication is handled automatically by the server.
 ### Foundation Tools (Direct API Access)
 Basic CRUD operations for direct data manipulation:
 
-**Products**: get_product, search_products, list_products, create_products, delete_products
-**Customers**: get_customer, list_customers, create_customers
-**Suppliers**: get_supplier, list_suppliers, create_suppliers
-**Inventory**: get_inventory, set_inventory
-**Orders**: create_sales_order, get_sales_orders, delete_sales_orders,
-           get_purchase_order, list_purchase_orders, create_purchase_order, delete_purchase_order
+**Products**: get_product, search_products, create_product, delete_product
+**Customers**: get_customer, list_customers
+**Suppliers**: get_supplier, list_suppliers, create_supplier, delete_supplier
+**Inventory**: set_product_inventory
+**Sales Orders**: create_sales_order, get_sales_orders, list_sales_orders, delete_sales_orders
+**Purchase Orders**: get_purchase_order, list_purchase_orders, create_purchase_order, delete_purchase_order
 **Locations**: list_locations, create_location
-**Planning**: run_order_plan, run_forecast
-**BOM**: list_boms, create_bom
+
+_Not currently exposed as MCP tools_ (use the Python client library directly):
+bill-of-materials operations, direct order-plan queries, and standalone forecast
+triggering. There is also no inventory-read, customer-create, or bulk-create tool.
 
 ### Workflow Tools (High-Level Operations)
 Intent-based tools that combine multiple operations:
@@ -175,9 +177,14 @@ Intent-based tools that combine multiple operations:
 
 **Product Configuration**:
 - configure_product: Update product settings (discontinue status, forecast configuration)
+- products_configure_lifecycle: Activate/deactivate/discontinue/unstock with impact analysis
 
 **Supplier Onboarding**:
 - create_supplier_with_products: Onboard new supplier with product mappings in one operation
+
+**Session Preferences**:
+- get_preferences / set_preferences: Read or set session-scoped filters
+  (category, location, supplier, days threshold) applied by the workflow tools
 
 ## Resources (Discovery & Context)
 
@@ -218,8 +225,8 @@ in a purchase order workflow.
 4. Review draft POs in StockTrim UI before approving
 
 **Approach B - Manual**:
-1. list_products → Get all products
-2. get_inventory → Check stock levels
+1. search_products(...) → Find candidate products
+2. get_product(code) → Inspect a product's stock_on_hand and supplier
 3. For low-stock items: create_purchase_order with appropriate quantities
 
 ### 2. Forecast Management
@@ -242,7 +249,7 @@ in a purchase order workflow.
    })
 
 **Approach B - Step by Step**:
-1. create_suppliers([{code: "SUP-NEW", name: "New Supplier Inc"}])
+1. create_supplier({code: "SUP-NEW", name: "New Supplier Inc"})
 2. For each product: Update product with supplier mapping
 
 ### 4. Product Configuration
@@ -260,10 +267,9 @@ in a purchase order workflow.
 
 **Steps**:
 1. get_customer("CUST-001") → Verify customer exists
-2. get_product("WIDGET-001") → Verify product exists and get details
-3. get_inventory → Check if sufficient stock available
-4. If in stock: create_sales_order({...})
-5. After order ships: set_inventory to deduct stock
+2. get_product("WIDGET-001") → Verify product exists and check stock_on_hand
+3. If in stock: create_sales_order({...})
+4. After order ships: set_product_inventory to deduct stock
 
 ## Best Practices
 
@@ -304,7 +310,7 @@ in a purchase order workflow.
 ```
 product = get_product("WIDGET-001")
 if product:
-    set_inventory({product_id: product.id, quantity: 100})
+    set_product_inventory({product_id: product.id, quantity: 100})
 else:
     # create product first
 ```
@@ -343,7 +349,8 @@ See `docs/mcp-server/observability.md` for full setup.
 ## Rate Limiting & Performance
 
 - List operations return limited results - check total_count in responses
-- Batch operations (create_products, create_customers) are more efficient than loops
+- Prefer workflow tools (e.g. create_supplier_with_products) over many single-entity
+  calls when onboarding related data in one step
 - Forecast calculations can take minutes - use forecasts_update_and_monitor for progress
 - Order plan queries are cached - re-run forecasts if data seems stale
 
