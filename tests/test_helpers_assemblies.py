@@ -101,6 +101,32 @@ async def test_detect_purchased_assemblies_finds_frame():
 
 
 @pytest.mark.asyncio
+async def test_detect_purchased_assemblies_recurses_to_any_depth():
+    # BIKE -> FORK -> CROWN -> TUBE: both FORK and CROWN are buy-it-whole
+    # assemblies (each has its own sub-BOM) several hops below the finished good.
+    graph = {
+        "BIKE": ["FORK"],
+        "FORK": ["CROWN"],
+        "CROWN": ["TUBE"],
+    }
+    client = _client_with(graph)
+    assemblies = Assemblies(client)
+
+    assert await assemblies.detect_purchased_assemblies(["BIKE"]) == ["CROWN", "FORK"]
+
+
+@pytest.mark.asyncio
+async def test_detect_purchased_assemblies_is_cycle_safe():
+    # Pathological cycle A <-> B must not hang the traversal.
+    graph = {"A": ["B"], "B": ["A", "C"]}
+    client = _client_with(graph)
+    assemblies = Assemblies(client)
+
+    # Seed explicitly (a pure cycle has no finished-good root).
+    assert await assemblies.detect_purchased_assemblies(["A"]) == ["A", "B"]
+
+
+@pytest.mark.asyncio
 async def test_make_purchased_strips_only_own_sub_bom():
     graph = _bike_graph()
     client = _client_with(graph)

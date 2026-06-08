@@ -18,11 +18,27 @@ verification on a real frame SKU (Phase 0 of the plan). If verification shows
 
 from __future__ import annotations
 
+from collections import defaultdict
 from dataclasses import dataclass, field
 
 from stocktrim_public_api_client.helpers.base import Base
 from stocktrim_public_api_client.helpers.products import is_variant_match
 from stocktrim_public_api_client.utils import unwrap_unset
+
+
+@dataclass
+class BomGraph:
+    """A snapshot of the whole BOM graph fetched in a single call.
+
+    Attributes:
+        children: Maps a product ID to the component IDs it directly contains.
+        parents: All product IDs that are a BOM parent (have a sub-BOM).
+        components: All product IDs that appear as a component of something.
+    """
+
+    children: dict[str, list[str]]
+    parents: set[str]
+    components: set[str]
 
 
 @dataclass
@@ -64,31 +80,45 @@ class Assemblies(Base):
     on a schedule after each Katana import.
     """
 
+    async def load_bom_graph(self) -> BomGraph:
+        """Fetch the entire BOM graph in one call.
+
+        Returns:
+            A :class:`BomGraph` snapshot (children map + parent/component sets).
+        """
+        children: dict[str, list[str]] = defaultdict(list)
+        parents: set[str] = set()
+        components: set[str] = set()
+        for bom in await self._client.bill_of_materials.get():
+            children[bom.product_id].append(bom.component_id)
+            parents.add(bom.product_id)
+            components.add(bom.component_id)
+        return BomGraph(children=dict(children), parents=parents, components=components)
+
     async def detect_finished_goods(self) -> list[str]:
         """Find top-level finished goods: BOM parents that are never components.
 
-        Scans the whole BOM graph and returns product IDs that appear as a BOM
-        parent but never as a component of anything else (the roots of the tree,
-        e.g. complete bikes). Useful for seeding reconciliation without having to
-        enumerate finished goods by hand.
+        Returns product IDs that appear as a BOM parent but never as a component
+        of anything else (the roots of the tree, e.g. complete bikes). Useful for
+        seeding reconciliation without enumerating finished goods by hand.
 
         Returns:
             Sorted, de-duplicated list of finished-good (root) product IDs.
         """
-        all_boms = await self._client.bill_of_materials.get()
-        parents = {bom.product_id for bom in all_boms}
-        components = {bom.component_id for bom in all_boms}
-        return sorted(parents - components)
+        graph = await self.load_bom_graph()
+        return sorted(graph.parents - graph.components)
 
     async def detect_purchased_assemblies(
         self,
         finished_good_ids: list[str],
     ) -> list[str]:
-        """Find intermediate assemblies under the given finished goods.
+        """Find intermediate assemblies in the subtree under the finished goods.
 
-        For each finished good, inspects its direct components and returns those
-        components that are themselves BOM parents (i.e. have their own sub-BOM).
-        These are the "buy-it-whole" assemblies whose sub-BOM should be stripped.
+        Walks the BOM tree below each finished good (to any depth) and returns
+        every descendant that is itself a BOM parent — i.e. has its own sub-BOM.
+        These are the "buy-it-whole" assemblies (e.g. frames) whose sub-BOM
+        should be stripped. The finished goods themselves are never returned, so
+        their top-level BOM (e.g. bike -> frame) is preserved. Cycle-safe.
 
         Args:
             finished_good_ids: Product IDs of finished goods (e.g. complete bikes).
@@ -96,13 +126,19 @@ class Assemblies(Base):
         Returns:
             Sorted, de-duplicated list of intermediate-assembly product IDs.
         """
-        boms = self._client.bill_of_materials
+        graph = await self.load_bom_graph()
         assemblies: set[str] = set()
-        for finished_good_id in finished_good_ids:
-            for component in await boms.get_for_product(finished_good_id):
-                component_id = component.component_id
-                if await boms.get_for_product(component_id):
-                    assemblies.add(component_id)
+        seen: set[str] = set()
+        stack = list(finished_good_ids)
+        while stack:
+            node = stack.pop()
+            if node in seen:
+                continue
+            seen.add(node)
+            for child in graph.children.get(node, []):
+                if child in graph.parents:
+                    assemblies.add(child)
+                stack.append(child)
         return sorted(assemblies)
 
     async def make_purchased(self, product_id: str) -> PurchasedAssemblyResult:
@@ -192,7 +228,7 @@ class Assemblies(Base):
         for assembly_id in assembly_ids:
             product = by_id.get(assembly_id)
             parent_id = unwrap_unset(product.parent_id) if product else None
-            if not parent_id:
+            if parent_id is None:
                 continue
             variant_ids.update(
                 candidate.product_id
