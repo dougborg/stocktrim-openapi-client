@@ -74,6 +74,70 @@ async def test_no_tool_requires_only_request(
 # ---------------------------------------------------------------------------
 
 
+# Keep in sync with server.py "## Tool Categories" and docs/mcp-server/tools.md.
+# Update this set ONLY when a tool is intentionally added or removed — and update
+# the docs in the same change. This guards against documented-but-not-implemented
+# drift (phantom tools like list_boms / run_forecast) and undocumented additions.
+EXPECTED_TOOL_NAMES = {
+    # Foundation
+    "get_product",
+    "search_products",
+    "create_product",
+    "delete_product",
+    "get_customer",
+    "list_customers",
+    "get_supplier",
+    "list_suppliers",
+    "create_supplier",
+    "delete_supplier",
+    "set_product_inventory",
+    "create_sales_order",
+    "get_sales_orders",
+    "list_sales_orders",
+    "delete_sales_orders",
+    "get_purchase_order",
+    "list_purchase_orders",
+    "create_purchase_order",
+    "delete_purchase_order",
+    "list_locations",
+    "create_location",
+    # Workflow
+    "manage_forecast_group",
+    "update_forecast_settings",
+    "forecasts_update_and_monitor",
+    "forecasts_get_for_products",
+    "review_urgent_order_requirements",
+    "generate_purchase_orders_from_urgent_items",
+    "configure_product",
+    "products_configure_lifecycle",
+    "create_supplier_with_products",
+    # Session preferences
+    "get_preferences",
+    "set_preferences",
+}
+
+
+async def test_registered_tools_match_documented_contract(
+    registered_tools: dict[str, Tool],
+) -> None:
+    """The registered tool set must exactly match the documented contract.
+
+    Guards both directions: a documented-but-missing tool (phantom) and an
+    implemented-but-undocumented tool both fail here. When intentionally adding
+    or removing a tool, update EXPECTED_TOOL_NAMES together with server.py's
+    "## Tool Categories" section and docs/mcp-server/tools.md.
+    """
+    actual = set(registered_tools)
+    missing = EXPECTED_TOOL_NAMES - actual
+    unexpected = actual - EXPECTED_TOOL_NAMES
+    assert not missing and not unexpected, (
+        f"MCP tool drift detected.\n"
+        f"  Missing (documented but not registered): {sorted(missing)}\n"
+        f"  Unexpected (registered but not in contract — update docs + this set): "
+        f"{sorted(unexpected)}"
+    )
+
+
 async def test_foundation_tool_get_product_schema(
     registered_tools: dict[str, Tool],
 ) -> None:
