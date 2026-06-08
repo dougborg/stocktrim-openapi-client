@@ -56,6 +56,12 @@ class BillOfMaterials(Base):
             product_id=product_id,
             component_id=component_id,
         )
+        # StockTrim returns 404 (not 200 with an empty array) when there are no
+        # matching BOMs — the same non-standard behavior as GET /api/Products.
+        # Treat it as "no results" so callers get a consistent empty list instead
+        # of a NotFoundError (verified against production, where GET /api/boms 404s).
+        if response.status_code == 404:
+            return []
         result = unwrap(response)
         return (
             cast(list[BillOfMaterialsResponseDto], result)
