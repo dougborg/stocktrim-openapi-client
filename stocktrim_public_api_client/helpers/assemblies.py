@@ -22,7 +22,6 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 
 from stocktrim_public_api_client.helpers.base import Base
-from stocktrim_public_api_client.helpers.products import is_variant_match
 from stocktrim_public_api_client.utils import unwrap_unset
 
 
@@ -117,8 +116,13 @@ class Assemblies(Base):
         Walks the BOM tree below each finished good (to any depth) and returns
         every descendant that is itself a BOM parent — i.e. has its own sub-BOM.
         These are the "buy-it-whole" assemblies (e.g. frames) whose sub-BOM
-        should be stripped. The finished goods themselves are never returned, so
-        their top-level BOM (e.g. bike -> frame) is preserved. Cycle-safe.
+        should be stripped.
+
+        The ``finished_good_ids`` are traversal seeds, not results: a seed is
+        returned only if it reappears as a descendant of another node, which can
+        happen only in a cyclic graph. In an acyclic tree the finished goods are
+        never returned, so their top-level BOM (e.g. bike -> frame) is preserved.
+        Cycle-safe (each node is visited at most once).
 
         Args:
             finished_good_ids: Product IDs of finished goods (e.g. complete bikes).
@@ -218,21 +222,23 @@ class Assemblies(Base):
     async def _expand_variants(self, assembly_ids: list[str]) -> set[str]:
         """Return all sibling variant IDs sharing a parent with the given assemblies.
 
-        Fetches the catalog once and groups by ``parent_id`` so every variant of a
-        detected assembly's family is included.
+        Fetches the catalog once and builds a single ``parent_id -> [product_id]``
+        index, so each detected assembly is resolved to its family by one dict
+        lookup (O(catalog + assemblies)) rather than a full re-scan per assembly.
         """
         catalog = await self._client.products.get_all_paginated()
-        by_id = {product.product_id: product for product in catalog}
+
+        by_id: dict[str, str | None] = {}
+        siblings_by_parent: dict[str, list[str]] = defaultdict(list)
+        for product in catalog:
+            parent_id = unwrap_unset(product.parent_id)
+            by_id[product.product_id] = parent_id
+            if parent_id is not None:
+                siblings_by_parent[parent_id].append(product.product_id)
 
         variant_ids: set[str] = set()
         for assembly_id in assembly_ids:
-            product = by_id.get(assembly_id)
-            parent_id = unwrap_unset(product.parent_id) if product else None
-            if parent_id is None:
-                continue
-            variant_ids.update(
-                candidate.product_id
-                for candidate in catalog
-                if is_variant_match(candidate, parent_id=parent_id)
-            )
+            parent_id = by_id.get(assembly_id)
+            if parent_id is not None:
+                variant_ids.update(siblings_by_parent[parent_id])
         return variant_ids
