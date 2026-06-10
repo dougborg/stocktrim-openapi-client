@@ -226,7 +226,8 @@ in a purchase order workflow.
 
 **Approach B - Manual**:
 1. search_products(...) → Find candidate products
-2. get_product(code) → Inspect a product's stock_on_hand and supplier
+2. Read the `stocktrim://reports/inventory-status` resource (or
+   `stocktrim://inventory/{location_code}/{product_code}`) to see stock levels
 3. For low-stock items: create_purchase_order with appropriate quantities
 
 ### 2. Forecast Management
@@ -267,9 +268,10 @@ in a purchase order workflow.
 
 **Steps**:
 1. get_customer("CUST-001") → Verify customer exists
-2. get_product("WIDGET-001") → Verify product exists and check stock_on_hand
-3. If in stock: create_sales_order({...})
-4. After order ships: set_product_inventory to deduct stock
+2. get_product("WIDGET-001") → Verify product exists (code, description, prices, status)
+3. Check stock via the `stocktrim://inventory/{location_code}/WIDGET-001` resource
+4. If in stock: create_sales_order({...})
+5. After order ships: set_product_inventory({...}) to update stock
 
 ## Best Practices
 
@@ -310,7 +312,7 @@ in a purchase order workflow.
 ```
 product = get_product("WIDGET-001")
 if product:
-    set_product_inventory({product_id: product.id, quantity: 100})
+    set_product_inventory({product_id: "WIDGET-001", stock_on_hand: 100, location_code: "AKL"})
 else:
     # create product first
 ```
