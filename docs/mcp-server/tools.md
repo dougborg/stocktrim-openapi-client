@@ -210,33 +210,31 @@ ______________________________________________________________________
 
 ## Product Tools
 
-### `stocktrim_get_product`
+### `get_product`
 
-Get a single product by code.
+Get a single product by code. Returns code, description, unit of measurement, active
+status, cost price, and selling price. (Stock levels are **not** included — read them
+via the `stocktrim://inventory/{location_code}/{product_code}` resource.)
 
 **Parameters:**
 
 - `code` (string): Product code
 
-### `stocktrim_search_products`
+### `search_products`
 
-Search for products by code prefix.
-
-**Parameters:**
-
-- `code_prefix` (string): Search prefix
-
-### `stocktrim_list_products`
-
-List all products.
-
-### `stocktrim_create_products`
-
-Create one or more products.
+Search for products by name, code, or category keywords.
 
 **Parameters:**
 
-- `products` (array): List of product objects
+- `search_query` (string): Search query
+
+### `create_product`
+
+Create a single product.
+
+**Parameters:**
+
+- product fields (code, name, category, cost, price, etc.)
 
 ### `delete_product` 🔴
 
@@ -256,11 +254,11 @@ confirmation is required before execution. See
 
 ## Customer Tools
 
-### `stocktrim_list_customers`
+### `list_customers`
 
 List all customers.
 
-### `stocktrim_get_customer`
+### `get_customer`
 
 Get a specific customer by code.
 
@@ -268,21 +266,13 @@ Get a specific customer by code.
 
 - `code` (string): Customer code
 
-### `stocktrim_create_customers`
-
-Create one or more customers.
-
-**Parameters:**
-
-- `customers` (array): List of customer objects
-
 ## Supplier Tools
 
-### `stocktrim_list_suppliers`
+### `list_suppliers`
 
 List all suppliers.
 
-### `stocktrim_get_supplier`
+### `get_supplier`
 
 Get a specific supplier by code.
 
@@ -290,13 +280,13 @@ Get a specific supplier by code.
 
 - `code` (string): Supplier code
 
-### `stocktrim_create_suppliers`
+### `create_supplier`
 
-Create one or more suppliers.
+Create a single supplier.
 
 **Parameters:**
 
-- `suppliers` (array): List of supplier objects
+- supplier fields (code, name, email, etc.)
 
 ### `delete_supplier` 🔴
 
@@ -319,12 +309,16 @@ required before execution. See
 
 ### `set_product_inventory`
 
-Set inventory levels for products. (There is no inventory-read tool; read a product's
-`stock_on_hand` via `get_product` instead.)
+Set inventory levels for a product at a location. (There is no inventory-read tool; read
+stock via the `stocktrim://inventory/{location_code}/{product_code}` resource.)
 
 **Parameters:**
 
-- `inventory_items` (array): List of inventory updates
+- `product_id` (string, required): Product to set inventory for
+- `stock_on_hand` (number, optional): Current stock on hand
+- `stock_on_order` (number, optional): Stock on order
+- `location_code` (string, optional): Location code
+- `location_name` (string, optional): Location name
 
 ## Order Tools
 
@@ -490,11 +484,11 @@ purchase order, you must delete and recreate it.
 
 ## Location Tools
 
-### `stocktrim_list_locations`
+### `list_locations`
 
 List all locations/warehouses.
 
-### `stocktrim_create_location`
+### `create_location`
 
 Create a new location.
 
