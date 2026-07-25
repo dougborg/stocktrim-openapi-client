@@ -237,6 +237,20 @@ jobs:
           git push
 
       - name: Python Semantic Release (MCP)
+        # vcs_release: false — the .mcpb bundle needs the post-bump version
+        # number (build_mcpb.py reads it from stocktrim_mcp_server/pyproject.toml)
+        # and must be attached as a release asset, but GitHub's immutable
+        # releases feature (repo-wide, deliberately enabled — see issue #952)
+        # rejects any asset upload once a release is published. PSR's own
+        # release creation is create-then-upload-as-separate-calls internally
+        # (see semantic_release.hvcs.github.GitHub.create_release), which
+        # publishes (draft: False) before the asset exists — that's exactly
+        # the 422 this fix addresses. So PSR only bumps the version, updates
+        # the changelog, and tags/pushes here; the build-mcpb job below
+        # creates the actual GitHub release afterward, with the bundle
+        # attached, via `gh release create` — which internally stages the
+        # release as a draft, uploads assets, then publishes, and is
+        # therefore immutable-release-safe.
         if: steps.check.outputs.should_release == 'true'
         id: release
         uses: python-semantic-release/python-semantic-release@v9.15.2
@@ -244,6 +258,7 @@ jobs:
           github_token: ${{ steps.app-token.outputs.token }}
           root_options: -vv
           directory: stocktrim_mcp_server
+          vcs_release: false
 
       - name: Build MCP server package
         if: steps.release.outputs.released == 'true'
@@ -263,8 +278,10 @@ jobs:
   build-mcpb:
     name: Build MCPB bundle
     needs: release-mcp
-    # Only build the .mcpb when the MCP server actually released — the bundle
-    # is an asset on the mcp-v* GitHub release created by python-semantic-release.
+    # Only build the .mcpb when the MCP server actually released. release-mcp
+    # runs PSR with vcs_release: false, so the mcp-v* GitHub release does not
+    # exist yet at this point — this job creates it (with the bundle already
+    # attached) below.
     if: needs.release-mcp.outputs.released == 'true'
     runs-on: ubuntu-latest
     permissions:
@@ -312,15 +329,42 @@ jobs:
           name: mcpb
           path: ${{ steps.build.outputs.artifact }}
 
-      - name: Attach .mcpb to GitHub release
-        # python-semantic-release created the release matching the mcp-v* tag
-        # in the release-mcp job. Upload the .mcpb as an additional asset on
-        # that release.
+      - name: Extract release notes from CHANGELOG
+        # release-mcp ran PSR with vcs_release: false, so no GitHub release
+        # exists yet — this job creates it below. Reuse the changelog section
+        # PSR already wrote for this version as the release body, so the
+        # notes match what PSR would have generated itself.
+        id: notes
+        run: |
+          version="${{ needs.release-mcp.outputs.version }}"
+          notes_file="$(mktemp)"
+          awk -v ver="## v${version} " '
+            $0 ~ "^" ver { found=1; print; next }
+            found && /^## v/ { exit }
+            found { print }
+          ' stocktrim_mcp_server/CHANGELOG.md > "${notes_file}"
+
+          if [ ! -s "${notes_file}" ]; then
+            echo "::error::Could not find a '## v${version}' section in stocktrim_mcp_server/CHANGELOG.md"
+            exit 1
+          fi
+
+          echo "notes_file=${notes_file}" >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub release with .mcpb attached
+        # Create the mcp-v* release now, with the .mcpb bundle attached in
+        # the same invocation. `gh release create <tag> <files...>` stages
+        # the release as a draft, uploads the given assets, then publishes —
+        # all internally — which is safe under immutable releases (unlike
+        # PSR's own release creation, which publishes before uploading; see
+        # the comment on the "Python Semantic Release (MCP)" step above).
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release upload "${{ needs.release-mcp.outputs.tag }}" \
-            "${{ steps.build.outputs.artifact }}" --clobber
+          gh release create "${{ needs.release-mcp.outputs.tag }}" \
+            "${{ steps.build.outputs.artifact }}" \
+            --title "${{ needs.release-mcp.outputs.tag }}" \
+            --notes-file "${{ steps.notes.outputs.notes_file }}"
 
   publish-client:
     name: Publish Client to PyPI
