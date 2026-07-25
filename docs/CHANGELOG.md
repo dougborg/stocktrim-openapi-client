@@ -2,43 +2,1638 @@
 
 <!-- version list -->
 
+## v0.13.0 (2026-07-25)
+
+### Bug Fixes
+
+- Handle three StockTrim API quirks surfaced via MCP audit
+  ([#202](https://github.com/dougborg/stocktrim-openapi-client/pull/202),
+  [`9e6d74d`](https://github.com/dougborg/stocktrim-openapi-client/commit/9e6d74ddc4db146d08fd1bc50d811db35dab20db))
+
+Three concrete tool failures observed in a Claude Desktop audit log on 2026-05-26
+(session local_08682e5e-9a5c-4233-a3d4-cbec7cbabe9d):
+
+1. `list_purchase_orders` -> 404 "No parsed response data for status 404" StockTrim
+   returns 404 (not 200-with-empty-array) when there are zero purchase orders. Mirror
+   the existing products.get_all pattern and translate 404 -> [] in
+   helpers/purchase_orders.py.
+
+1. `list_suppliers` -> Pydantic validation error on SupplierInfo.code The API returns
+   suppliers with supplierCode=null; the generated SupplierResponseDto typed it as
+   required `str`. Add supplierCode to NULLABLE_FIELDS, regenerate the model (Optional
+   now), and relax the MCP wrapper SupplierInfo.code to `str | None`.
+
+1. `search_products` -> 500 surfaced as "No parsed response data..." The Order Plan
+   endpoint occasionally returns 500 with an HTML body the OpenAPI client cannot decode.
+   utils.unwrap() checked `parsed is None` before inspecting the status code, so any
+   4xx/5xx without a parseable body raised a generic APIError instead of the appropriate
+   ServerError/NotFoundError/etc. Reorder the checks so status-specific exceptions fire
+   first; the "no parsed body" APIError now only fires on 2xx responses.
+
+Adds regression tests for each path: - tests/test_helpers_purchase_orders.py (new) -
+tests/test_utils.py (3 new cases covering parsed=None + error status) -
+stocktrim_mcp_server/tests/.../test_suppliers.py (null supplierCode)
+
+Co-authored-by: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+
+- Surface upstream body on 5xx and unbreak review_urgent_order_requirements 415
+  ([#203](https://github.com/dougborg/stocktrim-openapi-client/pull/203),
+  [`6cfdd98`](https://github.com/dougborg/stocktrim-openapi-client/commit/6cfdd9812eb8c5dfa12ad732ebfeaa1c614c50b5))
+
+Two fixes driven by the 2026-05-26 MCP bug report.
+
+1. utils.unwrap() now appends a truncated body excerpt to the error message when the
+   response has no parsed body and a non-2xx status. StockTrim's Order Plan endpoint
+   sometimes returns 500 with an HTML stack trace or 415 with a plaintext reason; the
+   previous "API error with status N" message was opaque without those bodies. Excerpts
+   are bounded at 500 chars with a "…[+N chars]" suffix so log lines stay readable, and
+   UTF-8 decode errors fall back to a byte-count placeholder.
+
+1. review_urgent_order_requirements built an OrderPlanFilterCriteriaDto (list-shaped,
+   used by the V2 PO generation endpoint) and passed it to client.order_plan.query()
+   which targets /api/OrderPlan and expects OrderPlanFilterCriteria (singular
+   `location`/`supplier`/`category`). StockTrim rejected the wrong-shaped body with 415.
+   Switch to the singular schema; for list-shaped MCP inputs, send the first element to
+   the API and log `order_plan_multifilter_narrowed` so operators see that further
+   filtering was dropped (multi-filter is an API limitation).
+
+Tests: - test_utils.py: 4 new cases for body-excerpt formatting (basic, long-body
+truncation, empty body, undecodable bytes). - test_urgent_orders.py: 2 new cases pinning
+the OrderPlanFilterCriteria type (vs Dto) and the multi-element warning.
+
+Co-authored-by: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+
+- **client**: Preserve positional arg order for total_retry_timeout
+  ([`130f4ee`](https://github.com/dougborg/stocktrim-openapi-client/commit/130f4eef4be9de0db59c1a71f470010ffc968013))
+
+Addresses Copilot's review on #170: \`total_retry_timeout\` was inserted between
+\`max_retries\` and \`logger\` in two public signatures (\`create_resilient_transport\`
+and \`StockTrimClient.__init__\`), which silently shifts the positional meaning of
+\`logger\` for any caller using positional args:
+
+create_resilient_transport(api_auth_signature, max_retries, logger) # before #170:
+logger -> logger param ✓ # after #170: logger -> total_retry_timeout param ✗ (TypeError)
+
+Moves \`total_retry_timeout\` after \`logger\` (just before \`\*\*kwargs\`/
+\`\*\*httpx_kwargs\`) so the original positional layout is preserved.
+\`total_retry_timeout\` is still keyword-accessible with the same 60s default as #170
+introduced.
+
+Docstring arg order updated to match.
+
+Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+
+- **mcp**: Flatten workflow-tool schemas to remove `request` wrapper (#116)
+  ([#211](https://github.com/dougborg/stocktrim-openapi-client/pull/211),
+  [`2a6eaec`](https://github.com/dougborg/stocktrim-openapi-client/commit/2a6eaecec603a760066764b461d188c7243ba9e4))
+
+Apply `@unpack_pydantic_params` + `Annotated[..., Unpack()]` to the 9 workflow tools so
+their MCP `inputSchema` emits flat top-level parameters instead of the nested
+`{"request": {...}}` shape. Foundation tools were already flat — this brings the
+workflow tools in line.
+
+Strategy C (per the issue plan): the runtime wrapper accepts either a positional
+`BaseModel` instance (the in-process test path) or flat kwargs (the FastMCP path).
+Existing tests that call `await tool(MyRequest(...), ctx)` keep working without churn.
+
+Side fix: `@unpack_pydantic_params` now preserves `Field(description=...)`, `ge`/`le`,
+and other `FieldInfo` metadata via `Annotated[T, FieldInfo(...)]` on the synthesized
+parameters. Foundation-tool schemas previously dropped all field descriptions; they now
+match workflow-tool schemas for documentation parity.
+
+Transitional 0.16 fallback: the wrapper still accepts the legacy
+`{"request": {<flat_fields>}}` shape when `request` is a dict and the sole kwarg.
+Non-dict values (the #116 symptom) now raise a `TypeError` that names the model's flat
+fields. Fallback will be removed in 0.17.
+
+ADR 002 updated to document the canonical pattern. Bumped stocktrim-mcp-server to 0.16.0
+and added a CHANGELOG entry that points at #206 (upstream contribution to fastmcp#1784)
+— once that lands we can delete `unpack.py`.
+
+Closes #116. Tracking #206.
+
+Co-authored-by: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+
+- **mcpb**: Redirect mcpb subprocess stdout to stderr
+  ([`07f7f7a`](https://github.com/dougborg/stocktrim-openapi-client/commit/07f7f7a1f64d7423292697b98749c07ae5523936))
+
+Addresses Copilot review on this PR (threads on \`scripts/build_mcpb.py\` and
+\`.github/workflows/release.yml\`): both \`run_mcpb_validate\` and \`run_mcpb_pack\`
+called \`subprocess.run\` with inherited stdout. If the \`mcpb\` CLI ever emits progress
+text on stdout, it would contaminate the workflow's \`artifact=$(python
+scripts/build_mcpb.py)\` capture and break the artifact-upload step downstream.
+
+Fix: pass \`stdout=sys.stderr\` to both \`subprocess.run\` calls. The CLI's
+
+output remains visible to humans/CI logs (via stderr) but stays out of this script's
+stdout, which now exclusively carries the artifact path on the final line of \`main()\`.
+
+Verified by substituting a stub \`mcpb\` on PATH that writes \`[mcpb] processing...\` to
+stdout, then running \`artifact=$(python scripts/build_mcpb.py)\`: the noise appears in
+the terminal (stderr) but the captured variable contains only the artifact path,
+matching what the release workflow expects.
+
+This closes the deferred concern tracked in #178 — the issue was filed during the
+initial review when this was a SUGGESTION; Copilot raised it again with concrete
+file:line refs in the latest review, so addressing it inline rather than deferring
+further.
+
+Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+
+- **mcpb**: Substitute stocktrim-openapi-client requirement at build time
+  ([`014bbe0`](https://github.com/dougborg/stocktrim-openapi-client/commit/014bbe00c87492825032369e0986e3ef85ed0682))
+
+Addresses Copilot review on this PR (two threads on \`scripts/build_mcpb.py\` and
+\`stocktrim_mcp_server/mcpb/pyproject.template.toml\`): the bundle template hardcoded an
+unpinned \`stocktrim-openapi-client\` dependency, but the MCP release workflow
+(\`.github/workflows/release.yml:162-204\`, \`Update MCP client dependency\`) rewrites
+the package's own pyproject to \`stocktrim-openapi-client==\<X.Y.Z>\` before tagging.
+\`verify_dep_mirror\` compared the two strings with \`set\` equality, so every real MCP
+release that touched the client would have failed the build with a spurious "out of
+sync" error.
+
+Fix: carry a \`__STOCKTRIM_CLIENT_DEP__\` placeholder in
+
+\`pyproject.template.toml\`, substituted at build time with the exact requirement string
+from \`stocktrim_mcp_server/pyproject.toml\`. Whatever the package pins (or doesn't),
+the bundle pins the same.
+
+Implementation:
+
+- \`scripts/build_mcpb.py\`: - New \`get_client_dep(pyproject)\` helper extracts the
+  requirement string by matching the bare package name (handles \`name\`, \`name==X\`,
+  \`name>=X\`, \`name[extra]\`, etc.). - \`substitute()\` generalized to take a
+  \`dict[str, str]\` of placeholders; callers pass \`{VERSION_PLACEHOLDER: version}\`
+  for the manifest and \`{VERSION_PLACEHOLDER: version, CLIENT_DEP_PLACEHOLDER:
+  client_dep}\` for the bundle pyproject. - \`verify_dep_mirror\` reads the template,
+  substitutes the placeholder, then parses + compares — keeping the drift check honest
+  in both unpinned (dev) and pinned (release) scenarios. - \`stage_bundle\` takes
+  \`client_dep\` and threads it through.
+
+- \`stocktrim_mcp_server/mcpb/pyproject.template.toml\`: replace
+  \`"stocktrim-openapi-client"\` with \`"__STOCKTRIM_CLIENT_DEP__"\`. Header comment
+  expanded to document both placeholders.
+
+Verified by smoke-testing both branches:
+
+- **Unpinned (current main)**: bundle pyproject gets \`"stocktrim-openapi-client"\` —
+  matches package, mirror check passes. - **Pinned (simulated release with
+  \`==9.9.9\`)**: bundle pyproject gets \`"stocktrim-openapi-client==9.9.9"\` — matches
+  package, mirror check passes.
+
+Couldn't autosquash into the original \`feat(mcp): add MCP Bundle...\` commit because
+the prior \`refactor(mcpb): simplify\` commit (which added \`\_write_substituted\`)
+conflicts with this fixup's same-region changes. Standalone commit it is.
+
+Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+
+- **types**: Drop mypy-style ignores in favor of real type narrowing
+  ([`724f251`](https://github.com/dougborg/stocktrim-openapi-client/commit/724f2519339ee4a69ee246a6cf40cb955b4af59e))
+
+Replaces seven `# type: ignore` shims with proper narrowing so the helpers and tests
+type-check under the stricter ty 0.0.35 we're about to land.
+
+- helpers/{bill_of_materials,customers,products,sales_orders,suppliers,purchase_orders_v2}:
+  cast the post-`unwrap`/`isinstance(result, list)` return value to the concrete
+  `list[Dto]` instead of relying on a mypy-only ignore that ty doesn't honor. -
+  stocktrim_client.py: drop the import-error fallback for `ProblemDetails`. The
+  generated module always ships with this package, so the `ProblemDetails = None` rebind
+  (and its companion null-check) were dead defensive code that confused ty's type
+  narrowing. - tests/conftest.py: assert `client._client is not None` before reaching
+  into `_transport`, replacing a `union-attr` ignore. -
+  tests/test_purchase_order_upsert.py: narrow `order_date` with
+  `isinstance(_, datetime)` instead of the runtime-only `not isinstance(_, type(UNSET))`
+  check ty couldn't follow.
+
+No behavior change for any of the runtime paths exercised by the suite; all 73 client
+tests + 309 MCP tests still pass.
+
+Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+
+### Build System
+
+- Install stocktrim-mcp-server workspace member by default (closes #172)
+  ([`a6b69a4`](https://github.com/dougborg/stocktrim-openapi-client/commit/a6b69a4c4651eba1c107fe701ce70590d96c69fb))
+
+Adds \`stocktrim-mcp-server\` to the root project's \`[dependency-groups].dev\` group
+with a \`[tool.uv.sources]\` entry resolving it to the workspace member. With this, the
+canonical \`uv sync --all-extras\` (and even bare \`uv sync\`) install both workspace
+members into the project venv — fixing the \`ModuleNotFoundError: No module named
+'stocktrim_mcp_server.services'\` that \`uv run poe test-mcp\` hit for fresh
+contributors following the documented setup commands.
+
+Verified by removing \`.venv\` and re-syncing: - \`uv sync\` -> MCP module importable,
+dev group tools (poethepoet, pytest stack, ty) present. - \`uv sync --all-extras\` ->
+all the above plus the project extras (ruff, mdformat, openapi-spec-validator, ...).
+
+No documentation updates needed; the existing 8 docs locations recommending \`uv sync
+--all-extras\` are now correct.
+
+Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+
+- **deps**: Bump 5 packages + transitives across uv group
+  ([`c45b870`](https://github.com/dougborg/stocktrim-openapi-client/commit/c45b87084e6e32aba806450e348f256bbcb8914f))
+
+Consolidates the following dependabot bumps (closes #162, #163, #164, #165, #167) into a
+single uv.lock update:
+
+- urllib3 2.6.3 -> 2.7.0 - mkdocs-material 9.7.1 -> 9.7.6 - mkdocs-swagger-ui-tag 0.7.2
+  -> 0.8.0 - openapi-spec-validator 0.7.2 -> 0.8.5 - types-python-dateutil
+  2.9.0.20260124 -> 2.9.0.20260508
+
+Pulled-along transitives (constraints from openapi-spec-validator 0.8.5):
+jsonschema-path 0.3.4 -> 0.4.6, openapi-schema-validator 0.6.3 -> 0.8.1, pathable 0.4.4
+-> 0.5.0, referencing 0.36.2 -> 0.37.0.
+
+All pyproject pins already covered the new versions; no manifest changes were needed.
+Quality gate (uv run poe check) passes, docs build, and the OpenAPI spec validates under
+spec-validator 0.8.5.
+
+Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+
+- **deps**: Bump attrs from 25.4.0 to 26.1.0
+  ([#196](https://github.com/dougborg/stocktrim-openapi-client/pull/196),
+  [`fef9931`](https://github.com/dougborg/stocktrim-openapi-client/commit/fef99317c3b171cbedcec5ebc8094577d4ad34f7))
+
+Bumps [attrs](https://github.com/python-attrs/attrs) from 25.4.0 to 26.1.0. -
+[Release notes](https://github.com/python-attrs/attrs/releases) -
+[Changelog](https://github.com/python-attrs/attrs/blob/main/CHANGELOG.md) -
+[Commits](https://github.com/python-attrs/attrs/compare/25.4.0...26.1.0)
+
+--- updated-dependencies: - dependency-name: attrs dependency-version: 26.1.0
+
+dependency-type: direct:production
+
+update-type: version-update:semver-major
+
+...
+
+Signed-off-by: dependabot[bot] <support@github.com>
+
+Co-authored-by: dependabot[bot] \<49699333+dependabot[bot]@users.noreply.github.com>
+
+- **deps**: Bump authlib in the uv group across 1 directory
+  ([`bbb1915`](https://github.com/dougborg/stocktrim-openapi-client/commit/bbb191527bb7c3dae48c6c61e721a3c24bcfe22f))
+
+Bumps the uv group with 1 update in the / directory:
+[authlib](https://github.com/authlib/authlib).
+
+Updates `authlib` from 1.7.0 to 1.7.1 -
+[Release notes](https://github.com/authlib/authlib/releases)
+
+- [Commits](https://github.com/authlib/authlib/compare/v1.7.0...1.7.1)
+
+--- updated-dependencies: - dependency-name: authlib dependency-version: 1.7.1
+
+dependency-type: indirect
+
+dependency-group: uv
+
+...
+
+Signed-off-by: dependabot[bot] <support@github.com>
+
+- **deps**: Bump lupa from 2.6 to 2.7
+  ([#140](https://github.com/dougborg/stocktrim-openapi-client/pull/140),
+  [`e13ef69`](https://github.com/dougborg/stocktrim-openapi-client/commit/e13ef6933ca8c4ef04a7614546bfc57d4951d689))
+
+Bumps [lupa](https://github.com/scoder/lupa) from 2.6 to 2.7. -
+[Changelog](https://github.com/scoder/lupa/blob/master/CHANGES.rst) -
+[Commits](https://github.com/scoder/lupa/compare/lupa-2.6...lupa-2.7)
+
+--- updated-dependencies: - dependency-name: lupa dependency-version: '2.7'
+
+dependency-type: indirect
+
+...
+
+Signed-off-by: dependabot[bot] <support@github.com>
+
+Co-authored-by: dependabot[bot] \<49699333+dependabot[bot]@users.noreply.github.com>
+
+- **deps**: Bump mkdocs-gen-files from 0.6.0 to 0.6.1
+  ([#221](https://github.com/dougborg/stocktrim-openapi-client/pull/221),
+  [`d20da1b`](https://github.com/dougborg/stocktrim-openapi-client/commit/d20da1bff8cb911976c353bb8f114fe5932c5912))
+
+Bumps [mkdocs-gen-files](https://github.com/oprypin/mkdocs-gen-files) from 0.6.0 to
+0.6.1. - [Release notes](https://github.com/oprypin/mkdocs-gen-files/releases) -
+[Commits](https://github.com/oprypin/mkdocs-gen-files/compare/v0.6.0...v0.6.1)
+
+--- updated-dependencies: - dependency-name: mkdocs-gen-files dependency-version: 0.6.1
+
+dependency-type: direct:production
+
+update-type: version-update:semver-patch
+
+...
+
+Signed-off-by: dependabot[bot] <support@github.com>
+
+Co-authored-by: dependabot[bot] \<49699333+dependabot[bot]@users.noreply.github.com>
+
+- **deps**: Bump mkdocs-literate-nav from 0.6.2 to 0.6.3
+  ([#199](https://github.com/dougborg/stocktrim-openapi-client/pull/199),
+  [`b474353`](https://github.com/dougborg/stocktrim-openapi-client/commit/b474353fdd157799cdedc7db2580dd1b1e11744e))
+
+Bumps [mkdocs-literate-nav](https://github.com/oprypin/mkdocs-literate-nav) from 0.6.2
+to 0.6.3. - [Release notes](https://github.com/oprypin/mkdocs-literate-nav/releases) -
+[Commits](https://github.com/oprypin/mkdocs-literate-nav/compare/v0.6.2...v0.6.3)
+
+--- updated-dependencies: - dependency-name: mkdocs-literate-nav dependency-version:
+0.6.3
+
+dependency-type: direct:production
+
+update-type: version-update:semver-patch
+
+...
+
+Signed-off-by: dependabot[bot] <support@github.com>
+
+Co-authored-by: dependabot[bot] \<49699333+dependabot[bot]@users.noreply.github.com>
+
+- **deps**: Bump openapi-python-client from 0.28.1 to 0.28.4
+  ([#197](https://github.com/dougborg/stocktrim-openapi-client/pull/197),
+  [`8dccc6a`](https://github.com/dougborg/stocktrim-openapi-client/commit/8dccc6a500890daf3705603bb6fdd370b0dc7c36))
+
+Bumps
+[openapi-python-client](https://github.com/openapi-generators/openapi-python-client)
+from 0.28.1 to 0.28.4. -
+[Release notes](https://github.com/openapi-generators/openapi-python-client/releases) -
+[Changelog](https://github.com/openapi-generators/openapi-python-client/blob/main/CHANGELOG.md)
+\-
+[Commits](https://github.com/openapi-generators/openapi-python-client/compare/v0.28.1...v0.28.4)
+
+--- updated-dependencies: - dependency-name: openapi-python-client dependency-version:
+0.28.4
+
+dependency-type: direct:production
+
+update-type: version-update:semver-patch
+
+...
+
+Signed-off-by: dependabot[bot] <support@github.com>
+
+Co-authored-by: dependabot[bot] \<49699333+dependabot[bot]@users.noreply.github.com>
+
+- **deps**: Bump poethepoet from 0.37.0 to 0.38.0
+  ([#127](https://github.com/dougborg/stocktrim-openapi-client/pull/127),
+  [`a0a872c`](https://github.com/dougborg/stocktrim-openapi-client/commit/a0a872c3c0b1a5cd696517fd2f5a1961d488cacb))
+
+Bumps [poethepoet](https://github.com/nat-n/poethepoet) from 0.37.0 to 0.38.0. -
+[Release notes](https://github.com/nat-n/poethepoet/releases) -
+[Commits](https://github.com/nat-n/poethepoet/compare/v0.37.0...v0.38.0)
+
+--- updated-dependencies: - dependency-name: poethepoet dependency-version: 0.38.0
+
+dependency-type: direct:production
+
+update-type: version-update:semver-minor
+
+...
+
+Signed-off-by: dependabot[bot] <support@github.com>
+
+Co-authored-by: dependabot[bot] \<49699333+dependabot[bot]@users.noreply.github.com>
+
+- **deps**: Bump pydantic from 2.12.5 to 2.13.4
+  ([#224](https://github.com/dougborg/stocktrim-openapi-client/pull/224),
+  [`45054c5`](https://github.com/dougborg/stocktrim-openapi-client/commit/45054c54c47c7e6be5d7d296dc0373e27dbd6487))
+
+Bumps [pydantic](https://github.com/pydantic/pydantic) from 2.12.5 to 2.13.4. -
+[Release notes](https://github.com/pydantic/pydantic/releases) -
+[Changelog](https://github.com/pydantic/pydantic/blob/main/HISTORY.md) -
+[Commits](https://github.com/pydantic/pydantic/compare/v2.12.5...v2.13.4)
+
+--- updated-dependencies: - dependency-name: pydantic dependency-version: 2.13.4
+
+dependency-type: direct:production
+
+update-type: version-update:semver-minor
+
+...
+
+Signed-off-by: dependabot[bot] <support@github.com>
+
+Co-authored-by: dependabot[bot] \<49699333+dependabot[bot]@users.noreply.github.com>
+
+- **deps**: Bump python-multipart in the uv group across 1 directory
+  ([#133](https://github.com/dougborg/stocktrim-openapi-client/pull/133),
+  [`0d41c0c`](https://github.com/dougborg/stocktrim-openapi-client/commit/0d41c0c601669fc224aace53831d66e4a9723bcc))
+
+Bumps the uv group with 1 update in the / directory:
+[python-multipart](https://github.com/Kludex/python-multipart).
+
+Updates `python-multipart` from 0.0.21 to 0.0.22 -
+[Release notes](https://github.com/Kludex/python-multipart/releases) -
+[Changelog](https://github.com/Kludex/python-multipart/blob/master/CHANGELOG.md) -
+[Commits](https://github.com/Kludex/python-multipart/compare/0.0.21...0.0.22)
+
+--- updated-dependencies: - dependency-name: python-multipart dependency-version: 0.0.22
+
+dependency-type: indirect
+
+dependency-group: uv
+
+...
+
+Signed-off-by: dependabot[bot] <support@github.com>
+
+Co-authored-by: dependabot[bot] \<49699333+dependabot[bot]@users.noreply.github.com>
+
+- **deps**: Bump ruff from 0.15.0 to 0.15.15
+  ([#225](https://github.com/dougborg/stocktrim-openapi-client/pull/225),
+  [`38ddf9d`](https://github.com/dougborg/stocktrim-openapi-client/commit/38ddf9d88a246f4ffcdc9ee33df607813a659b63))
+
+Bumps [ruff](https://github.com/astral-sh/ruff) from 0.15.0 to 0.15.15. -
+[Release notes](https://github.com/astral-sh/ruff/releases) -
+[Changelog](https://github.com/astral-sh/ruff/blob/main/CHANGELOG.md) -
+[Commits](https://github.com/astral-sh/ruff/compare/0.15.0...0.15.15)
+
+--- updated-dependencies: - dependency-name: ruff dependency-version: 0.15.15
+
+dependency-type: direct:production
+
+update-type: version-update:semver-patch
+
+...
+
+Signed-off-by: dependabot[bot] <support@github.com>
+
+Co-authored-by: dependabot[bot] \<49699333+dependabot[bot]@users.noreply.github.com>
+
+- **deps**: Bump ruff to 0.15.0 + format + modernize enums
+  ([#141](https://github.com/dougborg/stocktrim-openapi-client/pull/141),
+  [`60403a9`](https://github.com/dougborg/stocktrim-openapi-client/commit/60403a97641c5acb4d7be56806fc9143b6a4f75d))
+
+* build(deps): bump ruff from 0.14.13 to 0.15.0
+
+Bumps [ruff](https://github.com/astral-sh/ruff) from 0.14.13 to 0.15.0. -
+[Release notes](https://github.com/astral-sh/ruff/releases) -
+[Changelog](https://github.com/astral-sh/ruff/blob/main/CHANGELOG.md) -
+[Commits](https://github.com/astral-sh/ruff/compare/0.14.13...0.15.0)
+
+--- updated-dependencies: - dependency-name: ruff dependency-version: 0.15.0
+
+dependency-type: direct:production
+
+update-type: version-update:semver-minor
+
+...
+
+Signed-off-by: dependabot[bot] <support@github.com>
+
+- chore(deps): apply ruff 0.15.0 format and modernize enums
+
+ruff 0.15.0 brings new formatting and a new lint rule:
+
+- Format: 2 files (forecast_management.py, order_plan.py) reformatted with the new ruff
+  style. README.md re-flowed by mdformat. - UP042: `class X(str, Enum)` →
+  `class X(StrEnum)` (Python 3.11+). Added \_modernize_str_enum_classes post-processing
+  to scripts/regenerate_client.py so future regenerations preserve the modern form, and
+  applied it to the 3 currently-generated enum models (api_enum, current_status_enum,
+  purchase_order_status_dto).
+
+Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+
+______________________________________________________________________
+
+Co-authored-by: dependabot[bot] \<49699333+dependabot[bot]@users.noreply.github.com>
+
+Co-authored-by: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+
+- **deps**: Bump tenacity from 9.1.2 to 9.1.4
+  ([#200](https://github.com/dougborg/stocktrim-openapi-client/pull/200),
+  [`9f2440b`](https://github.com/dougborg/stocktrim-openapi-client/commit/9f2440bdef0b01ccc81276b9adf565e43a2f882b))
+
+Bumps [tenacity](https://github.com/jd/tenacity) from 9.1.2 to 9.1.4. -
+[Release notes](https://github.com/jd/tenacity/releases) -
+[Commits](https://github.com/jd/tenacity/compare/9.1.2...9.1.4)
+
+--- updated-dependencies: - dependency-name: tenacity dependency-version: 9.1.4
+
+dependency-type: direct:production
+
+update-type: version-update:semver-patch
+
+...
+
+Signed-off-by: dependabot[bot] <support@github.com>
+
+Co-authored-by: dependabot[bot] \<49699333+dependabot[bot]@users.noreply.github.com>
+
+- **deps**: Bump the uv group across 1 directory with 2 updates
+  ([#201](https://github.com/dougborg/stocktrim-openapi-client/pull/201),
+  [`501aeed`](https://github.com/dougborg/stocktrim-openapi-client/commit/501aeed5ba20b4ad4342e3e847e4768800563cdb))
+
+Bumps the uv group with 2 updates in the / directory:
+[idna](https://github.com/kjd/idna) and
+[pymdown-extensions](https://github.com/facelessuser/pymdown-extensions).
+
+Updates `idna` from 3.11 to 3.15 - [Release notes](https://github.com/kjd/idna/releases)
+\- [Changelog](https://github.com/kjd/idna/blob/master/HISTORY.md) -
+[Commits](https://github.com/kjd/idna/compare/v3.11...v3.15)
+
+Updates `pymdown-extensions` from 10.20 to 10.21.3 -
+[Release notes](https://github.com/facelessuser/pymdown-extensions/releases) -
+[Commits](https://github.com/facelessuser/pymdown-extensions/compare/10.20...10.21.3)
+
+--- updated-dependencies: - dependency-name: idna dependency-version: '3.15'
+
+dependency-type: indirect
+
+dependency-group: uv
+
+- dependency-name: pymdown-extensions dependency-version: 10.21.3
+
+...
+
+Signed-off-by: dependabot[bot] <support@github.com>
+
+Co-authored-by: dependabot[bot] \<49699333+dependabot[bot]@users.noreply.github.com>
+
+- **deps**: Bump tox from 4.34.1 to 4.54.0
+  ([#198](https://github.com/dougborg/stocktrim-openapi-client/pull/198),
+  [`d3f2725`](https://github.com/dougborg/stocktrim-openapi-client/commit/d3f2725edc3efa0a0caaff5558a05c9b9ab3ffa3))
+
+Bumps [tox](https://github.com/tox-dev/tox) from 4.34.1 to 4.54.0. -
+[Release notes](https://github.com/tox-dev/tox/releases) -
+[Changelog](https://github.com/tox-dev/tox/blob/main/docs/changelog.rst) -
+[Commits](https://github.com/tox-dev/tox/compare/4.34.1...4.54.0)
+
+--- updated-dependencies: - dependency-name: tox dependency-version: 4.54.0
+
+dependency-type: direct:production
+
+update-type: version-update:semver-minor
+
+...
+
+Signed-off-by: dependabot[bot] <support@github.com>
+
+Co-authored-by: dependabot[bot] \<49699333+dependabot[bot]@users.noreply.github.com>
+
+- **deps**: Bump ty to 0.0.15 + cast list narrowing
+  ([#142](https://github.com/dougborg/stocktrim-openapi-client/pull/142),
+  [`e872c63`](https://github.com/dougborg/stocktrim-openapi-client/commit/e872c637f57798ee57089cb8c8445119b45ca294))
+
+* build(deps-dev): bump ty from 0.0.12 to 0.0.15
+
+Bumps [ty](https://github.com/astral-sh/ty) from 0.0.12 to 0.0.15. -
+[Release notes](https://github.com/astral-sh/ty/releases) -
+[Changelog](https://github.com/astral-sh/ty/blob/main/CHANGELOG.md) -
+[Commits](https://github.com/astral-sh/ty/compare/0.0.12...0.0.15)
+
+--- updated-dependencies: - dependency-name: ty dependency-version: 0.0.15
+
+dependency-type: direct:development
+
+update-type: version-update:semver-patch
+
+...
+
+Signed-off-by: dependabot[bot] <support@github.com>
+
+- fix(types): cast list-element narrowing for ty 0.0.15
+
+ty 0.0.15 no longer narrows generic parameters through `isinstance(x, list)` — when
+`x: T | list[T]` and we enter the list branch, `x[0]` is reported as `object` instead of
+`T`.
+
+Three call sites use the polymorphic-return pattern (API returns either a single object
+or a list depending on filter args):
+
+- helpers/purchase_orders.find_by_reference - helpers/suppliers.find_by_code -
+  tests/test_purchase_order_upsert.py — status assertion
+
+Each was relying on ty 0.0.12's narrowing; now made explicit with `cast(T, result[0])`.
+The existing get_all callers already use cast for the same union, so this matches the
+surrounding style.
+
+Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+
+______________________________________________________________________
+
+Co-authored-by: dependabot[bot] \<49699333+dependabot[bot]@users.noreply.github.com>
+
+Co-authored-by: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+
+- **deps**: Bump types-python-dateutil
+  ([#131](https://github.com/dougborg/stocktrim-openapi-client/pull/131),
+  [`a7fad80`](https://github.com/dougborg/stocktrim-openapi-client/commit/a7fad807f690902eeddab39ebb94fc3782cf490a))
+
+Bumps [types-python-dateutil](https://github.com/typeshed-internal/stub_uploader) from
+2.9.0.20251115 to 2.9.0.20260124. -
+[Commits](https://github.com/typeshed-internal/stub_uploader/commits)
+
+--- updated-dependencies: - dependency-name: types-python-dateutil dependency-version:
+2.9.0.20260124
+
+dependency-type: direct:production
+
+update-type: version-update:semver-patch
+
+...
+
+Signed-off-by: dependabot[bot] <support@github.com>
+
+Co-authored-by: dependabot[bot] \<49699333+dependabot[bot]@users.noreply.github.com>
+
+- **deps**: Upgrade all dependencies to latest versions
+  ([#129](https://github.com/dougborg/stocktrim-openapi-client/pull/129),
+  [`f37c755`](https://github.com/dougborg/stocktrim-openapi-client/commit/f37c755a60733656c3f47de491747ffe60c7d908))
+
+Major updates: - ruff: 0.12.12 → 0.14.13 (removed \<0.13 constraint) - ty: 0.0.1a26 →
+0.0.12 - mkdocstrings: 0.30.1 → 1.0.0 - mkdocstrings-python: 1.19.0 → 2.0.1 - pathspec:
+0.12.1 → 1.0.3 - mcp: 1.21.0 → 1.25.0 - fastmcp: 2.13.0.2 → 2.14.3 - poethepoet: 0.38.0
+→ 0.40.0 - uvicorn: 0.38.0 → 0.40.0 - websockets: 15.0.1 → 16.0
+
+Also includes ~40 minor/patch updates.
+
+Test fixes: - Remove redundant type casts in test_utils.py (ty warnings) - Fix
+product_lifecycle_review test imports and async decorators
+
+Co-authored-by: Doug Borg <dougborg@apple.com>
+
+Co-authored-by: Claude Opus 4.5 <noreply@anthropic.com>
+
+- **deps,mcp**: Bump uv group + fastmcp v3 minimum, address v3 breaking changes
+  ([#155](https://github.com/dougborg/stocktrim-openapi-client/pull/155),
+  [`7e353c5`](https://github.com/dougborg/stocktrim-openapi-client/commit/7e353c5437f0bdad0f9d5abe94574c1c4a555d57))
+
+Lands the fastmcp 3.x upgrade as a coordinated bundle. Each line below maps to its own
+tracking issue under the v3 modernization plan (#154).
+
+Dependency bumps (was dependabot PR #139, opened as a maintainer branch since automation
+can't force-push to dependabot branches):
+
+- fastmcp 2.14.3 → 3.2.4 (major: see breaking changes below) - python-dotenv 1.2.1 →
+  1.2.2 (patch) - pytest 9.0.2 → 9.0.3 (patch) - authlib 1.6.6 → 1.7.0 (minor,
+  transitive) - cryptography 46.0.3 → 47.0.0 (major, transitive) - python-multipart
+  0.0.22 → 0.0.27 (patch, transitive — security) - requests 2.32.5 → 2.33.1 (minor)
+
+v3 breaking changes addressed in this PR:
+
+- #143 fix(mcp): tests/test_prompts/test_workflows.py reaches into fastmcp's private
+  \_prompt_manager.\_prompts attribute, which was removed in v3. Migrated to the public
+  list_prompts() API; the test is now async to match. - #144 refactor(mcp):
+  prompts/workflows.py product_lifecycle_review returned legacy mcp.types.PromptMessage
+  objects. v3 wants fastmcp.prompts.Message. Other prompts in the same file already used
+  Message; this fixes the inconsistency. - #146 build(mcp): fastmcp pin in
+  stocktrim_mcp_server/pyproject.toml bumped from
+  > =0.3.0 (basically unbounded) to >=3.0.0,\<4.0.0 so a fresh install can't
+  > accidentally land v2 behavior.
+
+Verification:
+
+- uv run poe check: 73/73 tests pass (root client suite) - pytest
+  stocktrim_mcp_server/tests/: 318/318 tests pass (was 1 failing under fastmcp 3.x
+  before #143; that's exactly what this PR fixes) - ruff/ty/yamllint clean
+
+The MCP server test suite is still NOT covered by `uv run poe check` — that's tracked
+separately as #145 and lands as the next PR so future framework bumps can't slip past CI
+the way fastmcp 3.x almost did.
+
+Closes #143, closes #144, closes #146. Refs #154.
+
+Co-authored-by: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+
+- **deps-dev**: Bump poethepoet from 0.40.0 to 0.41.0
+  ([#134](https://github.com/dougborg/stocktrim-openapi-client/pull/134),
+  [`c398697`](https://github.com/dougborg/stocktrim-openapi-client/commit/c3986972d2ebfcd81faed412e25aa169eb9e6f5f))
+
+Bumps [poethepoet](https://github.com/nat-n/poethepoet) from 0.40.0 to 0.41.0. -
+[Release notes](https://github.com/nat-n/poethepoet/releases) -
+[Commits](https://github.com/nat-n/poethepoet/compare/v0.40.0...v0.41.0)
+
+--- updated-dependencies: - dependency-name: poethepoet dependency-version: 0.41.0
+
+dependency-type: direct:development
+
+update-type: version-update:semver-minor
+
+...
+
+Signed-off-by: dependabot[bot] <support@github.com>
+
+Co-authored-by: dependabot[bot] \<49699333+dependabot[bot]@users.noreply.github.com>
+
+- **deps-dev**: Bump poethepoet from 0.41.0 to 0.46.0
+  ([#223](https://github.com/dougborg/stocktrim-openapi-client/pull/223),
+  [`75bbf88`](https://github.com/dougborg/stocktrim-openapi-client/commit/75bbf88780286f23714c2dd57c221c82e4132b58))
+
+Bumps [poethepoet](https://github.com/nat-n/poethepoet) from 0.41.0 to 0.46.0. -
+[Release notes](https://github.com/nat-n/poethepoet/releases) -
+[Commits](https://github.com/nat-n/poethepoet/compare/v0.41.0...v0.46.0)
+
+--- updated-dependencies: - dependency-name: poethepoet dependency-version: 0.46.0
+
+dependency-type: direct:development
+
+update-type: version-update:semver-minor
+
+...
+
+Signed-off-by: dependabot[bot] <support@github.com>
+
+Co-authored-by: dependabot[bot] \<49699333+dependabot[bot]@users.noreply.github.com>
+
+- **deps-dev**: Bump ty from 0.0.15 to 0.0.35
+  ([`19a6a0e`](https://github.com/dougborg/stocktrim-openapi-client/commit/19a6a0edc4d642d7d368cf672ed6a3642810e3eb))
+
+Consolidates dependabot #161 (which targeted 0.0.34). 0.0.35 picks up one further patch
+and matches what `uv lock --upgrade-package ty` resolves today. The previous commit
+landed the type-narrowing fixes this version's stricter `invalid-return-type` and
+`union-attr` diagnostics surfaced.
+
+Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+
+- **deps-dev**: Bump ty from 0.0.35 to 0.0.40
+  ([#222](https://github.com/dougborg/stocktrim-openapi-client/pull/222),
+  [`c1eb6fe`](https://github.com/dougborg/stocktrim-openapi-client/commit/c1eb6fe21ee1fe869411442ee06701ccad9f0692))
+
+Bumps [ty](https://github.com/astral-sh/ty) from 0.0.35 to 0.0.40. -
+[Release notes](https://github.com/astral-sh/ty/releases) -
+[Changelog](https://github.com/astral-sh/ty/blob/main/CHANGELOG.md) -
+[Commits](https://github.com/astral-sh/ty/compare/0.0.35...0.0.40)
+
+--- updated-dependencies: - dependency-name: ty dependency-version: 0.0.40
+
+dependency-type: direct:development
+
+update-type: version-update:semver-patch
+
+...
+
+Signed-off-by: dependabot[bot] <support@github.com>
+
+Co-authored-by: dependabot[bot] \<49699333+dependabot[bot]@users.noreply.github.com>
+
+### Chores
+
+- Bootstrap harness-kit agent harness
+  ([#138](https://github.com/dougborg/stocktrim-openapi-client/pull/138),
+  [`4249f2b`](https://github.com/dougborg/stocktrim-openapi-client/commit/4249f2b97ed1cd543e980f00f97d47a23820ba50))
+
+Install the harness-kit plugin's skills/agents into .claude/ plus project-specific
+extensions for the StockTrim OpenAPI client + MCP server.
+
+Includes: - Upstream harness-kit 0.4.0 skills: commit, feature-spec, open-pr,
+code-reviewer, skill-writer, standup, plus shared/ scripts - Project-specific skills:
+regenerate-client, add-nullable-field, add-helper-method, add-mcp-tool, quality-gate -
+Agents: code-reviewer + verifier (upstream, tailored), test-writer, domain-advisor,
+project-manager (project-specific) - PostToolUse + Stop hooks in .claude/settings.json -
+.harness-lock.json for upstream/local provenance tracking - fix(ci): bump
+aquasecurity/trivy-action to v0.36.0 (0.29.0 tag never existed) - fix(harness): 13
+Copilot review comments addressed (jq fallback, upstream shared script logic bugs, GFM
+rendering `text → `)
+
+Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+
+- **client**: Full regeneration against live StockTrim spec (2026-05-27)
+  ([#219](https://github.com/dougborg/stocktrim-openapi-client/pull/219),
+  [`fecafbd`](https://github.com/dougborg/stocktrim-openapi-client/commit/fecafbdea9014f34757c530adc75b31f7e4822e1))
+
+Pulls 6+ months of upstream spec drift. Cached spec was from 2025-11-08. 65 files
+changed, +614 / -2059 (net -1445 lines, mostly model deletions).
+
+## Endpoint changes
+
+Removed: - `POST /api/InFlow/{tenantId}` (third-party integration webhook) -
+`POST /api/Square` (Square webhook receiver)
+
+Added: - `POST /api/ProcessingStatus` (was previously GET-only)
+
+## Model changes
+
+Removed (8 models): `Address`, `Customer`, `InventoryCountWebHook`, `SquareWebHook`,
+`SquareWebHookCatalog`, `SquareWebHookData`, `SquareWebHookObject`,
+`SquareWebHookOrderUpdatedData`. All were exclusive to the dropped Square/InFlow
+endpoints; no helpers, services, MCP tools, or tests referenced them.
+
+Added (1 model): `ProcessingStatusRequestDto` for the new POST.
+
+Field-level changes: - `ApiEnum`: +3 new values (`AcumaticaErp`, `All`, `Master`). -
+`SkuOptimizedResultsDto`: +new field `finishedGoodStockOnOrder` (double, nullable). -
+`SupplierResponseDto.supplierCode`: upstream dropped `minLength: 1` (the field was
+already nullable in our patched copy).
+
+## NULLABLE_FIELDS prune
+
+Upstream now natively marks the following nullable, so they were removed from
+`scripts/regenerate_client.py` (no behavior change — stale patches were silently
+no-ops): -
+`PurchaseOrderResponseDto.{message, orderDate, fullyReceivedDate, externalId, referenceNumber}`
+\- `PurchaseOrderRequestDto.{orderDate, externalId, referenceNumber}` -
+`PurchaseOrderSupplier.supplierCode` - `PurchaseOrderLineItem.receivedDate`
+
+Still required: - `PurchaseOrderResponseDto.location` /
+`PurchaseOrderRequestDto.location` (still bare `$ref`, needs allOf-wrap to be nullable)
+\- `SupplierResponseDto.supplierCode` (upstream still marks required; API returns null
+for orphaned suppliers) - `OrderPlanFilterCriteria.currentStatus` (enum ref)
+
+## Script fixes (`scripts/regenerate_client.py`)
+
+While regenerating, two latent bugs in the patch script were surfaced by the new spec
+and fixed: 1. When making a string field nullable, strip incompatible value constraints
+(`minLength`, `maxLength`, `pattern`, `minimum`, `maximum`, `exclusive*`,
+`min/maxItems`, `uniqueItems`). OpenAPI 3.0 rejects e.g. `nullable: true` +
+`minLength: 1` because null cannot satisfy the length bound. Triggered by upstream
+adding `minLength: 1` to `SupplierResponseDto.supplierCode`. 2. When the patch removes
+the only entry from a `required` array, delete the now-empty array. OpenAPI 3.0 rejects
+`required: []`. Triggered by the same `SupplierResponseDto` patch.
+
+## Generator-level improvement
+
+The new openapi-python-client (>=0.25.2 with current OpenAPI) emits narrow
+`except (TypeError,   ValueError, AttributeError, KeyError):` in `from_dict`
+discriminator helpers instead of bare `except: # noqa: E722`.
+`grep -r 'noqa: E722' stocktrim_public_api_client/generated/` returns 0 matches. This
+obsoletes the manual sweep in PR #218.
+
+## Adaptation work
+
+None required. No helper, service, MCP tool, test fixture, or `__init__.py` export
+referenced any of the removed models or endpoints.
+
+## Quality gate
+
+- 96 client tests pass (baseline preserved) - 352 MCP tests pass (baseline preserved) -
+  ruff check / ruff format-check / ty check / yamllint all clean - 0 `# noqa` /
+  `# type: ignore` introduced
+
+## Conflicts with open PRs
+
+This regen will produce massive conflicts with all currently-open PRs; they should
+rebase after this lands: - #211 (Unpack flattening) - #213 (rebase CRITICAL docs) - #216
+(PO nullable supplier/line_items) — may now be a no-op given the natively-nullable
+upstream changes; worth re-evaluating - #218 (narrow generated `except`) — fully
+obsoleted by this regen; can be closed without merging
+
+Co-authored-by: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+
+- **harness**: Codify full-regen policy + deferral protocol
+  ([#220](https://github.com/dougborg/stocktrim-openapi-client/pull/220),
+  [`6d8d845`](https://github.com/dougborg/stocktrim-openapi-client/commit/6d8d8452c82b2147a1bd7bccba662c6ccb099f81))
+
+The 2026-05-26 audit surfaced multiple bugs (null supplierCode, null
+purchaseOrderLineItems/supplier, bare-except parser patterns) that routine full client
+regenerations would have caught. Root cause: agent briefs in PRs #202 and #216
+instructed surgical regens (manually running openapi-python-client on a patched cached
+spec and copying 1-2 files) to keep diffs small — a pattern that bypasses spec download
+and lets generated/ drift against the modern generator.
+
+Three harness surfaces now codify the policy:
+
+- CLAUDE.md "Client regeneration policy" section: default is full pipeline; surgical
+  regens listed under Common Pitfalls. - .claude/skills/regenerate-client/SKILL.md
+  CRITICAL section: always full pipeline; deferral protocol mandates tech-debt issue +
+  regen PR as next work + cross-reference from deferring PR. -
+  .claude/skills/add-nullable-field/SKILL.md step 5: removed the "stash + re-run on
+  clean baseline + reapply" guidance that was encoding the suppress-drift anti-pattern;
+  replaced with absorb-drift default + pointer to the deferral protocol.
+
+Deferral is OK when truly necessary but never silent — tracking issue + prioritized
+follow-up + PR cross-reference are mandatory.
+
+Co-authored-by: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+
+- **harness**: Promote rebase-before-PR to CRITICAL in open-pr and review-pr
+  ([#213](https://github.com/dougborg/stocktrim-openapi-client/pull/213),
+  [`5701fb4`](https://github.com/dougborg/stocktrim-openapi-client/commit/5701fb4836f668a0cccc4a79be1f6f7d27dc4c8b))
+
+Mirrors katana commit c5cf718. Adds a CRITICAL bullet at the top of both skill files
+requiring the feature branch be rebased onto the target branch before opening the PR and
+before every --force-with-lease push during review cycles.
+
+Why now: PR #203 hit this exact failure mode this session — a fixup-and-push autosquash
+collided with intervening main commits because the branch was stale at the force-push
+step. The rule existed in STANDARD PATH but agents (this one included) skim past
+STANDARD PATH and act on CRITICAL first, so promoting it is the no-code fix.
+
+Changes: - .claude/skills/open-pr/SKILL.md: new CRITICAL bullet + Phase 1 rebase step
+(mandatory, not optional); cross-reference /rebase in Related Skills. -
+.claude/skills/review-pr/SKILL.md: new project-local overlay copying the upstream
+harness-kit skill and adding the analogous CRITICAL bullet plus mandatory STANDARD PATH
+sync step and re-rebase guidance before every force-push in Mode B. -
+.harness-lock.json: record the new overlay and updated modification note.
+
+Closes #180
+
+Co-authored-by: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+
+### Continuous Integration
+
+- **mcp**: Build .mcpb on MCP releases and attach to GitHub release
+  ([`da83903`](https://github.com/dougborg/stocktrim-openapi-client/commit/da83903ae410ac5a023386b68773529974d7e28b))
+
+Adds a `build-mcpb` job to the unified release workflow that runs after `release-mcp`
+and is gated on `release-mcp.outputs.released == 'true'` — so the bundle is only built
+when python-semantic-release actually cuts a new `mcp-v*` tag.
+
+The job uses `actions/setup-python` (not setup-uv) since `scripts/build_mcpb.py` is
+stdlib-only and only shells out to the `mcpb` CLI; `actions/setup-node` +
+`npm install -g` brings the CLI in. The built `.mcpb` is uploaded as a workflow artifact
+and attached to the GitHub release via `gh release upload --clobber` against the tag
+that `release-mcp` produced (`needs.release-mcp.outputs.tag`).
+
+Refs #160. Pattern ported from statuspro-openapi-client#62.
+
+Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+
+- **mcp**: Include MCP server tests in root quality gate
+  ([#156](https://github.com/dougborg/stocktrim-openapi-client/pull/156),
+  [`dcc0c06`](https://github.com/dougborg/stocktrim-openapi-client/commit/dcc0c06028cd74b39d926102ad55ff93bcbf15ce))
+
+* ci(mcp): include MCP server tests in root quality gate
+
+The MCP server's own test suite (stocktrim_mcp_server/tests/) was structurally isolated
+from `uv run   poe check` and the GitHub CI matrix: both ran only the root client suite.
+That's how the dependabot uv group bump in #139 showed all 8 CI checks green even though
+one MCP test failed under fastmcp 3.x — the MCP suite was simply never run.
+
+Changes:
+
+- pyproject.toml: new `test-mcp` poe task that runs the MCP suite from its own
+  workspace; added to `check` and `ci` so a single command covers both suites. -
+  .github/workflows/ci.yml: added `Run MCP server tests` step right after coverage so CI
+  fails fast if MCP regresses. - CLAUDE.md, .claude/skills/quality-gate/SKILL.md,
+  .claude/skills/add-mcp-tool/SKILL.md, .claude/agents/verifier.md: updated to point at
+  the new unified flow; removed stale "MCP tests are not in CI" warnings.
+
+Verification:
+
+- `uv run poe check` runs 73 client + 318 MCP tests (= 391) and stays green. - The MCP
+  test that motivated this gap (the fastmcp 3.x `_prompt_manager` failure) was fixed in
+  #155, so this lands clean on the now-green MCP suite.
+
+Closes #145. Refs #154.
+
+Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+
+- ci: install workspace packages so test-mcp can find stocktrim_mcp_server
+
+CI was failing on the new `test-mcp` step with
+`ModuleNotFoundError: No module named   'stocktrim_mcp_server.services'` because
+`uv sync --all-extras` only installs the root package's deps; workspace members like
+`stocktrim-mcp-server` aren't auto-installed.
+
+Add `--all-packages` to the dependency-install step in:
+
+- ci.yml `test` job (so `poe test-mcp` works in the matrix) - ci.yml `quality` job
+  (consistency; harmless if not needed) - release.yml `test` job (runs `poe ci` which
+  includes test-mcp)
+
+Other workflows (security.yml, docs.yml) don't import the MCP server, so they keep the
+lighter `--all-extras`-only install.
+
+______________________________________________________________________
+
+Co-authored-by: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+
+- **mcpb**: Pin @anthropic-ai/mcpb to ^2.1.2 in build-mcpb job
+  ([`d301f93`](https://github.com/dougborg/stocktrim-openapi-client/commit/d301f93aad7773dd8313eefcd042f86dba346de4))
+
+Addresses a BLOCKING finding from a 6-dimensional review pass on this PR: the previous
+\`npm install -g @anthropic-ai/mcpb\` resolved to npm
+
+\`latest\`, which is a supply-chain risk because the \`.mcpb\` artifact this CLI
+produces is attached to a public GitHub release and shipped to end users. A compromised
+release of the CLI (or an upstream dep, given \`--ignore-scripts\` is not set) could
+silently tamper with what users install.
+
+\`^2.1.2\` pins major version (current latest is 2.1.2; the manifest schema version
+\`0.4\` we declare is independent of the CLI version), allowing patches and minor bumps
+but blocking a surprise 3.x release from breaking the build path. Anthropic-namespaced
+packages are also manually trusted here, so the trust delta vs an unpinned install is
+narrow but real.
+
+Two related follow-up issues filed during the review:
+
+- #177 — normalize PEP 508 specifiers in verify_dep_mirror so the dep-mirror check
+  survives any future whitespace/case reformatting. - #178 — make the artifact-path
+  output robust to future mcpb CLI stdout pollution.
+
+Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+
+- **release**: Mint GitHub App tokens instead of SEMANTIC_RELEASE_TOKEN PAT
+  ([#235](https://github.com/dougborg/stocktrim-openapi-client/pull/235),
+  [`3c2d116`](https://github.com/dougborg/stocktrim-openapi-client/commit/3c2d116648160459674b8117bf8311b7c6fef75a))
+
+Replace the long-lived SEMANTIC_RELEASE_TOKEN PAT with short-lived installation tokens
+minted from the dougborg-release-please GitHub App in the release-client and release-mcp
+jobs (checkout token, python-semantic-release github_token, and the MCP dependency-bump
+push). Each job mints its own token scoped to contents: write only, the minimum
+python-semantic-release needs to push commits/tags and create GitHub releases.
+
+Also switches the MCP dependency-bump commit's git identity from the generic
+github-actions[bot] to the App's own bot identity (dougborg-release-please[bot]) so
+commits are attributed to the actor actually performing them.
+
+SEMANTIC_RELEASE_TOKEN is left in place as a rollback path until a release has run
+successfully on the new token; it can then be deleted.
+
+Refs #176 (not addressed here — out of scope).
+
+### Documentation
+
+- Add strict quality standards - no ignoring pre-existing issues
+  ([#122](https://github.com/dougborg/stocktrim-openapi-client/pull/122),
+  [`c4e6a3a`](https://github.com/dougborg/stocktrim-openapi-client/commit/c4e6a3aef6470a9c09599b5b542639af4a07ef86))
+
+* docs: add strict quality standards - no ignoring pre-existing issues
+
+* Apply suggestions from code review
+
+Co-authored-by: Copilot <175728472+Copilot@users.noreply.github.com>
+
+______________________________________________________________________
+
+Co-authored-by: Doug Borg <dougborg@apple.com>
+
+- Clean up pre-existing mkdocs build warnings (closes #173)
+  ([`a53183f`](https://github.com/dougborg/stocktrim-openapi-client/commit/a53183f8383661074eb59f8d5440d61d71b87bc9))
+
+\`uv run poe docs-build\` had been emitting 7 warnings and 2 info-level diagnostics for
+some time. None failed the build but they masked any new real warnings. Sweeps them in
+one pass.
+
+- \`helpers/customers.py\`: annotate \`\*\*defaults: Any\` on \`find_or_create\` so
+  griffe stops warning about the un-annotated variadic parameter. -
+  \`docs/mcp-server/overview.md\`: \`../README.md\` repointed to the absolute GitHub URL
+  — the README is not part of the published docs tree so the relative link could never
+  resolve. - \`docs/mcp-server/safety-patterns.md\`: four
+  \`../stocktrim_mcp_server/src/...\` source-file links repointed to absolute GitHub
+  URLs for the same reason. The line ranges in the link text are preserved. -
+  \`docs/mcp-server/examples.md\`: fix a typo in the TOC —
+  \`#workflow-5-custom-order-fulfillment\` → \`#workflow-5-customer-order-fulfillment\`
+  to match the actual heading "Customer Order Fulfillment". -
+  \`docs/mcp-server/prompts.md\`: \`./overview.md#resources\` repointed to the MCP
+  spec's resources page; \`overview.md\` has no \`Resources\` section, and we don't have
+  a dedicated resources doc, so the upstream spec is the most useful target.
+
+mdformat also wrapped a few long lines / tidied a table in the touched files at the
+configured 88-char limit; included here so the pre-commit gate stays green on the
+result.
+
+After: \`poe docs-build\` finishes warning-free.
+
+Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+
+- **mcp**: Clarify wrapper response model docstrings
+  ([`f93fad7`](https://github.com/dougborg/stocktrim-openapi-client/commit/f93fad74758ad80fff629d1e9a22f3352d8bdc59))
+
+The eight one-field wrapper models added in #188 had docstrings claiming "the None case
+still serializes through make_json_result" — imprecise. make_json_result handles None
+fine on its own; the actual reason for the wrapper is that callers need a concrete model
+class to validate against when round-tripping through unwrap_tool_result.
+
+Closes #190
+
+Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+
+- **mcp**: Document .mcpb install path as the recommended Claude Desktop flow
+  ([`726629a`](https://github.com/dougborg/stocktrim-openapi-client/commit/726629a0b6e9fb4535f9307d26724c42fd604756))
+
+Restructures the "Claude Desktop Integration" section to lead with the `.mcpb` one-click
+install (download from the latest mcp-v release, drag into Claude Desktop, confirm in
+the install dialog — Claude Desktop prompts for both the Auth ID and Auth Signature via
+UI, no JSON editing). Keeps the manual `uvx` config-file path as a labeled fallback for
+users who prefer it.
+
+Refs #160.
+
+Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+
+- **mcp**: Fix python -m invocation in README — point at .server module
+  ([`34a42cd`](https://github.com/dougborg/stocktrim-openapi-client/commit/34a42cdd3b9bbd0dcd1bea9cac6bd08492571e26))
+
+Addresses Copilot's suppressed-confidence comment on PR #166 (which the reviewer
+surfaced manually): the "Using Python Environment" example told users to invoke \`python
+-m stocktrim_mcp_server\`, but the package ships no \`__main__.py\` so that command
+fails at runtime with:
+
+/path/python: No module named stocktrim_mcp_server.__main__; 'stocktrim_mcp_server' is a
+package and cannot be directly executed
+
+Users following the example would hit this immediately.
+
+Fix: change the example's args to \`["-m", "stocktrim_mcp_server.server"]\`
+
+— \`server.py\` already exposes \`main()\` and an \`if __name__ == "__main__"\` guard,
+so it's directly runnable today. Smoke-tested: \`uv run python -m
+stocktrim_mcp_server.server\` launches the FastMCP server end-to-end (prompts
+registered, caching enabled, server starting).
+
+Considered adding a \`__main__.py\` shim to make the original short form work — rejected
+because that would expand the public invocation surface beyond what the existing console
+script (\`stocktrim-mcp-server\`) and the \`.mcpb\` bundle already cover. Pointing at
+the module that already exists is the minimum correct change.
+
+Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+
+### Features
+
+- **client**: Allow httpx-retries 0.5.x and adopt total_timeout
+  ([`6c743a3`](https://github.com/dougborg/stocktrim-openapi-client/commit/6c743a38f835ce941b6047158043125bc71a25d3))
+
+Bumps the `httpx-retries` upper bound from `<0.5.0` to `<0.6.0` and threads its new
+`total_timeout` parameter through `IdempotentOnlyRetry` so cumulative retry sleep is
+bounded even when the server keeps returning 5xx with long `Retry-After` headers.
+
+- `pyproject.toml`: `httpx-retries>=0.5.0,<0.6.0`. - `stocktrim_client.py`:
+  `create_resilient_transport` and `StockTrimClient.__init__` gain a
+  `total_retry_timeout: float | None` kwarg (default 60s — comfortably covers full
+  exponential backoff 1+2+4+8+16=31s plus `Retry-After` slack, while bounding
+  pathological cases; pass `None` to disable). The value is forwarded to the
+  `IdempotentOnlyRetry` constructor and surfaced on `__repr__`. - Tests cover the
+  default value, an explicit override, the disable (`None`) case, and the `__repr__`
+  change.
+
+`httpx-retries` 0.5.0 also drops Python 3.9 support (we already require 3.11+) and
+stores `allowed_methods` as uppercase strings instead of `http.HTTPMethod` enum members;
+our `IdempotentOnlyRetry.is_retryable_method` already uppercases the comparand before
+the membership check, so no behavioral change.
+
+Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+
+- **mcp**: Add MCP Bundle (.mcpb) build script + manifest template
+  ([`94f42ec`](https://github.com/dougborg/stocktrim-openapi-client/commit/94f42ecc2e6284816092f2098f392cd19a10197c))
+
+Adds the four-file scaffolding for packaging stocktrim-mcp-server as an `.mcpb` (MCP
+Bundle, formerly DXT) — Claude Desktop's one-click install format for local MCP servers.
+The build script stages a self-contained bundle directory under `build/mcpb/` and runs
+`mcpb pack` to produce a versioned artifact under `dist/`.
+
+Bundle layout uses `manifest_version: "0.4"` with `server.type: "uv"` (the v0.4-only UV
+runtime — no bundled interpreter; UV resolves deps from PyPI on first launch). Manifest
+declares `user_config` for both required StockTrim credentials (`auth_id` +
+`auth_signature`) so Claude Desktop prompts for both via UI; `mcp_config.env` injects
+them as `STOCKTRIM_API_AUTH_ID` and `STOCKTRIM_API_AUTH_SIGNATURE`.
+
+The bundle's `pyproject.toml` mirrors the package's production deps but omits
+`[tool.uv.sources]` (workspace refs don't resolve outside the monorepo). The build
+script verifies dep mirroring and fails loudly on drift — without this, new package deps
+would silently be missing from the bundle at runtime.
+
+Adds `uv run poe build-mcpb` for local builds. Requires the `mcpb` CLI on PATH
+(`npm install -g   @anthropic-ai/mcpb`); `MCPB_SKIP_PACK=1` stages the bundle without
+packing for cases where the CLI isn't installed.
+
+Refs #160. Pattern ported from statuspro-openapi-client#62.
+
+Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+
+- **mcp**: Adopt ResponseCachingMiddleware for read-heavy tools and resources
+  ([#158](https://github.com/dougborg/stocktrim-openapi-client/pull/158),
+  [`befffe1`](https://github.com/dougborg/stocktrim-openapi-client/commit/befffe1203f2fbe1983dd2e454a5491dd6bfcb2b))
+
+Wires fastmcp 3.x's built-in ResponseCachingMiddleware on the production server. The
+intent is the obvious operator win — most MCP sessions hit
+products/customers/suppliers/locations many times in quick succession, so caching
+catalog reads at the tool boundary cuts upstream API load without changing call sites.
+
+Configuration:
+
+- 5-minute TTL on call_tool. Bounds the staleness window for read tools. - 60-second TTL
+  on read_resource. Resources are discovery-oriented, so shorter TTL favors freshness
+  over hit rate. - Mutating tools are excluded by name (`create_*`, `delete_*`,
+  `set_product_inventory`, `configure_*`, `manage_forecast_group`,
+  `update_forecast_settings`, `forecasts_update_and_monitor`,
+  `create_supplier_with_products`, `generate_purchase_orders_from_urgent_items`).
+  Caching mutations would be silent data loss; the exclusion list is the safety guard. -
+  In-memory store via fastmcp's bundled `MemoryStore` (no new dependency —
+  `py-key-value-aio` is already a transitive of fastmcp 3.x).
+
+Documentation: docs/mcp-server/observability.md gains a "Caching"
+
+section covering the staleness window, how to swap the in-memory backend for Redis/disk,
+and how to tighten freshness if needed.
+
+Tests: new stocktrim_mcp_server/tests/test_caching.py verifies our
+
+wiring choices — middleware is registered, every mutation surface is in the exclusion
+list, TTLs stay within bounded ranges. Behavior of the middleware itself is fastmcp's
+responsibility; we don't re-test it.
+
+Verification: 73 client + 307 MCP = 380 tests pass (was 376; +4 caching
+
+tests). uv run poe check green.
+
+Closes #148. Refs #154.
+
+Co-authored-by: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+
+- **mcp**: Drop Jinja2 markdown templates — JSON-only ToolResult
+  ([`31a6d5f`](https://github.com/dougborg/stocktrim-openapi-client/commit/31a6d5f947b28b33b358b0ad04a4c77c0b9a7015))
+
+Per MCP-Apps SEP-1865, content IS the LLM model context and structured_content is for UI
+binding. Hand-written markdown formatters in content drift silently when response models
+grow new fields (see katana #565). Replace make_tool_result + render_template with
+make_json_result, which puts indented JSON in content and the response dict in
+structured_content — no formatter to forget.
+
+- Rewrite tools/tool_result_utils.py: add make_json_result; reserve make_tool_result(\*,
+  ui: PrefabApp) for future Prefab-UI tools. - Migrate review_urgent_order_requirements
+  (the only migrated tool) to make_json_result; drop the
+  workflows/urgent_orders/review.md.j2 template. - Strip Jinja2 from
+  templates/__init__.py (keep legacy str.format load_template/format_template still used
+  by forecast_management.py pending its own migration). - Drop jinja2 from
+  stocktrim_mcp_server/pyproject.toml AND the mcpb/pyproject.template.toml mirror so
+  verify_dep_mirror stays clean. - Rewrite .claude/skills/add-mcp-tool/SKILL.md to drop
+  the template-authoring step; new flow is request + response + \_impl + one-line
+  make_json_result. - Update urgent_orders tests: round-trip + JSON-content equality
+  assertions replace markdown-content assertions. - Add mdformat-frontmatter so SKILL.md
+  YAML frontmatter survives mdformat pre-commit (it was being mangled into a horizontal
+  rule + heading on any touched SKILL.md).
+
+Refs #179. Subsequent PRs will migrate the remaining ~16 tools.
+
+Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+
+- **mcp**: Introduce ToolResult templating + migrate review_urgent_order_requirements
+  ([#159](https://github.com/dougborg/stocktrim-openapi-client/pull/159),
+  [`a4c2ef5`](https://github.com/dougborg/stocktrim-openapi-client/commit/a4c2ef5d80e9500cc505269f2ac2c7ed69dacb17))
+
+* feat(mcp): introduce ToolResult templating; migrate review_urgent_order_requirements
+
+First PR in the per-domain ToolResult migration tracked in #149. Establishes the
+templating + helper infrastructure and migrates one workflow tool end-to-end so we have
+a working reference before fanning out across the rest.
+
+Infrastructure:
+
+- Adds `jinja2>=3.1,<4` as a direct dependency of stocktrim-mcp-server (already present
+  transitively; pinning to make intent explicit). - Extends
+  `stocktrim_mcp_server.templates` with a Jinja2-backed `render_template(name, **ctx)`
+  that loads `.md.j2` files. Existing `format_template` / `load_template`
+  (str.format-based) are preserved so the older forecast templates keep working
+  unchanged. - Adds
+  `stocktrim_mcp_server.tools.tool_result_utils.make_tool_result( response, template_name, **vars)`
+  — single helper that builds a `fastmcp.tools.ToolResult` from a Pydantic response and
+  a Jinja2 template, exposing the response inside the template as `response` and the
+  short alias `r`.
+
+Tool migration (review_urgent_order_requirements):
+
+- Public wrapper now returns `ToolResult` instead of the bare Pydantic model. The inner
+  `_review_urgent_order_requirements_impl` keeps the Pydantic return shape so all
+  business-logic tests continue to assert against the model directly. - New Jinja2
+  template `urgent_orders_review.md.j2` renders supplier- grouped tables with totals,
+  costs, and a sensible empty-state message. - Existing tests retargeted to call `_impl`
+  (cleaner separation — business-logic tests don't need to peer through ToolResult). Two
+  new tests (`test_review_urgent_orders_returns_tool_result_with_both_payloads` and
+  `test_review_urgent_orders_renders_empty_state_in_markdown`) cover the wrapper
+  specifically: assert `ToolResult` shape, both payloads present, markdown contains
+  expected fragments.
+
+Result for end users (LLM clients):
+
+- Old: opaque JSON dump of nested suppliers/items in chat. - New: rendered markdown with
+  a clear summary line, supplier H3 sections, per-supplier item tables, and a "next
+  steps" footer pointing to the PO generation tool. Programmatic consumers keep getting
+  the full Pydantic dump via `structured_content`.
+
+Verification: 73 client + 309 MCP = 382 tests pass (was 380; +2 new
+
+wrapper tests). uv run poe check green.
+
+Refs #149, refs #154.
+
+Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+
+- refactor(mcp): apply PR #159 review feedback + /simplify pass
+
+Addresses the four design tweaks agreed in chat plus the four Copilot review findings on
+the original PR, plus a /simplify pass.
+
+Design tweaks:
+
+- Templates moved to grouped layout (templates/workflows/urgent_orders/review.md.j2).
+  render_template takes template_path under templates/ instead of a flat name. - Drop
+  the `r` alias inside templates — use the descriptive `response` exclusively. - Test
+  refactor: introduce `unwrap_tool_result(result, model_class)` and
+  `tool_result_text(result)` so existing tests retarget through the public wrapper
+  without poking at structured_content. Local `_review` helper avoids the duplicated
+  unwrap two-liner. - Hook tuning: ruff `--fix` moved off Edit (was stripping unused
+  imports between sequential Edits). Now runs only on Write and at Stop. Edit still runs
+  ruff `format` (cosmetic, never strips imports).
+
+Copilot review findings:
+
+- Semgrep XSS audit on jinja2.Environment: switched select_autoescape(default=False) to
+  select_autoescape() so HTML/XML templates would autoescape if anyone adds them.
+  Markdown templates remain unescaped (the right behavior for LLM-rendered output). -
+  Stale review_urgent_order_requirements docstring: replaced the old
+  `Returns: ReviewUrgentOrdersResponse` block + JSON example with a description of the
+  ToolResult shape (content + structured_content). - make_tool_result reserved-key
+  override risk: dropped the `_RESERVED_TEMPLATE_KEYS` runtime check. Python's standard
+  duplicate-keyword behavior already raises TypeError if a caller passes `response=`
+  themselves.
+
+Simplify findings:
+
+- tool_result_text() helper extracted from test-local \_markdown + the SKILL.md inlined
+  example, so the same coercion lives in one place. - Stop hook no longer duplicates
+  `ty check` — the Write hook covers it. Stop only runs ruff `--fix` on changed Python
+  files. - Trimmed narrative docstrings in templates/__init__.py and
+  tool_result_utils.py (dropped the v3-migration narrative, speculative autoescape
+  comment, and Usage:: block that duplicates add-mcp-tool/SKILL.md). - Added a
+  `pluralize` Jinja filter so the template doesn't repeat `{{ '' if x == 1 else 's' }}`
+  three times.
+
+The /add-mcp-tool skill is updated to point at the new patterns (template_path,
+unwrap_tool_result, tool_result_text) so future tools follow the same shape.
+
+Verification: 73 client + 309 MCP = 382 tests pass.
+
+______________________________________________________________________
+
+Co-authored-by: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+
+- **mcp**: Migrate all remaining tools to make_json_result
+  ([`360cb41`](https://github.com/dougborg/stocktrim-openapi-client/commit/360cb414d08e1969689dc3a8f3c9938360c0380b))
+
+Phase 2 of #179. Wraps every public MCP tool in a ToolResult per SEP-1865 so content
+carries indented JSON (LLM model context) and structured_content carries the dict dump
+(programmatic consumers). The hand-written markdown formatters that lived behind
+load_template/format_template are gone — hosts that want a pretty rendering can do it
+from the structured payload.
+
+**Tools migrated (21):** - workflows/urgent_orders.py:
+generate_purchase_orders_from_urgent_items (the reviewer-flagged sibling from #186) -
+workflows/forecast_management.py: manage_forecast_group, update_forecast_settings, plus
+structural rewrites of forecasts_update_and_monitor (str →
+ForecastsUpdateAndMonitorResponse) and forecasts_get_for_products (str →
+ForecastsGetForProductsResponse with ForecastItem subrows + summary stats) -
+workflows/product_management.py: configure_product, plus structural rewrite of
+products_configure_lifecycle (str → ProductLifecycleResponse with previous/new
+ProductLifecycleStatus snapshots and next_steps) - workflows/supplier_onboarding.py:
+structural rewrite of create_supplier_with_products (str → existing
+CreateSupplierWithProductsResponse — the typed model already existed, just wasn't being
+returned) - foundation/customers.py: get_customer (Optional → GetCustomerResponse
+wrapper), list_customers - foundation/inventory.py: set_product_inventory -
+foundation/locations.py: list_locations, create_location (single-info →
+CreateLocationResponse wrapper) - foundation/products.py: get_product (Optional
+wrapper), search_products, create_product (single-info wrapper), delete_product -
+foundation/purchase_orders.py: get_purchase_order (Optional wrapper),
+list_purchase_orders, create_purchase_order, delete_purchase_order -
+foundation/sales_orders.py: create_sales_order (single-info wrapper), get_sales_orders,
+list_sales_orders, delete_sales_orders - foundation/suppliers.py: get_supplier (Optional
+wrapper), list_suppliers, create_supplier (single-info wrapper), delete_supplier
+
+**Pattern:** for tools whose impl returns a Pydantic model directly, the public wrapper
+is now a one-liner: `return make_json_result(response)`. Tools whose generated impl
+returns `T | None` get a thin `GetXResponse(x: T | None)` wrapper so the None case still
+serializes through make_json_result. Tools whose impl returned `T` (not `SomeResponse`)
+get a `CreateXResponse(x: T)` wrapper for the same reason.
+
+**Cleanup:** - Deleted templates/ directory in full (no callers left after the four
+forecast_management + product_management + supplier_onboarding tools were rewritten away
+from format_template/load_template).
+
+**Tests:** every test file got a per-tool _call_\* helper that wraps the tool call and
+unwraps to the typed response, keeping test bodies clean
+(`response = await _call_get(...)` instead of two-step unwrap each time).
+Markdown-content assertions (e.g. checking for emoji or section headers in the returned
+string) were rewritten to assert on the typed payload's fields. 315 MCP tests + 74
+client tests all pass.
+
+Closes #187. Refs #179.
+
+Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+
+- **mcp**: Session preferences via ctx.set_state for filter fallback
+  ([#195](https://github.com/dougborg/stocktrim-openapi-client/pull/195),
+  [`be4657a`](https://github.com/dougborg/stocktrim-openapi-client/commit/be4657aee5a2d646614fd984ce628948b88c5f0a))
+
+Adds `set_preferences` and `get_preferences` MCP tools backed by FastMCP v3's
+session-scoped `ctx.set_state` / `ctx.get_state`. Workflow tools that take filter
+arguments now fall back to stored preferences when an arg is omitted, so an LLM can say
+"use category=Widgets" once and subsequent tool calls inherit it without restating
+filters.
+
+## What's new
+
+- `tools/preferences.py` — `SessionPreferences` Pydantic model with `category`,
+  `location_code`, `supplier_code`, `days_threshold`, `dry_run`. Persisted under a
+  single namespaced key (`stocktrim.preferences`) as a plain dict (JSON-serializable per
+  fastmcp v3 default). - `set_preferences` tool — partial update (omitted fields keep
+  prior value). - `get_preferences` tool — returns the current merged preferences. -
+  `resolve(explicit, prefs, attr, default)` precedence helper: explicit arg → stored
+  preference → tool default.
+
+## Wired tools
+
+- `forecasts_get_for_products` — `category`, `supplier_code`, `location_code` fall back
+  via `resolve(...)`. - `review_urgent_order_requirements` — `days_threshold` falls
+  back; if no `location_codes` list is supplied, the singular `prefs.location_code` is
+  wrapped as `[code]`. - `generate_purchase_orders_from_urgent_items` — same filter
+  fallback, plus a `dry_run` short-circuit: when `prefs.dry_run` is True, the impl logs
+  and returns an empty response without calling the V2 API.
+
+## Tests
+
+- `test_preferences.py` (12 tests) — load/save round-trip, JSON-dict shape, `resolve`
+  precedence including the "0 is real, not absence" edge case, partial-update semantics,
+  dry_run toggle. - `test_urgent_orders.py` (3 new tests) — pref `days_threshold` is
+  inherited when arg omitted, explicit arg wins over pref, dry_run short-circuits the
+  API mutation. - `conftest.py` — `mock_context` now has `AsyncMock`-backed
+  `get_state`/`set_state` so all existing tests keep working unchanged.
+
+Closes #150
+
+Co-authored-by: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+
+### Refactoring
+
+- Standardize UNSET coercion via unwrap_unset/to_unset
+  ([`8145755`](https://github.com/dougborg/stocktrim-openapi-client/commit/8145755ada3f99d639ff4a736478267be48d6dc8))
+
+Adds two helpers to `stocktrim_public_api_client.utils`:
+
+- `unwrap_unset(value, default=None)` — overloads to `T | None` (no default) and `T`
+  (with non-None default). Subsumes the prior `unset_to_none` helper and the inline
+  `x if x not in (None, UNSET) else default` ternary. - `to_unset(value)` —
+  `None → UNSET` for outbound PATCH bodies that must preserve "field not provided"
+  semantics.
+
+Migrates ~115 inline coercion sites across 12 files (MCP server tools, workflows,
+resources + client lib). The MCP server's `unset_to_none` is replaced with a re-export
+of `unwrap_unset` from the new module.
+
+Mirrors the convention already established in the katana-openapi-client sibling project.
+
+Closes #189
+
+Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+
+- **mcp**: Delete bespoke @observe\_\* decorators; document operator hooks
+  ([#157](https://github.com/dougborg/stocktrim-openapi-client/pull/157),
+  [`10cb5c8`](https://github.com/dougborg/stocktrim-openapi-client/commit/10cb5c8041bf8e1966f49e3588ba4697fb649de9))
+
+Removes 731 LOC of structured-logging-disguised-as-tracing in favor of fastmcp 3.x's
+native OpenTelemetry instrumentation and operator-chosen middleware. The MCP server is
+published on PyPI; prescribing an observability stack forces every consumer to live with
+our choices.
+
+What changed:
+
+- Deleted stocktrim_mcp_server/src/stocktrim_mcp_server/observability.py (137 LOC:
+  @observe_tool, @observe_service decorators). - Deleted
+  stocktrim_mcp_server/tests/test_observability.py (222 LOC, 15 tests for the
+  now-removed decorators). - Removed 11 @observe_tool applications across 5 source files
+  (foundation/suppliers + 4 workflows/\*). - Removed the matching imports from those 5
+  files.
+
+What replaces it (operator-chosen, not shipped):
+
+- fastmcp 3.x emits OTel spans natively with MCP semantic conventions — operators set
+  OTEL_EXPORTER_OTLP_ENDPOINT and pick their backend. - fastmcp middleware system covers
+  tool-boundary structured logging for operators who prefer logs to traces. -
+  opentelemetry-instrumentation-httpx covers outbound API-call tracing.
+
+Documentation:
+
+- New docs/mcp-server/observability.md walks operators through the three layers (app
+  logs / tool spans / HTTP spans) and explains the library/operator separation. - Old
+  docs/mcp-server/logging.md deleted (claimed automatic tool instrumentation, no longer
+  accurate). - server.py instructions block updated; examples.md cross-link updated.
+
+What's preserved:
+
+- structlog setup in logging_config.py — still useful for app-level events (lifespan,
+  auth errors, server start/stop). Tunable via LOG_LEVEL and LOG_FORMAT env vars. -
+  ErrorLoggingTransport in stocktrim_public_api_client — different concern (capturing
+  API-vs-spec divergences for our own feedback loop), library-author scope, not operator
+  scope.
+
+Verification: uv run poe check passes (73 client + 303 MCP = 376 tests;
+
+was 318 MCP, lost 15 from test_observability deletion = expected).
+
+Closes #147. Refs #154.
+
+Co-authored-by: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+
+- **mcp**: Factor delete-tool elicitation match into shared helper
+  ([`cb82c6e`](https://github.com/dougborg/stocktrim-openapi-client/commit/cb82c6edbc860e0b53f26d29380258c9f71a8b46))
+
+The four `_delete_*_impl` tools (suppliers, products, purchase_orders, sales_orders)
+repeated the same four-arm Accepted/Declined/Cancelled/fallthrough match block — ~12
+lines × 4 tools = ~48 LOC of near-identical destructive-flow code.
+
+Extracted to `stocktrim_mcp_server.tools.elicitation.run_delete_elicitation`, a generic
+helper parameterised on:
+
+- `message` — preview shown to the user - `entity_label` — interpolated into
+  declined/cancelled/unexpected text - `on_accept` — async callable returning
+  `(success, message)` - `response_factory` — constructor for the concrete
+  `Delete*Response`
+
+The helper is generic over `R: BaseModel` so the concrete response type is preserved at
+the call site (no cast needed). Net **-92 LOC** across 4 tools while consolidating a
+security-sensitive code path into one auditable place.
+
+The `sales_orders` "Unexpected elicitation response" message now follows the same
+template as the other three (was previously "for sales orders deletion", now "for sales
+orders for product {id}") — slightly more informative; no test pinned the prior wording.
+
+Closes #191
+
+Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+
+- **mcpb**: Simplify build script + drop stale FastMCP version reference
+  ([`cb41d18`](https://github.com/dougborg/stocktrim-openapi-client/commit/cb41d181711c7afbaa3e762287c5b8bfbcca9f1e))
+
+Applies findings from a three-axis review (reuse / quality / efficiency) of the MCPB
+packaging additions. Behavior unchanged; the artifact path and pipeline are identical.
+
+- \`scripts/build_mcpb.py\`: - Extract \`\_write_substituted\` helper for the
+  manifest+pyproject template writes — the two blocks were identical apart from src/dest
+  paths, with the same UTF-8/LF encoding kwargs repeated verbatim. The WHY comment about
+  cross-platform encoding now lives on the helper, not duplicated above each call site.
+  \- Replace \`if artifact.exists(): artifact.unlink()\` with
+  \`artifact.unlink(missing_ok=True)\` — pre-check was redundant on Python 3.11+ and
+  racy on principle. - Drop the \`if PKG_README.exists()\` guard before
+  \`shutil.copy2\`. \`stocktrim_mcp_server/README.md\` is committed; the guard provided
+  false reassurance for an impossible scenario. If it ever does go missing,
+  \`shutil.copy2\` raising loudly is the right behavior.
+
+- \`.github/workflows/release.yml\`: drop \`| tail -n 1\` from the artifact-capture
+  step. The script prints exactly one line; the pipe was defensive scaffolding around a
+  single-line stdout.
+
+- \`stocktrim_mcp_server/README.md\`: \`FastMCP 2.11.0\` -> \`FastMCP v3\`. Stale
+  version in prose — \`pyproject.template.toml\` already pins \`fastmcp>=3.0.0,\<4.0.0\`
+  after the v3 migration (#155).
+
+Smoke-tested with \`MCPB_SKIP_PACK=1 python scripts/build_mcpb.py\` — staging directory
+contents identical (manifest.json, pyproject.toml, README.md, src/). \`uv run poe
+check\` green (75 client
+
+- 309 MCP tests).
+
+Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+
+### Testing
+
+- Remove dead stocktrim_client_with_mock_transport fixture
+  ([`32f87e8`](https://github.com/dougborg/stocktrim-openapi-client/commit/32f87e80d0c89b20c1701e94a3b503a5a393eb7d))
+
+Addresses Copilot's review on #168: the fixture was already broken —
+\`AuthenticatedClient.\_client\` is initialized to \`None\` and isn't created until
+\`get_httpx_client()\` runs, so the original \`client.\_client.\_transport =
+mock_transport\` assignment raised \`AttributeError\`. My #168 "fix" replaced a
+mypy-style ignore with an \`assert client.\_client is not None\`, but the assert would
+always fire the moment anything actually used the fixture.
+
+It never did: \`grep -rn stocktrim_client_with_mock_transport\` finds zero callers
+anywhere in \`tests/\` or \`stocktrim_mcp_server/tests/\`. That's why CI stayed green
+through both the original broken version and my equally-broken "fix".
+
+Deleting it rather than rewriting it via \`set_httpx_client\` /
+\`set_async_httpx_client\`, since there's no consumer and we already have working
+transport-mocking patterns (\`httpx.MockTransport\` via \`mock_transport_handler\` /
+\`AsyncMockTransport\`) used by every actual test that needs network isolation.
+
+Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+
 ## mcp v0.16.0 (2026-05-27)
 
 ### Changed
 
-- **mcp**: The 9 workflow tools (`manage_forecast_group`,
-  `update_forecast_settings`, `forecasts_update_and_monitor`,
-  `forecasts_get_for_products`, `review_urgent_order_requirements`,
-  `generate_purchase_orders_from_urgent_items`, `configure_product`,
-  `products_configure_lifecycle`, `create_supplier_with_products`) now emit
-  flat top-level parameters instead of the nested `{"request": {...}}`
-  wrapper. Foundation tools were already flat — workflow tools are now
-  consistent with them. Closes
-  [#116](https://github.com/dougborg/stocktrim-openapi-client/issues/116).
+- **mcp**: The 9 workflow tools (`manage_forecast_group`, `update_forecast_settings`,
+  `forecasts_update_and_monitor`, `forecasts_get_for_products`,
+  `review_urgent_order_requirements`, `generate_purchase_orders_from_urgent_items`,
+  `configure_product`, `products_configure_lifecycle`, `create_supplier_with_products`)
+  now emit flat top-level parameters instead of the nested `{"request": {...}}` wrapper.
+  Foundation tools were already flat — workflow tools are now consistent with them.
+  Closes [#116](https://github.com/dougborg/stocktrim-openapi-client/issues/116).
 
 ### Fixed
 
 - **mcp**: `Field(description=...)` metadata is now preserved when
-  `@unpack_pydantic_params` flattens a Pydantic model. The 22 foundation
-  tools' emitted schemas previously dropped field descriptions because
-  the synthetic `inspect.Parameter` used only the bare annotation;
-  descriptions now reach FastMCP via `Annotated[T, FieldInfo(...)]`.
-  Numeric/string constraints (`ge`, `le`, `min_length`, etc.) are
-  preserved through the same mechanism.
+  `@unpack_pydantic_params` flattens a Pydantic model. The 22 foundation tools' emitted
+  schemas previously dropped field descriptions because the synthetic
+  `inspect.Parameter` used only the bare annotation; descriptions now reach FastMCP via
+  `Annotated[T, FieldInfo(...)]`. Numeric/string constraints (`ge`, `le`, `min_length`,
+  etc.) are preserved through the same mechanism.
 
 ### Removed
 
-- **mcp**: The legacy `{"request": {...}}` wrapper input shape. Calls using
-  the legacy shape now raise `TypeError` naming the flat field names so
-  callers get actionable feedback. Clients must update to flat parameters
-  (this is the documented purpose of the 0.16.0 schema flattening — see
+- **mcp**: The legacy `{"request": {...}}` wrapper input shape. Calls using the legacy
+  shape now raise `TypeError` naming the flat field names so callers get actionable
+  feedback. Clients must update to flat parameters (this is the documented purpose of
+  the 0.16.0 schema flattening — see
   [#116](https://github.com/dougborg/stocktrim-openapi-client/issues/116)).
 
 ### Tracking
 
 - Upstream contribution to `jlowin/fastmcp#1784` is tracked in
-  [#206](https://github.com/dougborg/stocktrim-openapi-client/issues/206).
-  Once FastMCP itself learns to flatten parameters at registration time,
+  [#206](https://github.com/dougborg/stocktrim-openapi-client/issues/206). Once FastMCP
+  itself learns to flatten parameters at registration time,
   `stocktrim_mcp_server/src/stocktrim_mcp_server/unpack.py` can be deleted.
 
 ## v0.12.0 (2025-11-22)
