@@ -140,6 +140,14 @@ jobs:
           # then is behind main, so track the branch tip instead.
           ref: main
 
+      # Belt-and-braces: guarantee we are on the post-release tip before
+      # reading versions or committing. Mirrors the pattern katana-openapi-client
+      # adopted for the same failure mode (dougborg/katana-openapi-client#901).
+      - name: Fast-forward to the post-release tip of main
+        run: |
+          git fetch origin main
+          git reset --hard origin/main
+
       - name: Install UV
         uses: astral-sh/setup-uv@v4
         # Temporarily disable cache due to service issues
