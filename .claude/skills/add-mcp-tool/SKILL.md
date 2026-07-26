@@ -162,8 +162,10 @@ git commit -m "feat(mcp): add <domain>.<tool> tool"
 ```
 
 If the change touches both client helper and MCP tool, use two commits with scopes
-`feat(client)` and `feat(mcp)` so semantic-release can version each package
-independently.
+`feat(client)` and `feat(mcp)` for changelog clarity. release-please versions each
+package independently based on which file paths a commit touches (not the scope), so
+keeping client and MCP changes in separate commits also keeps each package's release
+notes focused on what actually changed in it.
 
 ## EDGE CASES
 

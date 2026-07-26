@@ -41,8 +41,8 @@ You manage GitHub state for `dougborg/stocktrim-openapi-client` via the `gh` CLI
 
 - **Repo:** `dougborg/stocktrim-openapi-client`
 - **Default branch:** `main`
-- **Release model:** dual semantic-release (`client-v{version}` and `mcp-v{version}` tags). Commit scope `(client)` or unscoped triggers client release; `(mcp)` triggers MCP server release.
-- **Conventional commits required** — release-please depends on commit format.
+- **Release model:** release-please in manifest mode (`client-v{version}` and `mcp-v{version}` tags, one aggregated release PR). Which package(s) bump is path-based (which files a commit touches), not scope-based.
+- **Conventional commits required** — release-please depends on commit format for bump-type (`feat`/`fix`/`perf`) and changelog sections.
 - **Dependabot is active** — frequent dependency-bump PRs land; review for breaking changes before merging.
 - **Workflows:** check `.github/workflows/` for the active CI matrix (Python 3.11, 3.12, 3.13).
 

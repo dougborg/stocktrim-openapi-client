@@ -5,11 +5,12 @@
 #   __VERSION__                — the bundle's own version, from the package
 #                                pyproject's ``[project.version]``.
 #   __STOCKTRIM_CLIENT_DEP__   — the full ``stocktrim-openapi-client`` PEP 508
-#                                requirement string from the package pyproject.
-#                                During an MCP release the workflow rewrites
-#                                this to ``stocktrim-openapi-client==<X.Y.Z>``,
-#                                so the bundle must carry the exact same pin
-#                                or ``verify_dep_mirror`` will reject the build.
+#                                requirement string from the package pyproject,
+#                                e.g. ``stocktrim-openapi-client>=0.13.0``.
+#                                release-pr-prepare.yml keeps that floor in
+#                                sync with the client's released version, so
+#                                the bundle always carries the same floor or
+#                                ``verify_dep_mirror`` will reject the build.
 #
 # Production runtime deps are mirrored from ``stocktrim_mcp_server/pyproject.toml``
 # and must stay in sync; the build script verifies this and fails loudly on drift.

@@ -260,86 +260,54 @@ Based on the OpenAPI spec, main endpoints include:
 
 ## Conventional Commits (REQUIRED)
 
-This project uses semantic-release for automated versioning with **separate releases**
-for client and MCP server packages. Commit message scopes determine which packages are
-released.
+This project uses [release-please](https://github.com/googleapis/release-please) in
+manifest mode for automated versioning, changelogs, and releases of two independently
+versioned packages. See [docs/RELEASE.md](../docs/RELEASE.md) for the full flow.
 
 ### Commit Types
 
 - **`feat:`** - New features (triggers minor version bump)
 - **`fix:`** - Bug fixes (triggers patch version bump)
-- **`docs:`** - Documentation changes (patch bump)
-- **`style:`** - Code style changes (patch bump)
-- **`refactor:`** - Code refactoring (patch bump)
 - **`perf:`** - Performance improvements (patch bump)
-- **`test:`** - Test changes (patch bump)
-- **`chore:`** - Build/tooling changes (patch bump)
-- **`ci:`** - CI/CD changes (patch bump)
+- **`docs:`**, **`style:`**, **`refactor:`**, **`test:`**, **`chore:`**, **`ci:`**,
+  **`build:`** - Recorded in the (hidden) changelog sections but do **not** bump a
+  version on their own
 
-### Commit Scopes for Multi-Package Releases
+### Which package(s) bump: path-based, not scope-based
 
-**IMPORTANT**: This monorepo has two packages that release independently based on commit
-scope:
+**IMPORTANT**: release-please decides which package(s) bump by looking at which **file
+paths** a commit touches, not by its commit-message scope. A commit that touches both
+`stocktrim_mcp_server/` and the client root bumps both packages, even without an
+`(mcp)` scope; a `(client)`-scoped commit that happens to touch nothing under the
+client's tracked paths won't bump the client. Commit scopes (`(client)`/`(mcp)`) are
+still worth using for changelog grouping and readability, but they are advisory, not
+load-bearing, for version decisions.
 
-#### No Scope or `(client)` Scope → Releases CLIENT + MCP
+| Change Location                                 | Bumps                                        |
+| ------------------------------------------------ | --------------------------------------------- |
+| `stocktrim_public_api_client/` (and other root paths) | `stocktrim-openapi-client` (`client-v*`)      |
+| `stocktrim_mcp_server/`                         | `stocktrim-mcp-server` (`mcp-v*`)             |
+| Both in the same commit                          | Both packages                                 |
+| `.github/workflows/`, root docs, tests, etc.     | `stocktrim-openapi-client` (they live at `.`) |
 
-Changes to the OpenAPI client trigger both package releases:
-
-```bash
-# These release BOTH packages:
-git commit -m "feat: add retry logic for network failures"
-git commit -m "fix: handle missing authentication headers"
-git commit -m "feat(client): add new Products helper method"
-git commit -m "fix(client): correct transport error handling"
-```
-
-**Why both?** When the client changes, the MCP server automatically picks up the new
-client version and releases to keep them in sync.
-
-#### `(mcp)` Scope → Releases MCP ONLY
-
-Changes only to the MCP server:
-
-```bash
-# These release ONLY the MCP server:
-git commit -m "feat(mcp): add purchase order generation tool"
-git commit -m "fix(mcp): correct forecast data parsing"
-git commit -m "docs(mcp): update tool documentation"
-```
-
-### Automatic Release Behavior
-
-1. **Client changes** (`feat:`, `fix:`, `feat(client):`, etc.)
-
-   - ✅ Releases `stocktrim-openapi-client` with new version
-   - ✅ Automatically releases `stocktrim-mcp-server` with updated client dependency
-   - Creates tags: `client-v*` and `mcp-v*`
-
-1. **MCP-only changes** (`feat(mcp):`, `fix(mcp):`, etc.)
-
-   - ✅ Releases `stocktrim-mcp-server` only
-   - ❌ Does NOT release client
-   - Creates tag: `mcp-v*`
-
-1. **Documentation/CI changes** (`docs:`, `ci:`, etc.)
-
-   - Depends on content - if in client code → client release
-   - If in MCP server code → use `(mcp)` scope
+A client release does **not** automatically trigger a companion MCP release the way it
+did under the old python-semantic-release setup — `release-pr-prepare.yml` keeps the
+MCP server's `stocktrim-openapi-client>=X` dependency floor in sync separately (see
+issue #238 and [docs/RELEASE.md](../docs/RELEASE.md#inter-package-pinning-issue-238)),
+without requiring an MCP release on every client release.
 
 ### Commit Message Examples
 
 ```bash
-# ✅ Client changes (releases both packages)
+# ✅ Bumps the client (path: stocktrim_public_api_client/)
 git commit -m "feat: add forecast API support"
-git commit -m "fix: handle 401 authentication errors correctly"
-git commit -m "refactor(client): simplify transport layer"
+git commit -m "fix(client): handle 401 authentication errors correctly"
 
-# ✅ MCP server changes (releases MCP only)
+# ✅ Bumps the MCP server (path: stocktrim_mcp_server/)
 git commit -m "feat(mcp): add urgent order review workflow"
 git commit -m "fix(mcp): correct product search pagination"
-git commit -m "docs(mcp): update Claude Desktop setup guide"
 
-# ✅ Multiple changes (releases both)
+# ✅ Bumps both (commit touches both trees)
 git commit -m "feat(client): add new Forecasts helper
 
 Add Forecasts helper class with methods for accessing
@@ -351,7 +319,6 @@ Also update MCP server to expose these via tools."
 git commit -m "update code"              # Too vague, no type
 git commit -m "feat add retries"         # Missing colon
 git commit -m "new: add retries"         # Invalid type
-git commit -m "feat(server): add tool"   # Wrong scope (use 'mcp')
 ```
 
 ### Breaking Changes
@@ -359,22 +326,12 @@ git commit -m "feat(server): add tool"   # Wrong scope (use 'mcp')
 For breaking changes, add `!` after the type or include `BREAKING CHANGE:` in body:
 
 ```bash
-# Breaking change in client (major version bump)
+# Breaking change touching the client
 git commit -m "feat(client)!: change StockTrimClient authentication API"
 
-# Breaking change in MCP server (major version bump)
+# Breaking change touching the MCP server
 git commit -m "feat(mcp)!: redesign tool input schemas"
 ```
-
-### When to Use Each Scope
-
-| Change Location                | Scope              | Example                   | Releases       |
-| ------------------------------ | ------------------ | ------------------------- | -------------- |
-| `stocktrim_public_api_client/` | none or `(client)` | `feat: add helper`        | Client + MCP   |
-| `stocktrim_mcp_server/`        | `(mcp)`            | `feat(mcp): add tool`     | MCP only       |
-| `.github/workflows/`           | `(ci)`             | `ci: update actions`      | None (usually) |
-| Root docs                      | none or `(docs)`   | `docs: update README`     | Client + MCP   |
-| MCP docs                       | `(mcp)`            | `docs(mcp): update guide` | MCP only       |
 
 ## Resolving GitHub Review Comments via API
 
@@ -623,4 +580,4 @@ The regeneration script automatically fixes type issues in generated code:
 - **poethepoet**: Task runner for development commands
 - **mkdocs** + **mkdocs-material**: Documentation site generation
 - **openapi-python-client**: Client code generation from OpenAPI spec
-- **python-semantic-release**: Automated versioning and releases
+- **release-please**: Automated versioning, changelogs, and releases (manifest mode)

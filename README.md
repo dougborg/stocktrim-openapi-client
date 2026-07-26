@@ -377,7 +377,8 @@ This project maintains high code quality standards with comprehensive tooling:
 ### CI/CD Pipeline
 
 - **Matrix testing**: Python 3.11, 3.12, 3.13 across all tests
-- **Automated releases**: Semantic versioning with python-semantic-release
+- **Automated releases**: [release-please](https://github.com/googleapis/release-please)
+  in manifest mode (see [docs/RELEASE.md](docs/RELEASE.md))
 - **Documentation**: Auto-deployed to GitHub Pages on releases
 - **Pre-commit hooks**: Full lint and test suite runs before commits
 - **Codecov integration**: Coverage tracking and reporting
