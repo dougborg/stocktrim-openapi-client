@@ -59,10 +59,6 @@ Documentation = "https://dougborg.github.io/stocktrim-openapi-client/"
 "Bug Tracker" = "https://github.com/dougborg/stocktrim-openapi-client/issues"
 Changelog = "https://github.com/dougborg/stocktrim-openapi-client/blob/main/docs/CHANGELOG.md"
 
-[project.scripts]
-stocktrim-version = "semantic_release.cli:main"
-stocktrim-release = "semantic_release.cli:main"
-
 [project.optional-dependencies]
 dev = [
   # Testing
@@ -96,8 +92,6 @@ dev = [
   "types-urllib3>=1.26.0",
   # OpenAPI tools
   "openapi-python-client>=0.25.2",
-  # Semantic release
-  "python-semantic-release>=9.0.0",
 ]
 
 docs = [
@@ -255,54 +249,9 @@ extensions = [
   "toc",    # Table of contents
 ]
 
-[tool.semantic_release]
-version_toml = ["pyproject.toml:project.version"]
-version_variables = ["stocktrim_public_api_client/__init__.py:__version__"]
-dist_path = "dist/"
-upload_to_pypi = false
-upload_to_repository = false
-remove_dist = false
-commit_author = "github-actions[bot] <github-actions[bot]@users.noreply.github.com>"
-commit_message = "chore(release): client v{version}"
-build_command = "pip install mdformat mdformat-gfm mdformat-tables mdformat-toc && mdformat docs/CHANGELOG.md --wrap 88"
-major_on_zero = false
-allow_zero_version = true
-tag_format = "client-v{version}"
-
-[tool.semantic_release.commit_parser_options]
-allowed_tags = [
-  "build",
-  "chore",
-  "ci",
-  "docs",
-  "feat",
-  "fix",
-  "perf",
-  "style",
-  "refactor",
-  "test",
-]
-minor_tags = ["feat"]
-patch_tags = ["fix", "perf"]
-# Only process commits with (client) scope or no scope
-# Commits with (mcp) scope are handled by the MCP server config
-default_bump_level = 0
-
-[tool.semantic_release.changelog]
-exclude_commit_patterns = []
-mode = "update"
-
-[tool.semantic_release.changelog.default_templates]
-changelog_file = "docs/CHANGELOG.md"
-
-[tool.semantic_release.branches.main]
-match = "main"
-prerelease_token = "rc"
-prerelease = false
-
-[tool.semantic_release.publish]
-dist_glob_patterns = ["dist/*"]
-upload_to_vcs_release = true
+# Versioning, changelog generation, and tagging are handled by release-please
+# (see release-please-config.json and .release-please-manifest.json at the repo
+# root) rather than python-semantic-release. See docs/RELEASE.md.
 
 # =============================================================================
 # Task Runner Configuration (poethepoet)
@@ -387,11 +336,8 @@ ci = ["format-check", "lint", "test-coverage", "test-mcp", "docs-build"]
 prepare = ["format", "lint", "test", "validate-openapi", "validate-openapi-redocly"]
 validate-all = ["validate-openapi", "validate-openapi-redocly"]
 
-# -----------------------------------------------------------------------------
-# Release Tasks
-# -----------------------------------------------------------------------------
-version-check = "semantic-release version --dry-run"
-release-dry = "semantic-release publish --dry-run"
+# Release Tasks: none. Versioning/tagging/changelogs are owned by release-please
+# (see release-please-config.json); nothing to dry-run locally.
 
 # Coverage analysis
 [tool.poe.tasks.analyze-coverage]

@@ -1,0 +1,144 @@
+name: Publish
+
+# The only workflow that builds and ships artifacts. Triggered exclusively by
+# the tags release-please creates when its release PR merges (client-v*,
+# mcp-v*). Nothing here ever pushes to main.
+#
+# release-please creates each GitHub Release as a DRAFT (see
+# release-please-config.json "draft": true). Draft releases accept asset
+# uploads; once published they become immutable and reject further uploads
+# (https://docs.github.com/en/code-security/concepts/supply-chain-security/immutable-releases,
+# see also issue #237). So every job here builds its assets, publishes to
+# the registry, THEN uploads assets to the still-draft release, and only
+# then flips it to published - assets and registry publish always land
+# before the release is finalized. Unlike the old release.yml, the release
+# body itself already exists (release-please wrote it) so there's no
+# changelog-extraction step here.
+
+on:
+  push:
+    tags:
+      - 'client-v*'
+      - 'mcp-v*'
+
+permissions: {}
+
+concurrency:
+  group: publish-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publish-client:
+    name: Publish client to PyPI
+    if: startsWith(github.ref_name, 'client-v')
+    runs-on: ubuntu-latest
+    # Pre-existing environment on an already-registered PyPI Trusted
+    # Publisher (stocktrim-openapi-client predates this migration). Kept
+    # unchanged rather than removed or renamed - see PR description for why
+    # this deliberately does NOT mirror frontapp's "no environment" choice.
+    environment:
+      name: pypi-client
+      url: https://pypi.org/p/stocktrim-openapi-client
+    permissions:
+      id-token: write
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+
+      - name: Install UV
+        uses: astral-sh/setup-uv@v4
+
+      - name: Set up Python
+        run: uv python install 3.13
+
+      - name: Build client package
+        run: uv build
+
+      - name: Publish client to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          attestations: true
+
+      - name: Attach build artifacts to draft release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload "${{ github.ref_name }}" dist/* --clobber
+
+      - name: Publish the (now immutable) release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release edit "${{ github.ref_name }}" --draft=false
+
+  publish-mcp:
+    name: Publish MCP server to PyPI
+    if: startsWith(github.ref_name, 'mcp-v')
+    runs-on: ubuntu-latest
+    # Pre-existing environment on an already-registered PyPI Trusted
+    # Publisher (stocktrim-mcp-server predates this migration). See the note
+    # on publish-client above.
+    environment:
+      name: pypi-mcp
+      url: https://pypi.org/p/stocktrim-mcp-server
+    permissions:
+      id-token: write
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+
+      - name: Install UV
+        uses: astral-sh/setup-uv@v4
+
+      - name: Set up Python
+        run: uv python install 3.13
+
+      - name: Build MCP server package
+        # uv build is workspace-aware: even invoked for a single member
+        # package it writes to the workspace root's dist/, not
+        # stocktrim_mcp_server/dist/.
+        run: uv build --package stocktrim-mcp-server
+
+      - name: Publish MCP server to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          attestations: true
+
+      - name: Install Node.js (for mcpb CLI)
+        uses: actions/setup-node@v5
+        with:
+          node-version: "20"
+
+      - name: Install mcpb CLI
+        # Pin major version to avoid breaking changes from a future 3.x and
+        # to narrow the supply-chain surface - the .mcpb artifact this CLI
+        # builds is attached to a public GitHub release, so a compromised
+        # dependency would ship to end users. Bump deliberately when a new
+        # feature is needed; the published manifest_version (0.4) is
+        # independent of the CLI version.
+        run: npm install -g @anthropic-ai/mcpb@^2.1.2
+
+      - name: Build .mcpb bundle
+        id: build
+        # scripts/build_mcpb.py is stdlib-only and shells out to the mcpb
+        # CLI; ubuntu-latest's system python3 (3.11+) has tomllib, so no
+        # separate Python setup is needed for this step.
+        run: |
+          artifact=$(python3 scripts/build_mcpb.py)
+          echo "artifact=${artifact}" >> "$GITHUB_OUTPUT"
+          ls -la "${artifact}"
+
+      - name: Attach build artifacts to draft release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload "${{ github.ref_name }}" \
+            dist/*.whl dist/*.tar.gz "${{ steps.build.outputs.artifact }}" \
+            --clobber
+
+      - name: Publish the (now immutable) release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release edit "${{ github.ref_name }}" --draft=false

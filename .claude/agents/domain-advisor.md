@@ -70,9 +70,11 @@ Tests should mock at the `AsyncHTTPTransport` layer so the rest of the stack run
 
 ### Workspace + dual release
 
-- Two semantic-release configs: `client-v{version}` and `mcp-v{version}` tags.
-- Commit scope `(client)` or no scope → triggers client release.
-- Commit scope `(mcp)` → triggers MCP server release.
+- release-please (manifest mode) manages two independent packages: `client-v{version}`
+  and `mcp-v{version}` tags.
+- Which package(s) bump is decided by which file paths a commit touches, not its
+  commit-message scope — a commit touching `stocktrim_mcp_server/` bumps MCP; a commit
+  touching the client root bumps client; touching both bumps both.
 - Root `uv run poe test` covers `tests/` only. MCP server tests live in `stocktrim_mcp_server/tests/` and run separately.
 
 ### Helper layer convention

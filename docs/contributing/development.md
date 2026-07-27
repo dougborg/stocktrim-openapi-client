@@ -270,13 +270,14 @@ uv run ty check stocktrim_public_api_client/stocktrim_client.py
 
 ## Release Process
 
-Releases are automated via GitHub Actions:
+Releases are automated via [release-please](https://github.com/googleapis/release-please)
+in manifest mode. See [../RELEASE.md](../RELEASE.md) for the full flow; in short:
 
-1. Merge PR to `main`
-2. GitHub Action runs tests
-3. Semantic release calculates version
-4. Creates git tag and GitHub release
-5. Publishes to PyPI
+1. Merging a normal PR to `main` opens or updates release-please's aggregated release PR
+   — it does not publish anything by itself
+2. Merging *that* release PR creates `client-v*`/`mcp-v*` tags and draft GitHub Releases
+3. The tag push triggers `publish.yml`, which builds, publishes to PyPI, attaches
+   artifacts to the release, and publishes it
 
 ## Next Steps
 
