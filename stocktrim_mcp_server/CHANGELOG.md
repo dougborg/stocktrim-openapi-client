@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## [0.17.0](https://github.com/dougborg/stocktrim-openapi-client/compare/mcp-v0.16.0...mcp-v0.17.0) (2026-07-27)
+
+
+### Features
+
+* **release:** migrate to release-please manifest-mode release automation ([#240](https://github.com/dougborg/stocktrim-openapi-client/issues/240)) ([d9c2306](https://github.com/dougborg/stocktrim-openapi-client/commit/d9c230650d18a4ef7d74c7e42e2034df41386f27))
+
 ## v0.16.0 (2026-07-25)
 
 ### Bug Fixes
