@@ -2,6 +2,19 @@
 
 <!-- version list -->
 
+## [0.14.0](https://github.com/dougborg/stocktrim-openapi-client/compare/client-v0.13.0...client-v0.14.0) (2026-07-27)
+
+
+### Features
+
+* **release:** migrate to release-please manifest-mode release automation ([#240](https://github.com/dougborg/stocktrim-openapi-client/issues/240)) ([d9c2306](https://github.com/dougborg/stocktrim-openapi-client/commit/d9c230650d18a4ef7d74c7e42e2034df41386f27))
+
+
+### Bug Fixes
+
+* **release:** create mcp-v* GitHub release with .mcpb attached, not after ([#237](https://github.com/dougborg/stocktrim-openapi-client/issues/237)) ([03b93fa](https://github.com/dougborg/stocktrim-openapi-client/commit/03b93fad77f61448d5c8b88f346c662914ed6b20))
+* **release:** stop release-mcp pushing from a stale main ([#236](https://github.com/dougborg/stocktrim-openapi-client/issues/236)) ([f770951](https://github.com/dougborg/stocktrim-openapi-client/commit/f7709511d097d7ff86a81d3cba54c0bf99918f8f))
+
 ## v0.13.0 (2026-07-25)
 
 ### Bug Fixes
