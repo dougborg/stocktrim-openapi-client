@@ -1,8 +1,8 @@
 # Available MCP Tools
 
-The StockTrim MCP Server provides **30 tools** for interacting with the StockTrim API,
-organized into **Foundation Tools** (21 direct API operations) and **Workflow Tools**
-(9 high-level business operations).
+The StockTrim MCP Server provides **32 tools** for interacting with the StockTrim API,
+organized into **Foundation Tools** (21 direct API operations), **Workflow Tools** (9
+high-level business operations), and **Session Preference Tools** (2).
 
 ## Safety and User Confirmation
 
@@ -210,33 +210,31 @@ ______________________________________________________________________
 
 ## Product Tools
 
-### `stocktrim_get_product`
+### `get_product`
 
-Get a single product by code.
+Get a single product by code. Returns code, description, unit of measurement, active
+status, cost price, and selling price. (Stock levels are **not** included — read them
+via the `stocktrim://inventory/{location_code}/{product_code}` resource.)
 
 **Parameters:**
 
 - `code` (string): Product code
 
-### `stocktrim_search_products`
+### `search_products`
 
-Search for products by code prefix.
-
-**Parameters:**
-
-- `code_prefix` (string): Search prefix
-
-### `stocktrim_list_products`
-
-List all products.
-
-### `stocktrim_create_products`
-
-Create one or more products.
+Search for products by name, code, or category keywords.
 
 **Parameters:**
 
-- `products` (array): List of product objects
+- `search_query` (string): Search query
+
+### `create_product`
+
+Create a single product.
+
+**Parameters:**
+
+- product fields (code, name, category, cost, price, etc.)
 
 ### `delete_product` 🔴
 
@@ -256,11 +254,11 @@ confirmation is required before execution. See
 
 ## Customer Tools
 
-### `stocktrim_list_customers`
+### `list_customers`
 
 List all customers.
 
-### `stocktrim_get_customer`
+### `get_customer`
 
 Get a specific customer by code.
 
@@ -268,21 +266,13 @@ Get a specific customer by code.
 
 - `code` (string): Customer code
 
-### `stocktrim_create_customers`
-
-Create one or more customers.
-
-**Parameters:**
-
-- `customers` (array): List of customer objects
-
 ## Supplier Tools
 
-### `stocktrim_list_suppliers`
+### `list_suppliers`
 
 List all suppliers.
 
-### `stocktrim_get_supplier`
+### `get_supplier`
 
 Get a specific supplier by code.
 
@@ -290,13 +280,13 @@ Get a specific supplier by code.
 
 - `code` (string): Supplier code
 
-### `stocktrim_create_suppliers`
+### `create_supplier`
 
-Create one or more suppliers.
+Create a single supplier.
 
 **Parameters:**
 
-- `suppliers` (array): List of supplier objects
+- supplier fields (code, name, email, etc.)
 
 ### `delete_supplier` 🔴
 
@@ -317,17 +307,18 @@ required before execution. See
 
 ## Inventory Tools
 
-### `stocktrim_get_inventory`
+### `set_product_inventory`
 
-Get current inventory levels.
-
-### `stocktrim_set_inventory`
-
-Set inventory levels for products.
+Set inventory levels for a product at a location. (There is no inventory-read tool; read
+stock via the `stocktrim://inventory/{location_code}/{product_code}` resource.)
 
 **Parameters:**
 
-- `inventory_items` (array): List of inventory updates
+- `product_id` (string, required): Product to set inventory for
+- `stock_on_hand` (number, optional): Current stock on hand
+- `stock_on_order` (number, optional): Stock on order
+- `location_code` (string, optional): Location code
+- `location_name` (string, optional): Location name
 
 ## Order Tools
 
@@ -493,11 +484,11 @@ purchase order, you must delete and recreate it.
 
 ## Location Tools
 
-### `stocktrim_list_locations`
+### `list_locations`
 
 List all locations/warehouses.
 
-### `stocktrim_create_location`
+### `create_location`
 
 Create a new location.
 
@@ -505,43 +496,19 @@ Create a new location.
 
 - `location` (object): Location data
 
-## Planning Tools
+## Not Yet Available as MCP Tools
 
-### `stocktrim_run_order_plan`
+These capabilities exist in the StockTrim Python client library but are **not** exposed
+as MCP tools yet. Use the client library directly until they are added:
 
-Run inventory planning and get recommended orders.
-
-**Parameters:**
-
-- `filter_criteria` (object, optional): Filtering options
-
-### `stocktrim_run_forecast`
-
-Trigger demand forecasting calculations.
-
-## Configuration Tools
-
-### `stocktrim_get_configuration`
-
-Get system configuration values.
-
-**Parameters:**
-
-- `configuration_name` (string): Config key to retrieve
-
-## Bill of Materials Tools
-
-### `stocktrim_list_boms`
-
-List all bills of materials.
-
-### `stocktrim_create_bom`
-
-Create a new bill of materials.
-
-**Parameters:**
-
-- `bom` (object): BOM data
+- **Order-plan queries** — `client.order_plan.query(...)`. Forecast/reorder data is
+  currently reached indirectly through `forecasts_get_for_products` and
+  `review_urgent_order_requirements`; there is no standalone `run_order_plan` tool.
+- **Forecast triggering** — surfaced via the `forecasts_update_and_monitor` workflow
+  tool, not a standalone `run_forecast` tool.
+- **Bill of materials** — `client.bill_of_materials` (note: StockTrim's `/api/boms`
+  endpoint is currently unreliable and may return 404 even when BOMs exist).
+- **Inventory read** and **system configuration** — no MCP tool yet.
 
 ## Next Steps
 
