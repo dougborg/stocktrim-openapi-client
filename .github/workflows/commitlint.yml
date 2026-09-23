@@ -1,0 +1,31 @@
+name: Commitlint
+
+on: pull_request
+
+permissions: {}
+
+jobs:
+  # Rebase merges land every commit on main as written, and release-please reads
+  # each one, so every commit in the pull request must be Conventional too.
+  lint-commits:
+    name: Conventional commits
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+        with:
+          node-version: "22"
+      - name: Lint every commit in the pull request
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: >-
+          npx --yes --package=@commitlint/cli@21.2.3
+          --package=@commitlint/config-conventional@21.2.3
+          -- commitlint --from "$BASE_SHA" --to "$HEAD_SHA" --verbose
