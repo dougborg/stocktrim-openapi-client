@@ -81,19 +81,24 @@ jobs:
       - name: Resync uv.lock
         run: uv lock
 
+      - name: Format generated changelog
+        # release-please's changelog does not match mdformat, which CI's
+        # format-markdown-check enforces on docs/*.md.
+        run: uv run --frozen --all-extras mdformat docs/CHANGELOG.md --wrap 88
+
       - name: Commit if changed
         env:
           HEAD_REF: ${{ github.event.pull_request.head.ref }}
         run: |
           set -euo pipefail
           if git diff --quiet -- uv.lock stocktrim_mcp_server/pyproject.toml \
-            stocktrim_mcp_server/src/stocktrim_mcp_server/__init__.py; then
+            stocktrim_mcp_server/src/stocktrim_mcp_server/__init__.py docs/CHANGELOG.md; then
             echo "Nothing to commit"
             exit 0
           fi
           git config user.name "dougborg-release-please[bot]"
           git config user.email "309159260+dougborg-release-please[bot]@users.noreply.github.com"
           git add uv.lock stocktrim_mcp_server/pyproject.toml \
-            stocktrim_mcp_server/src/stocktrim_mcp_server/__init__.py
-          git commit -m "chore(release): sync uv.lock and MCP client pin"
+            stocktrim_mcp_server/src/stocktrim_mcp_server/__init__.py docs/CHANGELOG.md
+          git commit -m "chore(release): sync uv.lock, MCP client pin, and changelog formatting"
           git push origin "HEAD:$HEAD_REF"
