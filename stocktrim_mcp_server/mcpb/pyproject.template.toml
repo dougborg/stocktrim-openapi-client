@@ -25,7 +25,7 @@ description = "MCP server for the StockTrim Inventory Management API"
 requires-python = ">=3.11,<3.14"
 dependencies = [
   "__STOCKTRIM_CLIENT_DEP__",
-  "fastmcp>=3.0.0,<4.0.0",
+  "fastmcp>=3.0.0,<5.0.0",
   "python-dotenv>=1.0.0",
   "structlog>=24.1.0",
 ]
