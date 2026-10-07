@@ -1,8 +1,13 @@
 name: Publish
 
-# The only workflow that builds and ships artifacts. Triggered exclusively by
-# the tags release-please creates when its release PR merges (client-v*,
-# mcp-v*). Nothing here ever pushes to main.
+# The only workflow that builds and ships artifacts. release-please.yml
+# dispatches it once per release it creates; it can also be run by hand for a
+# release left in draft. Nothing here ever pushes to main.
+#
+# Not tag-triggered: the releases are drafts, and GitHub creates a draft's tag
+# only when it is published, so `on: push: tags` never fires. Dispatched rather
+# than called as a reusable workflow so that the PyPI Trusted Publishers, which
+# name this file, match the OIDC token.
 #
 # release-please creates each GitHub Release as a DRAFT (see
 # release-please-config.json "draft": true). Draft releases accept asset
@@ -16,21 +21,27 @@ name: Publish
 # changelog-extraction step here.
 
 on:
-  push:
-    tags:
-      - 'client-v*'
-      - 'mcp-v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Draft release to publish, e.g. client-v0.14.0"
+        required: true
+        type: string
+      sha:
+        description: "Commit the release was cut from (defaults to the dispatched ref)"
+        required: false
+        type: string
 
 permissions: {}
 
 concurrency:
-  group: publish-${{ github.ref }}
+  group: publish-${{ inputs.tag }}
   cancel-in-progress: false
 
 jobs:
   publish-client:
     name: Publish client to PyPI
-    if: startsWith(github.ref_name, 'client-v')
+    if: startsWith(inputs.tag, 'client-v')
     runs-on: ubuntu-latest
     # Pre-existing environment on an already-registered PyPI Trusted
     # Publisher (stocktrim-openapi-client predates this migration). Kept
@@ -45,7 +56,8 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.ref_name }}
+          # The draft release has no tag yet; build the commit it was cut from.
+          ref: ${{ inputs.sha || github.sha }}
 
       - name: Install UV
         uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
@@ -64,16 +76,16 @@ jobs:
       - name: Attach build artifacts to draft release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release upload "${{ github.ref_name }}" dist/* --clobber
+        run: gh release upload "${{ inputs.tag }}" dist/* --clobber
 
       - name: Publish the (now immutable) release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release edit "${{ github.ref_name }}" --draft=false
+        run: gh release edit "${{ inputs.tag }}" --draft=false
 
   publish-mcp:
     name: Publish MCP server to PyPI
-    if: startsWith(github.ref_name, 'mcp-v')
+    if: startsWith(inputs.tag, 'mcp-v')
     runs-on: ubuntu-latest
     # Pre-existing environment on an already-registered PyPI Trusted
     # Publisher (stocktrim-mcp-server predates this migration). See the note
@@ -87,7 +99,8 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.ref_name }}
+          # The draft release has no tag yet; build the commit it was cut from.
+          ref: ${{ inputs.sha || github.sha }}
 
       - name: Install UV
         uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
@@ -134,11 +147,11 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release upload "${{ github.ref_name }}" \
+          gh release upload "${{ inputs.tag }}" \
             dist/*.whl dist/*.tar.gz "${{ steps.build.outputs.artifact }}" \
             --clobber
 
       - name: Publish the (now immutable) release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release edit "${{ github.ref_name }}" --draft=false
+        run: gh release edit "${{ inputs.tag }}" --draft=false

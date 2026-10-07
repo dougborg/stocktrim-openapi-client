@@ -18,8 +18,9 @@ directly in the repo: `.github/workflows/`, `release-please-config.json`,
   `release-please-config.json` and `.release-please-manifest.json` and either
   opens/updates **one aggregated release PR** covering both packages
   (`separate-pull-requests: false`), or — if that PR was just merged — creates a
-  `client-v*`/`mcp-v*` tag and a **draft** GitHub Release per changed package at the
-  merge commit. It never pushes to `main` itself.
+  **draft** GitHub Release per changed package at the merge commit and dispatches
+  `publish.yml` for each. A draft has no git tag until it is published, so nothing can
+  be tag-triggered. It never pushes to `main` itself.
 - **`release-pr-prepare.yml`** — runs only on release-please's own PR branch
   (`release-please--branches--main`, matched by prefix). Resyncs `uv.lock` and keeps
   `stocktrim_mcp_server/pyproject.toml`'s `stocktrim-openapi-client>=X` floor (and the
@@ -27,8 +28,9 @@ directly in the repo: `.github/workflows/`, `release-please-config.json`,
   client version the PR proposes — see
   [Inter-package pinning](#inter-package-pinning-issue-238) below. Commits land on the
   release PR branch, never on `main`.
-- **`publish.yml`** — the only workflow that builds and ships. Triggered exclusively by
-  `client-v*`/`mcp-v*` tag pushes (i.e. only after a release PR merges). Builds the
+- **`publish.yml`** — the only workflow that builds and ships. Runs by
+  `workflow_dispatch` with the release's tag and commit: release-please dispatches it,
+  and a release left in draft can be published by running it by hand. Builds the
   package, publishes it to PyPI via OIDC Trusted Publishing, attaches the build
   artifacts (and, for the MCP server, the `.mcpb` bundle) to the still-draft release,
   then flips the release out of draft.
@@ -38,11 +40,11 @@ graph TD
     A[Push to main] --> B[release-please.yml]
     B -->|Release-worthy commits| C[Open/update aggregated release PR]
     C --> D[release-pr-prepare.yml: sync uv.lock + MCP pin]
-    D -->|PR merged| E[release-please.yml: create tags + draft Releases]
-    E --> F[client-v* tag]
-    E --> G[mcp-v* tag]
-    F --> H[publish.yml: publish-client]
-    G --> I[publish.yml: publish-mcp]
+    D -->|PR merged| E[release-please.yml: create draft Releases]
+    E -->|dispatch tag=client-v*| H[publish.yml: publish-client]
+    E -->|dispatch tag=mcp-v*| I[publish.yml: publish-mcp]
+    H --> J[Release published, tag created]
+    I --> J
 ```
 
 ## Draft -> upload -> publish asset flow
@@ -131,10 +133,9 @@ branches. If it didn't run or failed, re-push to the PR branch to retrigger it
 (`synchronize` event) or push a fix commit directly.
 
 **Publish fails at the PyPI step:** verify the Trusted Publisher config on PyPI still
-lists `publish.yml` and the correct job name (`publish-client`/`publish-mcp`) for the
-tag that was pushed.
+lists `publish.yml` and the correct environment (`pypi-client`/`pypi-mcp`).
 
 **Release stuck in draft:** `publish.yml`'s asset-upload or PyPI-publish step failed
-before reaching `gh release edit --draft=false`. Check the run logs for that tag; a
-draft release can be safely re-run once the underlying failure is fixed, since draft
-releases are still mutable.
+before reaching `gh release edit --draft=false`, or was never dispatched. Fix the
+failure, then run it by hand (draft releases are still mutable):
+`gh workflow run publish.yml -f tag=<tag> -f sha=<release commit>`.
