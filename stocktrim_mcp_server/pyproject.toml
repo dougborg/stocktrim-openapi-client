@@ -34,7 +34,7 @@ dependencies = [
   # considered). release-pr-prepare.yml rewrites this floor to match the
   # client version on every release PR, so it can go stale by at most one
   # release cycle and can never point at an unpublished version.
-  "stocktrim-openapi-client>=0.13.0",
+  "stocktrim-openapi-client>=0.14.0",
   "fastmcp>=3.0.0,<4.0.0",
   "python-dotenv>=1.0.0",
   "structlog>=24.1.0",
