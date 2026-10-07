@@ -34,14 +34,36 @@ on:
 
 permissions: {}
 
+# Inputs reach shell steps only through the environment, never interpolated
+# into a script; check-inputs rejects anything that is not a release tag.
+env:
+  RELEASE_TAG: ${{ inputs.tag }}
+
 concurrency:
   group: publish-${{ inputs.tag }}
   cancel-in-progress: false
 
 jobs:
+  check-inputs:
+    name: Check inputs
+    runs-on: ubuntu-latest
+    permissions: {}
+    steps:
+      - name: Require a release tag and, if given, a full commit SHA
+        env:
+          RELEASE_SHA: ${{ inputs.sha }}
+        run: |
+          if ! [[ "$RELEASE_TAG" =~ ^(client|mcp)-v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::not a release tag: $RELEASE_TAG"; exit 1
+          fi
+          if [[ -n "$RELEASE_SHA" && ! "$RELEASE_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::not a full commit SHA: $RELEASE_SHA"; exit 1
+          fi
+
   publish-client:
     name: Publish client to PyPI
     if: startsWith(inputs.tag, 'client-v')
+    needs: check-inputs
     runs-on: ubuntu-latest
     # Pre-existing environment on an already-registered PyPI Trusted
     # Publisher (stocktrim-openapi-client predates this migration). Kept
@@ -76,16 +98,17 @@ jobs:
       - name: Attach build artifacts to draft release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release upload "${{ inputs.tag }}" dist/* --clobber
+        run: gh release upload "$RELEASE_TAG" dist/* --clobber
 
       - name: Publish the (now immutable) release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release edit "${{ inputs.tag }}" --draft=false
+        run: gh release edit "$RELEASE_TAG" --draft=false
 
   publish-mcp:
     name: Publish MCP server to PyPI
     if: startsWith(inputs.tag, 'mcp-v')
+    needs: check-inputs
     runs-on: ubuntu-latest
     # Pre-existing environment on an already-registered PyPI Trusted
     # Publisher (stocktrim-mcp-server predates this migration). See the note
@@ -146,12 +169,13 @@ jobs:
       - name: Attach build artifacts to draft release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ARTIFACT: ${{ steps.build.outputs.artifact }}
         run: |
-          gh release upload "${{ inputs.tag }}" \
-            dist/*.whl dist/*.tar.gz "${{ steps.build.outputs.artifact }}" \
+          gh release upload "$RELEASE_TAG" \
+            dist/*.whl dist/*.tar.gz "$ARTIFACT" \
             --clobber
 
       - name: Publish the (now immutable) release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release edit "${{ inputs.tag }}" --draft=false
+        run: gh release edit "$RELEASE_TAG" --draft=false
