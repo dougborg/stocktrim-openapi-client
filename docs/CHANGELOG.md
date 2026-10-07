@@ -4,11 +4,12 @@
 
 ## [0.14.1](https://github.com/dougborg/stocktrim-openapi-client/compare/client-v0.14.0...client-v0.14.1) (2026-10-07)
 
-
 ### Bug Fixes
 
-* **release:** dispatch publish for each draft release ([10fb279](https://github.com/dougborg/stocktrim-openapi-client/commit/10fb279054fd481044964a3367915af93feae65a))
-* **release:** pass dispatch inputs to shell steps through the environment ([297050a](https://github.com/dougborg/stocktrim-openapi-client/commit/297050a088d258f93fa4a03f3af5201702ceb306))
+- **release:** dispatch publish for each draft release
+  ([10fb279](https://github.com/dougborg/stocktrim-openapi-client/commit/10fb279054fd481044964a3367915af93feae65a))
+- **release:** pass dispatch inputs to shell steps through the environment
+  ([297050a](https://github.com/dougborg/stocktrim-openapi-client/commit/297050a088d258f93fa4a03f3af5201702ceb306))
 
 ## [0.14.0](https://github.com/dougborg/stocktrim-openapi-client/compare/client-v0.13.0...client-v0.14.0) (2026-10-07)
 
