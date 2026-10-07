@@ -9,6 +9,9 @@ the flat shape and the preservation of ``Field(description=...)`` metadata.
 
 from __future__ import annotations
 
+import re
+from pathlib import Path
+
 import pytest
 from fastmcp.tools import Tool
 
@@ -76,8 +79,9 @@ async def test_no_tool_requires_only_request(
 
 # Keep in sync with server.py "## Tool Categories" and docs/mcp-server/tools.md.
 # Update this set ONLY when a tool is intentionally added or removed — and update
-# the docs in the same change. This guards against documented-but-not-implemented
-# drift (phantom tools like list_boms / run_forecast) and undocumented additions.
+# the docs in the same change. The test below pins the registered set to it; the
+# one after checks docs/mcp-server/tools.md names no tool outside it, so phantom
+# tools like list_boms / run_forecast cannot reappear in the docs.
 EXPECTED_TOOL_NAMES = {
     # Foundation
     "get_product",
@@ -120,12 +124,12 @@ EXPECTED_TOOL_NAMES = {
 async def test_registered_tools_match_documented_contract(
     registered_tools: dict[str, Tool],
 ) -> None:
-    """The registered tool set must exactly match the documented contract.
+    """The registered tool set must exactly match EXPECTED_TOOL_NAMES.
 
-    Guards both directions: a documented-but-missing tool (phantom) and an
-    implemented-but-undocumented tool both fail here. When intentionally adding
-    or removing a tool, update EXPECTED_TOOL_NAMES together with server.py's
-    "## Tool Categories" section and docs/mcp-server/tools.md.
+    Fails on a tool that was removed or renamed and on one added without updating
+    the contract. When intentionally adding or removing a tool, update
+    EXPECTED_TOOL_NAMES together with server.py's "## Tool Categories" section
+    and docs/mcp-server/tools.md.
     """
     actual = set(registered_tools)
     missing = EXPECTED_TOOL_NAMES - actual
@@ -137,6 +141,21 @@ async def test_registered_tools_match_documented_contract(
         f"{sorted(unexpected)}"
     )
 
+
+
+TOOLS_DOC = Path(__file__).parents[2] / "docs" / "mcp-server" / "tools.md"
+
+
+def test_tools_doc_names_only_registered_tools() -> None:
+    """Every tool heading in docs/mcp-server/tools.md must be a registered tool.
+
+    Catches documented-but-not-implemented tools, the drift this contract was
+    added for.
+    """
+    headings = re.findall(r"^#{3,4} `(\w+)`", TOOLS_DOC.read_text(), flags=re.MULTILINE)
+    assert headings, f"no tool headings found in {TOOLS_DOC}"
+    phantom = set(headings) - EXPECTED_TOOL_NAMES
+    assert not phantom, f"{TOOLS_DOC.name} documents unregistered tools: {sorted(phantom)}"
 
 async def test_foundation_tool_get_product_schema(
     registered_tools: dict[str, Tool],
