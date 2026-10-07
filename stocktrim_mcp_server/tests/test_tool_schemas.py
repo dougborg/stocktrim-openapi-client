@@ -142,7 +142,6 @@ async def test_registered_tools_match_documented_contract(
     )
 
 
-
 TOOLS_DOC = Path(__file__).parents[2] / "docs" / "mcp-server" / "tools.md"
 
 
@@ -155,7 +154,10 @@ def test_tools_doc_names_only_registered_tools() -> None:
     headings = re.findall(r"^#{3,4} `(\w+)`", TOOLS_DOC.read_text(), flags=re.MULTILINE)
     assert headings, f"no tool headings found in {TOOLS_DOC}"
     phantom = set(headings) - EXPECTED_TOOL_NAMES
-    assert not phantom, f"{TOOLS_DOC.name} documents unregistered tools: {sorted(phantom)}"
+    assert not phantom, (
+        f"{TOOLS_DOC.name} documents unregistered tools: {sorted(phantom)}"
+    )
+
 
 async def test_foundation_tool_get_product_schema(
     registered_tools: dict[str, Tool],
