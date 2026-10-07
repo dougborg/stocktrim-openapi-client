@@ -5,20 +5,30 @@ on:
     branches: [main]
   release:
     types: [published]
+  # Pull requests build and check the tracked site but never deploy it.
+  pull_request:
+    paths:
+      - "docs/**"
+      - "mkdocs.yml"
+      - "stocktrim_public_api_client/**"
+      - ".github/workflows/docs.yml"
+      - "overrides/**"
+      - "scripts/site_analytics.mjs"
+      - "scripts/site-analytics.json"
   workflow_dispatch:
 
-permissions:
-  contents: read
-  pages: write
-  id-token: write
+# Least privilege at the workflow level; jobs opt into the scopes they need.
+permissions: {}
 
 concurrency:
-  group: "pages"
-  cancel-in-progress: false
+  group: ${{ github.event_name == 'pull_request' && format('pages-pr-{0}', github.ref) || 'pages' }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Checkout code
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
@@ -43,7 +53,8 @@ jobs:
 
       - name: Prepare visitor analytics
         # Fetches the pinned @dougborg/site-analytics, checks its integrity, and
-        # writes the config element and module; see scripts/site_analytics.mjs.
+        # writes the config element and module file; overrides/main.html adds the
+        # module tag. See scripts/site_analytics.mjs.
         run: node scripts/site_analytics.mjs prepare
 
       - name: Build documentation
@@ -60,22 +71,28 @@ jobs:
       #     CI_DOCS_BUILD: "true"
 
       - name: Setup Pages
+        if: github.event_name != 'pull_request'
         uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5.0.0
 
       - name: Check every page is tracked and links the privacy page
         run: node scripts/site_analytics.mjs check site
 
       - name: Upload artifact
+        if: github.event_name != 'pull_request'
         uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b # v4.0.0
         with:
           path: site
 
   deploy:
+    if: github.event_name != 'pull_request'
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     needs: build
+    permissions:
+      pages: write
+      id-token: write
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
