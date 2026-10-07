@@ -1,13 +1,14 @@
 site_name: StockTrim OpenAPI Client
 site_description: Python client library and MCP server for StockTrim Inventory Management API
 site_author: Doug Borg
-site_url: https://dougborg.github.io/stocktrim-openapi-client/
+site_url: https://dougborg.org/stocktrim-openapi-client/
 repo_url: https://github.com/dougborg/stocktrim-openapi-client
 repo_name: dougborg/stocktrim-openapi-client
 edit_uri: edit/main/docs/
 
 theme:
   name: material
+  custom_dir: overrides
   palette:
     # Light mode
     - media: "(prefers-color-scheme: light)"
@@ -133,4 +134,4 @@ extra:
     - icon: fontawesome/brands/python
       link: https://pypi.org/project/stocktrim-openapi-client/
 
-copyright: Copyright &copy; 2024-2025 Doug Borg
+copyright: Copyright &copy; 2024-2025 Doug Borg · <a href="https://dougborg.org/privacy/">Privacy</a>
