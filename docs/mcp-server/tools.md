@@ -234,7 +234,12 @@ Create a single product.
 
 **Parameters:**
 
-- product fields (code, name, category, cost, price, etc.)
+- `code` (string, required): Unique product code
+- `description` (string, required): Product description
+- `unit_of_measurement` (string, optional): Unit of measurement, e.g. `EA`, `KG`
+- `is_active` (boolean, default `true`): Whether the product is active
+- `cost_price` (number, optional): Cost price
+- `selling_price` (number, optional): Selling price
 
 ### `delete_product` 🔴
 
@@ -494,7 +499,8 @@ Create a new location.
 
 **Parameters:**
 
-- `location` (object): Location data
+- `code` (string, required): Unique location code
+- `name` (string, required): Location name
 
 ## Not Yet Available as MCP Tools
 
